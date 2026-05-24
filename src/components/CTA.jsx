@@ -10,9 +10,12 @@ export default function CTA() {
             Get started in minutes. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="w-full sm:w-auto px-8 py-3.5 bg-white text-indigo-700 font-semibold rounded-xl shadow-md hover:bg-indigo-50 transition-all">
+            <a
+              href="https://frontend-theta-dusky-91.vercel.app/login2"
+              className="w-full sm:w-auto text-center px-8 py-3.5 bg-white text-indigo-700 font-semibold rounded-xl shadow-md hover:bg-indigo-50 transition-all"
+            >
               Start for free
-            </button>
+            </a>
             <button className="w-full sm:w-auto px-8 py-3.5 border border-indigo-400 text-white font-semibold rounded-xl hover:bg-indigo-500 transition-all">
               Talk to sales
             </button>

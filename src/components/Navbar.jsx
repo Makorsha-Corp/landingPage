@@ -11,12 +11,18 @@ export default function Navbar() {
           <a href="#about" className="hover:text-gray-900 transition-colors">About</a>
         </div>
         <div className="flex items-center gap-3">
-          <button className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2">
+          <a
+            href="https://frontend-theta-dusky-91.vercel.app/login2"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2"
+          >
             Sign in
-          </button>
-          <button className="text-sm font-semibold bg-gray-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-gray-700 transition-colors">
+          </a>
+          <a
+            href="https://frontend-theta-dusky-91.vercel.app/login2"
+            className="text-sm font-semibold bg-gray-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-gray-700 transition-colors"
+          >
             Get started
-          </button>
+          </a>
         </div>
       </div>
     </nav>
