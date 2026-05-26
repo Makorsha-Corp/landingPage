@@ -1,75 +1,75 @@
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-white pt-24 pb-32">
-      {/* Subtle gradient blob */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full bg-gradient-to-br from-indigo-50 via-purple-50 to-white opacity-70 blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden">
+      {/* Gradient Background */}
+      <div 
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 80% 70% at 50% 0%, hsl(var(--primary) / 0.15) 0%, transparent 60%)`
+        }}
+      />
+      
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
+        <div className="mx-auto max-w-3xl text-center">
+          {/* Badge */}
+          <div className="animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm">
+            <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
+            <span className="text-muted-foreground">Now in public beta</span>
+          </div>
 
-      <div className="max-w-4xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-8 animate-fade-in">
-          Simple ERP · Built for teams that move fast
-        </div>
+          {/* Headline */}
+          <h1 className="animate-fade-up delay-100 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+            Simple ERP for{' '}
+            <span className="text-primary">growing businesses</span>
+          </h1>
 
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900 leading-[1.05] mb-6 animate-fade-up">
-          Run your business,<br />
-          <span className="text-indigo-600">not your software.</span>
-        </h1>
+          {/* Subheadline */}
+          <p className="animate-fade-up delay-200 mt-6 text-lg sm:text-xl leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+            Manage orders, inventory, accounts, and production in one unified platform. 
+            Built for textile mills and manufacturers who need clarity, not complexity.
+          </p>
 
-        <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up delay-100">
-          Marker brings inventory, orders, finances, and your team into one clean workspace — no bloat, no six-month onboarding.
-        </p>
+          {/* CTAs */}
+          <div className="animate-fade-up delay-300 mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://frontend-theta-dusky-91.vercel.app/login2"
+              className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-lg bg-primary px-8 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5"
+            >
+              Get started free
+              <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+            <button
+              className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-lg border border-border bg-card px-8 text-base font-semibold text-foreground transition-all hover:bg-muted hover:-translate-y-0.5"
+            >
+              <svg className="mr-2 h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Watch demo
+            </button>
+          </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up delay-200">
-          <a
-            href="https://frontend-theta-dusky-91.vercel.app/login2"
-            className="w-full sm:w-auto text-center px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
-          >
-            Start free trial
-          </a>
-          <button className="w-full sm:w-auto px-8 py-3.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl shadow-sm hover:border-gray-300 hover:shadow-md transition-all">
-            See a demo
-          </button>
-        </div>
-
-        {/* Dashboard preview placeholder */}
-        <div className="mt-20 animate-fade-up delay-300">
-          <div className="relative mx-auto max-w-5xl rounded-2xl border border-gray-200 bg-gray-50 shadow-2xl shadow-gray-200 overflow-hidden">
-            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-gray-200 bg-white">
-              <span className="w-3 h-3 rounded-full bg-red-400" />
-              <span className="w-3 h-3 rounded-full bg-yellow-400" />
-              <span className="w-3 h-3 rounded-full bg-green-400" />
-              <span className="ml-4 text-xs text-gray-400 font-mono">app.marker.so/dashboard</span>
+          {/* Trust Indicators */}
+          <div className="animate-fade-up delay-400 mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>No credit card required</span>
             </div>
-            <div className="grid grid-cols-3 gap-4 p-6">
-              {[
-                { label: 'Revenue', value: '$84,320', change: '+12%', color: 'indigo' },
-                { label: 'Open Orders', value: '142', change: '+5%', color: 'emerald' },
-                { label: 'Low Stock', value: '7 items', change: '-3%', color: 'amber' },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-left"
-                >
-                  <p className="text-xs text-gray-400 font-medium mb-1">{card.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className={`text-xs mt-1 font-semibold ${card.color === 'amber' ? 'text-amber-500' : card.color === 'emerald' ? 'text-emerald-500' : 'text-indigo-500'}`}>
-                    {card.change} this month
-                  </p>
-                </div>
-              ))}
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>14-day free trial</span>
             </div>
-            <div className="px-6 pb-6">
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-                {['Order #1041 — Acme Corp', 'Order #1040 — Global Traders', 'Order #1039 — Sunrise Ltd'].map((row, i) => (
-                  <div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span className="text-gray-700 font-medium">{row}</span>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-semibold">
-                      {['Shipped', 'Processing', 'Confirmed'][i]}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Cancel anytime</span>
             </div>
           </div>
         </div>
