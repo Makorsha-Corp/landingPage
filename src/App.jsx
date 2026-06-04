@@ -1,27 +1,12 @@
-import Navbar from './components/Navbar'
-import Hero from './components/Hero'
-import DemoPreview from './components/DemoPreview'
-import Features from './components/Features'
-import Pricing from './components/Pricing'
-import Testimonials from './components/Testimonials'
-import FAQ from './components/FAQ'
-import CTA from './components/CTA'
-import Footer from './components/Footer'
+import { Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Homepage2 from './pages/Homepage2'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-      <main>
-        <Hero />
-        <DemoPreview />
-        <Features />
-        <Pricing />
-        <Testimonials />
-        <FAQ />
-        <CTA />
-      </main>
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/home2" element={<Homepage2 />} />
+    </Routes>
   )
 }
