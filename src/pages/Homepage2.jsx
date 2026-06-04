@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
+import Pricing from '../components/Pricing'
 
 /**
  * Focus stops. fx/fy are the focus point as a fraction (0..1) of the
@@ -295,6 +296,7 @@ export default function Homepage2() {
   const { theme, toggleTheme } = useTheme()
   const scrollerRef = useRef(null)
   const sectionRef = useRef(null)
+  const pricingRef = useRef(null)
   const [progress, setProgress] = useState(0)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [cardVariant, setCardVariant] = useState('glass') // 'glass' | 'light'
@@ -352,11 +354,15 @@ export default function Homepage2() {
   const tx = (0.5 - fx) * 100 * scale
   const ty = (0.5 - fy) * 100 * scale
 
+  // Hero shows on the overview screen; reappears when scrolled back to top.
+  const heroActive = progress < 0.02
+
   const stageStyle = {
     transform: `translate(${tx}%, ${ty}%) scale(${scale})`,
+    filter: heroActive ? 'blur(8px)' : 'none',
     transition: reducedMotion
       ? 'none'
-      : 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+      : 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), filter 0.6s ease',
   }
 
   const scrollToStop = (idx) => {
@@ -365,6 +371,39 @@ export default function Homepage2() {
     if (!scroller || !section) return
     const scrollable = section.offsetHeight - scroller.clientHeight
     scroller.scrollTo({ top: (idx / segments) * scrollable, behavior: 'smooth' })
+  }
+
+  const goPricing = () => {
+    const scroller = scrollerRef.current
+    const target = pricingRef.current
+    if (!scroller || !target) return
+    const dest =
+      scroller.scrollTop +
+      target.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top
+    if (reducedMotion) {
+      scroller.scrollTo({ top: dest, behavior: 'auto' })
+      return
+    }
+    // Fixed-duration glide (snap off) so it scrolls there fast without
+    // dwelling on each story section.
+    const start = scroller.scrollTop
+    const change = dest - start
+    const duration = 700
+    const startTime = performance.now()
+    const prevSnap = scroller.style.scrollSnapType
+    scroller.style.scrollSnapType = 'none'
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+    const step = (now) => {
+      const t = clamp((now - startTime) / duration, 0, 1)
+      scroller.scrollTop = start + change * ease(t)
+      if (t < 1) window.requestAnimationFrame(step)
+      else scroller.style.scrollSnapType = prevSnap
+    }
+    window.requestAnimationFrame(step)
+  }
+  const goExplore = () => {
+    scrollToStop(1)
   }
 
   const glass = cardVariant === 'glass'
@@ -438,7 +477,7 @@ export default function Homepage2() {
         {/* Building stage pinned over the snap panels */}
         <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
           <div
-            className="relative h-screen aspect-[1024/826] will-change-transform"
+            className="relative h-screen aspect-[1024/831] will-change-transform"
             style={stageStyle}
           >
             <img
@@ -449,8 +488,45 @@ export default function Homepage2() {
             />
           </div>
 
+          {/* Hero overlay (overview screen, blurred building behind) */}
+          <div
+            className={`absolute inset-0 z-30 flex items-center justify-center transition-opacity duration-500 ${
+              heroActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="relative mx-auto max-w-2xl px-6 text-center text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
+                Marker ERP
+              </span>
+              <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]">
+                Run your whole factory from one place
+              </h1>
+              <p className="mx-auto mt-4 max-w-xl text-base sm:text-lg leading-relaxed text-white/90">
+                Orders, inventory, accounts, machines, and production — one platform from the executive office down to the loading dock.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  onClick={goPricing}
+                  className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-lg bg-primary px-8 text-base font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-hover hover:-translate-y-0.5"
+                >
+                  Purchase
+                </button>
+                <button
+                  onClick={goExplore}
+                  className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-lg border border-white/40 bg-white/10 px-8 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 hover:-translate-y-0.5"
+                >
+                  Explore
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Feature callout */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+          <div
+            className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 transition-opacity duration-300 ${
+              heroActive ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
             <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14">
               <div
                 key={activeStop.id}
@@ -469,19 +545,21 @@ export default function Homepage2() {
             </div>
           </div>
 
-          {/* Right-side progress bar */}
-          <RightBar
-            variant={barVariant}
-            stops={STOPS}
-            activeIndex={activeIndex}
-            progress={progress}
-            onJump={scrollToStop}
-          />
+          {/* Right-side progress bar (hidden while hero shows) */}
+          {!heroActive && (
+            <RightBar
+              variant={barVariant}
+              stops={STOPS}
+              activeIndex={activeIndex}
+              progress={progress}
+              onJump={scrollToStop}
+            />
+          )}
 
           {/* Scroll hint (fades out after first stop) */}
           <div
             className="pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 transition-opacity duration-500"
-            style={{ opacity: progress < 0.04 ? 1 : 0 }}
+            style={{ opacity: !heroActive && progress < 0.06 ? 1 : 0 }}
           >
             <div className="flex items-center gap-2 rounded-full border border-border bg-card/90 backdrop-blur-md px-4 py-2 text-sm font-medium text-foreground shadow-lg">
               <span>Scroll to explore</span>
@@ -500,6 +578,11 @@ export default function Homepage2() {
           ))}
         </div>
       </section>
+
+      {/* Pricing */}
+      <div ref={pricingRef} className="snap-start">
+        <Pricing />
+      </div>
 
       {/* Closing CTA */}
       <section className="relative snap-start py-24 sm:py-32">
