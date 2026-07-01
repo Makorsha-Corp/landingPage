@@ -100,7 +100,58 @@
     -moz-osx-font-smoothing: grayscale;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* View Transitions API — circular wipe from toggle origin */
+@keyframes theme-wipe {
+  to {
+    clip-path: circle(150vmax at var(--theme-x) var(--theme-y));
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  clip-path: circle(0 at var(--theme-x) var(--theme-y));
+  animation: theme-wipe 0.45s ease-out forwards;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+.theme-toggle-icon--animate {
+  animation: theme-icon-spin 0.4s ease;
+}
+
+@keyframes theme-icon-spin {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.85);
+  }
+  to {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: theme-wipe 0.45s ease-out forwards;
+  }
+
+  .theme-toggle-icon--animate {
+    animation: theme-icon-spin 0.4s ease;
   }
 }
 
@@ -126,6 +177,29 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary-hover));
+}
+
+.homepage2-page,
+.homepage2-page body,
+.homepage2-page #root {
+  overflow: hidden;
+  height: 100%;
+  background: transparent;
+}
+
+.homepage2-page #root > * {
+  height: 100%;
+}
+
+.homepage2-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.homepage2-scroller::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Animations */
