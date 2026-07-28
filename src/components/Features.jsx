@@ -1,3 +1,5 @@
+import SectionEyebrow from './SectionEyebrow'
+
 const features = [
   {
     title: 'Order Management',
@@ -62,7 +64,7 @@ export default function Features() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mx-auto max-w-2xl text-center mb-16">
-          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Features</span>
+          <SectionEyebrow>Features</SectionEyebrow>
           <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Everything you need to run your operation
           </h2>

@@ -1,3 +1,5 @@
+import BrandLogo from './BrandLogo'
+
 export default function Footer() {
   const currentYear = new Date().getFullYear()
 
@@ -28,11 +30,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
+              <BrandLogo />
               <span className="text-xl font-bold text-foreground">Marker</span>
             </div>
             <p className="text-muted-foreground max-w-xs mb-6">

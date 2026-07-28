@@ -22,7 +22,7 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     applyThemeToDocument(theme)
-  }, [])
+  }, [theme])
 
   const runWithTransition = useCallback((nextTheme, event) => {
     const apply = () => {

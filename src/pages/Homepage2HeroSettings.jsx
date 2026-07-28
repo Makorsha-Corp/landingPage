@@ -1,3 +1,5 @@
+import Button from '../components/ui/Button'
+
 const inputCls =
   'w-full rounded-lg border border-white/20 bg-black/30 px-2.5 py-1.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary/40'
 const labelCls = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-white/60'
@@ -52,13 +54,9 @@ export default function Homepage2HeroSettings({ hero, onChange, onSave }) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onSave}
-        className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
-      >
+      <Button type="button" onClick={onSave} size="xs" className="w-full">
         Save hero
-      </button>
+      </Button>
     </div>
   )
 }

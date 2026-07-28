@@ -4,13 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { NavLayoutProvider } from './context/NavLayoutContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <NavLayoutProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </NavLayoutProvider>
     </ThemeProvider>
   </StrictMode>,
 )

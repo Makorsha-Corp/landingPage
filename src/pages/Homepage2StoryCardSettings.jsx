@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Button from '../components/ui/Button'
 import { CardPlacementDpad, CardSizeControls, normalizeCard } from './Homepage2CardControls'
 
 const inputCls =
@@ -95,13 +96,9 @@ export default function Homepage2StoryCardSettings({ stop, onChange, onSave }) {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onSave}
-        className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
-      >
+      <Button type="button" onClick={onSave} size="xs" className="w-full">
         Save section
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,3 +1,6 @@
+import SectionEyebrow from './SectionEyebrow'
+import Button from './ui/Button'
+
 const tiers = [
   {
     name: 'Starter',
@@ -50,86 +53,108 @@ const tiers = [
   },
 ]
 
-export default function Pricing() {
+export default function Pricing({ onFaqClick, onJoinWaitlist }) {
   return (
-    <section id="pricing" className="py-20 sm:py-28 bg-muted/30">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <span className="text-sm font-semibold uppercase tracking-widest text-primary">Pricing</span>
-          <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+    <section
+      id="pricing"
+      className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden py-8 sm:py-10"
+    >
+      <div className="relative z-[1] mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
+          <SectionEyebrow>Pricing</SectionEyebrow>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Simple, transparent pricing
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Choose the plan that fits your business. All plans include a 14-day free trial.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid min-h-0 grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-5">
           {tiers.map((tier, index) => (
             <div
               key={tier.name}
-              className={`animate-fade-up delay-${(index + 1) * 100} relative rounded-2xl border ${
+              className={`relative flex min-h-0 flex-col rounded-2xl border p-4 sm:p-5 ${
                 tier.highlighted
-                  ? 'border-primary bg-card shadow-xl shadow-primary/10 scale-105 z-10'
-                  : 'border-border bg-card'
-              } p-8 transition-all hover:shadow-lg`}
+                  ? 'z-10 border-primary bg-card shadow-xl shadow-primary/10'
+                  : 'border-border/80 bg-card shadow-sm'
+              } ${index === 1 ? 'lg:-mt-1 lg:mb-1' : ''}`}
             >
               {tier.highlighted && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center rounded-full bg-primary px-4 py-1 text-sm font-semibold text-white">
-                    Most Popular
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="inline-flex items-center rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-white">
+                    Most popular
                   </span>
                 </div>
               )}
 
-              <div className="text-center">
+              <div className="mb-3">
                 <h3 className="text-lg font-semibold text-foreground">{tier.name}</h3>
-                <div className="mt-4 flex items-baseline justify-center gap-1">
-                  <span className="text-4xl font-bold text-foreground">{tier.price}</span>
-                  <span className="text-muted-foreground">{tier.period}</span>
+                <div className="mt-1.5 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold tracking-tight text-foreground">{tier.price}</span>
+                  {tier.period ? (
+                    <span className="text-sm text-muted-foreground">{tier.period}</span>
+                  ) : null}
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{tier.description}</p>
+                <p className="mt-2 text-xs leading-snug text-muted-foreground sm:text-sm">
+                  {tier.description}
+                </p>
               </div>
 
-              <ul className="mt-8 space-y-3">
+              <ul className="mt-4 flex-1 space-y-1.5">
                 {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
+                  <li key={feature} className="flex items-start gap-2">
                     <svg
-                      className="h-5 w-5 flex-shrink-0 text-primary mt-0.5"
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                       strokeWidth={2}
+                      aria-hidden="true"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-muted-foreground">{feature}</span>
+                    <span className="text-xs leading-snug text-muted-foreground sm:text-sm">
+                      {feature}
+                    </span>
                   </li>
                 ))}
               </ul>
 
-              <a
-                href={tier.name === 'Enterprise' ? '#contact' : 'https://frontend-theta-dusky-91.vercel.app/login2'}
-                className={`mt-8 block w-full rounded-lg py-3 text-center font-semibold transition-colors ${
-                  tier.highlighted
-                    ? 'bg-primary text-white hover:bg-primary-hover'
-                    : 'border border-border bg-card text-foreground hover:bg-muted'
-                }`}
+              <Button
+                as={tier.name === 'Enterprise' ? 'a' : 'button'}
+                href={tier.name === 'Enterprise' ? '#contact' : undefined}
+                type={tier.name === 'Enterprise' ? undefined : 'button'}
+                onClick={
+                  tier.name === 'Enterprise'
+                    ? undefined
+                    : () => onJoinWaitlist?.('pricing')
+                }
+                variant={tier.highlighted ? 'marketing' : 'outline'}
+                size="sm"
+                className="mt-4 w-full sm:mt-5"
               >
                 {tier.cta}
-              </a>
+              </Button>
             </div>
           ))}
         </div>
 
-        {/* Bottom Note */}
-        <p className="mt-12 text-center text-sm text-muted-foreground">
-          All prices in USD. Billed monthly or annually (save 20%). 
-          <a href="#faq" className="text-primary hover:underline ml-1">
-            See FAQ for more details
-          </a>
+        <p className="mt-4 text-center text-xs text-muted-foreground sm:mt-5 sm:text-sm">
+          All prices in USD. Billed monthly or annually (save 20%).
+          {onFaqClick ? (
+            <button
+              type="button"
+              onClick={onFaqClick}
+              className="ml-1 text-primary hover:underline"
+            >
+              See FAQ for more details
+            </button>
+          ) : (
+            <a href="#faq" className="ml-1 text-primary hover:underline">
+              See FAQ for more details
+            </a>
+          )}
         </p>
       </div>
     </section>
