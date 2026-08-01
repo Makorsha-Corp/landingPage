@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  HERO_EXIT_DURATION_MS,
   clamp,
   computeBackgroundTransforms,
   computeTourFrame,
   exponentialSmoothing,
-  heroExitEase,
+  smoothstep,
 } from '../lib/tourScrollMath'
 
 const SETTLE_EPSILON = 0.05
@@ -25,15 +24,20 @@ export default function useTourCamera({
   heroCamera,
   reducedMotion,
   editMode,
+  overlayPaused = false,
 }) {
   const progressRef = useRef(0)
   const displayHeroExitTRef = useRef(0)
-  const exitAnimatingRef = useRef(false)
-  const exitStartRef = useRef(0)
   const smoothedRef = useRef({ tx: 0, ty: 0, scale: 1 })
   const dirtyRef = useRef(true)
   const activeIndexRef = useRef(0)
   const heroActiveRef = useRef(true)
+  const snapCameraRef = useRef(false)
+  const overlayPausedRef = useRef(overlayPaused)
+  useEffect(() => {
+    overlayPausedRef.current = overlayPaused
+  }, [overlayPaused])
+  const SNAP_PROGRESS_DELTA = 0.015
 
   const [activeIndex, setActiveIndex] = useState(0)
   const [heroActive, setHeroActive] = useState(true)
@@ -51,42 +55,28 @@ export default function useTourCamera({
       return scrollable > 0 ? clamp(scroller.scrollTop / scrollable, 0, 1) : 0
     }
 
-    const updateHeroExit = (progress, now) => {
+    const updateHeroExit = (progress) => {
       const heroPanelCount = 1
       const totalPanels = heroPanelCount + stops.length
       const heroSegment = 1 / (totalPanels - 1)
       const heroActiveNow = progress < heroSegment * 0.5
+      const exitStart = heroSegment * 0.5
+      const exitEnd = heroSegment
+      const scrollExitT = smoothstep(
+        clamp((progress - exitStart) / (exitEnd - exitStart), 0, 1),
+      )
+
+      if (heroActiveNow || progress < 0.005) {
+        displayHeroExitTRef.current = 0
+        return
+      }
 
       if (reducedMotion) {
-        displayHeroExitTRef.current = heroActiveNow ? 0 : 1
-        exitAnimatingRef.current = false
+        displayHeroExitTRef.current = 1
         return
       }
 
-      if (progress < 0.005) {
-        displayHeroExitTRef.current = 0
-        exitAnimatingRef.current = false
-        return
-      }
-
-      if (heroActiveNow) {
-        displayHeroExitTRef.current = 0
-        exitAnimatingRef.current = false
-        return
-      }
-
-      if (progress >= 0.008 && displayHeroExitTRef.current < 1 && !exitAnimatingRef.current) {
-        exitAnimatingRef.current = true
-        exitStartRef.current = now
-      }
-
-      if (exitAnimatingRef.current) {
-        const t = clamp((now - exitStartRef.current) / HERO_EXIT_DURATION_MS, 0, 1)
-        displayHeroExitTRef.current = heroExitEase(t)
-        if (t >= 1) {
-          exitAnimatingRef.current = false
-        }
-      }
+      displayHeroExitTRef.current = scrollExitT
     }
 
     const applyDomFrame = (frame, stageTransform, background) => {
@@ -98,6 +88,7 @@ export default function useTourCamera({
       }
       if (backgroundImgRef.current) {
         backgroundImgRef.current.style.transform = background.imgTransform || ''
+        backgroundImgRef.current.style.opacity = String(frame.sharpBgOpacity)
         backgroundImgRef.current.style.objectFit = background.imgObjectFit
         backgroundImgRef.current.style.objectPosition = background.imgObjectPosition
       }
@@ -134,11 +125,13 @@ export default function useTourCamera({
 
     const tick = (now) => {
       raf = 0
+      if (overlayPausedRef.current) return
+
       const dt = Math.min(now - lastTime, 48)
       lastTime = now
 
       const progress = progressRef.current
-      updateHeroExit(progress, now)
+      updateHeroExit(progress)
 
       const frame = computeTourFrame({
         progress,
@@ -154,7 +147,13 @@ export default function useTourCamera({
       const targetTy = frame.ty
       const targetScale = frame.camScale
 
-      if (reducedMotion) {
+      const leavingHero = heroActiveRef.current && !frame.heroActive
+      if (snapCameraRef.current || leavingHero) {
+        smoothed.tx = targetTx
+        smoothed.ty = targetTy
+        smoothed.scale = targetScale
+        snapCameraRef.current = false
+      } else if (reducedMotion) {
         smoothed.tx = targetTx
         smoothed.ty = targetTy
         smoothed.scale = targetScale
@@ -178,19 +177,24 @@ export default function useTourCamera({
       const settling =
         Math.abs(smoothed.tx - targetTx) > SETTLE_EPSILON ||
         Math.abs(smoothed.ty - targetTy) > SETTLE_EPSILON ||
-        Math.abs(smoothed.scale - targetScale) > 0.002 ||
-        exitAnimatingRef.current
+        Math.abs(smoothed.scale - targetScale) > 0.002
 
-      if (dirtyRef.current || settling) {
+      if ((dirtyRef.current || settling) && !overlayPausedRef.current) {
         dirtyRef.current = false
         raf = requestAnimationFrame(tick)
       }
     }
 
     const onScroll = () => {
-      progressRef.current = readProgress()
+      if (overlayPausedRef.current) return
+      const prevProgress = progressRef.current
+      const nextProgress = readProgress()
+      if (Math.abs(nextProgress - prevProgress) > SNAP_PROGRESS_DELTA) {
+        snapCameraRef.current = true
+      }
+      progressRef.current = nextProgress
       dirtyRef.current = true
-      if (!raf) raf = requestAnimationFrame(tick)
+      if (!raf && !overlayPausedRef.current) raf = requestAnimationFrame(tick)
     }
 
     progressRef.current = readProgress()
@@ -204,7 +208,7 @@ export default function useTourCamera({
     })
     smoothedRef.current = { tx: initial.tx, ty: initial.ty, scale: initial.camScale }
     dirtyRef.current = true
-    raf = requestAnimationFrame(tick)
+    if (!overlayPausedRef.current) raf = requestAnimationFrame(tick)
 
     scroller.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)

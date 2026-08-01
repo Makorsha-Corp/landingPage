@@ -17,5 +17,10 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // HMR-only concern; contexts and control panels intentionally co-locate
+      // hooks/constants with their components.
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

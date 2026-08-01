@@ -13,6 +13,7 @@ import {
   cloneCapabilities,
   capabilitiesForStorage,
   mergeCapabilitiesFromSaved,
+  normalizeCapabilitiesEyebrow,
 } from '../lib/capabilitiesContent'
 import {
   cloneFaq,
@@ -34,9 +35,51 @@ import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardContro
 import { getStoryCardStyles } from '../lib/storyCardStyles'
 
 const STOPS_STORAGE_KEY = 'homepage2-section-texts'
+
+const DEFAULT_TOUR_WASH_OPACITY = { light: 15, dark: 15 }
+
+const DEFAULT_SECTION_BACKDROPS = {
+  tour: true,
+  features: false,
+  proof: false,
+  pricing: false,
+  faq: false,
+  waitlist: false,
+}
+
+function normalizeSectionBackdrops(parsed) {
+  const next = { ...DEFAULT_SECTION_BACKDROPS }
+  if (parsed?.sectionBackdrops && typeof parsed.sectionBackdrops === 'object') {
+    for (const key of Object.keys(DEFAULT_SECTION_BACKDROPS)) {
+      if (typeof parsed.sectionBackdrops[key] === 'boolean') {
+        next[key] = parsed.sectionBackdrops[key]
+      }
+    }
+  } else if (typeof parsed?.featuresBackdropEnabled === 'boolean') {
+    next.features = parsed.featuresBackdropEnabled
+  }
+  return next
+}
+
+function normalizeTourWashOpacity(value) {
+  const clampPct = (n, fallback) => {
+    const parsed = Number(n)
+    if (!Number.isFinite(parsed)) return fallback
+    return Math.min(100, Math.max(0, Math.round(parsed)))
+  }
+  return {
+    light: clampPct(value?.light, DEFAULT_TOUR_WASH_OPACITY.light),
+    dark: clampPct(value?.dark, DEFAULT_TOUR_WASH_OPACITY.dark),
+  }
+}
 const HOMEPAGE_BACKGROUNDS = {
   light: '/homepage-background.png',
   dark: '/homepage-background-dark.png',
+}
+
+const HOMEPAGE_BLUR_BACKGROUNDS = {
+  light: '/homepage-background-blur.png',
+  dark: '/homepage-background-blur-dark.png',
 }
 
 function getScrollHintPillStyles(theme) {
@@ -127,10 +170,15 @@ function RightBarShell({ wrap, bar, gap, onStepPrev, onStepNext, children }) {
 const DEFAULT_STOPS = [
   {
     id: 'overview',
-    title: 'Your whole operation, one building',
-    desc: 'Marker brings every floor of your business together. Scroll to tour each level — from the executive office down to the loading dock.',
-    desc2: 'One connected system means no more juggling spreadsheets, disconnected tools, or guesswork between departments.',
-    points: ['Single source of truth', 'Role-based access', 'Real-time across floors', 'No spreadsheet sprawl'],
+    title: 'Your whole operation, one place.',
+    desc: "We've built our system in collaboration with factory owners, so we understand your problems. Bad logging, scattered tracking and a lack of clear communication is the root cause of all inefficiencies in factory workflows. And so we've thought of a way to have every section track every decision.",
+    desc2: 'Our connected system means no more juggling spreadsheets, disconnected tools, or guesswork between departments.',
+    points: [
+      'Single source of truth',
+      'Every decision on the record',
+      'Real-time across floors',
+      'Full ledgers and event logs',
+    ],
     fx: 0.5,
     fy: 0.5,
     scale: 1,
@@ -139,7 +187,7 @@ const DEFAULT_STOPS = [
   {
     id: 'reports',
     title: 'Dashboard & Reports',
-    desc: 'Get the full picture from the executive view — live KPIs, financial summaries, and reports that turn your operation into clear decisions.',
+    desc: 'Get the full picture from the executive view — live KPIs, financial summaries, and reports that turn data into clear decisions.',
     desc2: 'Drill into any metric, export board-ready summaries, and spot trends before they become problems.',
     points: ['Live KPI dashboards', 'Financial summaries', 'Custom reports', 'Trend alerts'],
     fx: 0.52,
@@ -150,9 +198,14 @@ const DEFAULT_STOPS = [
   {
     id: 'orders',
     title: 'Orders & Workflows',
-    desc: 'Plan and track purchase, transfer, and sales orders through multi-stage workflows — from request to approval to completion.',
-    desc2: 'Every order carries its own approvals, line items, and history so nothing slips through the cracks.',
-    points: ['Purchase / transfer / sales', 'Multi-stage approvals', 'Line-item tracking', 'Full audit history'],
+    desc: 'Plan and track purchase, transfer, and sales orders through multi-stage workflows. Every workspace has their own way of handling orders, and so we let you decide your way of operating.',
+    desc2: "Every order carries its items and history, with configurable approval chains, so nothing slips through the cracks. Placing an order also shows you insights on prices of your previous purchases, allowing you to find the perfect seller. And if a purchase order ever needs undoing, voiding it reverses the inventory, clears the approvals, and unwinds the invoice with it.",
+    points: [
+      'Purchase / transfer / sales',
+      'Multi-stage approvals',
+      'Best price & supplier picks',
+      'Full audit history',
+    ],
     fx: 0.33,
     fy: 0.47,
     scale: 2.2,
@@ -160,10 +213,15 @@ const DEFAULT_STOPS = [
   },
   {
     id: 'accounts',
-    title: 'Accounts & Team',
-    desc: 'Manage suppliers, customers, invoices, and payments — with your whole team working from one shared source of truth.',
-    desc2: 'Track payables and receivables, log payments, and keep every account reconciled in real time.',
-    points: ['Suppliers & customers', 'Invoices & payments', 'Payables / receivables', 'Real-time reconciliation'],
+    title: 'Accounts & Invoices',
+    desc: 'Manage suppliers, customers, invoices, and payments. Every payment is tracked against the invoice it belongs to.',
+    desc2: 'Track payables and receivables, log payments, and watch every balance update the moment money moves.',
+    points: [
+      'Suppliers & customers',
+      'Invoices & payments',
+      'Auto-synced from orders',
+      'Real-time reconciliation',
+    ],
     fx: 0.64,
     fy: 0.50,
     scale: 2.2,
@@ -172,9 +230,14 @@ const DEFAULT_STOPS = [
   {
     id: 'production',
     title: 'Production & Machines',
-    desc: 'Formula-driven manufacturing on the factory floor — track machines, batches, and expected vs actual output for every run.',
-    desc2: 'Catch variance early, measure efficiency per line, and keep maintenance schedules on track.',
-    points: ['Formula-driven batches', 'Expected vs actual', 'Per-line efficiency', 'Maintenance schedules'],
+    desc: "Formula-driven manufacturing on the factory floor, with every stage tracked down to the exact machine and line it runs on. See every machine's status at a glance: running, in maintenance, or idle, with what's overdue across the whole factory in just one view.",
+    desc2: "The day's machine checklist is one click to generate, not a spreadsheet you have to build by hand every morning. Raise a work order from the same screen, the moment something breaks or on a recurring schedule, with the parts it needs pulled straight from inventory.",
+    points: [
+      'Formula-driven batches',
+      'Stage-level waste tracking',
+      'Live machine status',
+      'One-click daily checklist',
+    ],
     fx: 0.27,
     fy: 0.76,
     scale: 2.4,
@@ -183,9 +246,14 @@ const DEFAULT_STOPS = [
   {
     id: 'inventory',
     title: 'Inventory & Logistics',
-    desc: 'Real-time stock across storage, machines, and projects — right up to the loading dock and out the door.',
-    desc2: 'Immutable ledgers record every movement, so balances always reconcile and audits are painless.',
-    points: ['Storage / machine / project', 'Immutable ledgers', 'Auto-reconciled balances', 'Painless audits'],
+    desc: "Real-time stock across storage, machines, and projects, right up to the loading dock and out the door. Finished goods are tracked separately from raw materials, so you always know what's still coming and what's ready to ship.",
+    desc2: 'Immutable ledgers record every movement, with balances updating automatically as they happen. Nothing disappears untracked, even damage and waste are logged as their own category, so audits are painless.',
+    points: [
+      'Storage / machine / project',
+      'Immutable ledgers',
+      'Live balance updates',
+      'Painless audits',
+    ],
     fx: 0.73,
     fy: 0.78,
     scale: 2.4,
@@ -194,10 +262,10 @@ const DEFAULT_STOPS = [
 ]
 
 const DEFAULT_HERO = {
-  badge: 'Marker ERP',
-  title: 'Run your whole factory from one place',
+  badge: 'Kolom ERP',
+  title: 'Your factory at your fingertips.',
   subtitle:
-    'Orders, inventory, accounts, machines, and production — one platform from the executive office down to the loading dock.',
+    "Kolom aims to help you manage your entire workspace from anywhere. Whether you're running solo, or collaborating with a massive team, or are an experienced manager working with multiple corporations, get detailed insights of how your operations are running at a price that won't break the bank, but instead help you make some. You won't know how much you're losing until you start tracking.",
 }
 
 function cloneStops(stops) {
@@ -230,7 +298,7 @@ function stopsForStorage(stops) {
     title: s.title,
     desc: s.desc,
     desc2: s.desc2,
-    points: s.points,
+    points: (s.points || []).map((p) => p.trim()).filter(Boolean),
     card: s.card,
   }))
 }
@@ -244,6 +312,10 @@ function loadSavedContent() {
     const result = {
       hero: { ...DEFAULT_HERO, ...parsed?.hero },
       heroCamera: normalizeHeroCamera(parsed?.heroCamera ?? DEFAULT_HERO_CAMERA),
+      tourWashOpacity: normalizeTourWashOpacity(
+        parsed?.tourWashOpacity ?? DEFAULT_TOUR_WASH_OPACITY,
+      ),
+      sectionBackdrops: normalizeSectionBackdrops(parsed),
       capabilities: mergeCapabilitiesFromSaved(parsed?.capabilities),
       faq: mergeFaqFromSaved(parsed?.faq),
     }
@@ -269,7 +341,7 @@ const BAR_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F']
 
 const LANDING_SECTIONS = [
   { id: 'tour', label: 'Tour' },
-  { id: 'capabilities', label: 'Capabilities' },
+  { id: 'features', label: 'Features' },
   { id: 'proof', label: 'Proof' },
   { id: 'pricing', label: 'Pricing' },
   { id: 'faq', label: 'FAQ' },
@@ -538,6 +610,12 @@ export default function Home() {
   const [heroCamera, setHeroCamera] = useState(
     () => saved?.heroCamera || { ...DEFAULT_HERO_CAMERA },
   )
+  const [tourWashOpacity, setTourWashOpacity] = useState(
+    () => saved?.tourWashOpacity || { ...DEFAULT_TOUR_WASH_OPACITY },
+  )
+  const [sectionBackdrops, setSectionBackdrops] = useState(() =>
+    normalizeSectionBackdrops(saved),
+  )
   const [capabilities, setCapabilities] = useState(() =>
     saved?.capabilities ? cloneCapabilities(saved.capabilities) : cloneCapabilities(DEFAULT_CAPABILITIES),
   )
@@ -545,6 +623,7 @@ export default function Home() {
     saved?.faq ? cloneFaq(saved.faq) : cloneFaq(mergeFaqFromSaved()),
   )
   const [waitlistSource, setWaitlistSource] = useState('waitlist_section')
+  const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.add('homepage2-page')
@@ -557,7 +636,7 @@ export default function Home() {
   const sectionRefMap = useMemo(
     () => ({
       tour: tourRef,
-      capabilities: capabilitiesRef,
+      features: capabilitiesRef,
       proof: testimonialsRef,
       pricing: pricingRef,
       faq: faqRef,
@@ -569,7 +648,7 @@ export default function Home() {
   const observedTargets = useMemo(
     () => [
       { id: 'tour', ref: tourRef },
-      { id: 'capabilities', ref: capabilitiesRef },
+      { id: 'features', ref: capabilitiesRef },
       { id: 'proof', ref: testimonialsRef },
       { id: 'pricing', ref: pricingRef },
       { id: 'faq', ref: faqRef },
@@ -603,6 +682,7 @@ export default function Home() {
     heroCamera: displayHeroCamera,
     reducedMotion,
     editMode,
+    overlayPaused: featureOverlayOpen,
   })
 
   const heroPanelCount = 1
@@ -708,6 +788,8 @@ export default function Home() {
     stops: nextStops,
     hero: nextHero,
     heroCamera: nextHeroCamera,
+    tourWashOpacity: nextTourWashOpacity,
+    sectionBackdrops: nextSectionBackdrops,
     capabilities: nextCapabilities,
     faq: nextFaq,
   }) => {
@@ -716,6 +798,12 @@ export default function Home() {
     const nextHeroCameraState = nextHeroCamera
       ? normalizeHeroCamera(nextHeroCamera)
       : heroCamera
+    const nextTourWashOpacityState = nextTourWashOpacity
+      ? normalizeTourWashOpacity(nextTourWashOpacity)
+      : tourWashOpacity
+    const nextSectionBackdropsState = nextSectionBackdrops
+      ? normalizeSectionBackdrops({ sectionBackdrops: nextSectionBackdrops })
+      : sectionBackdrops
     const nextCapabilitiesState = nextCapabilities
       ? cloneCapabilities(nextCapabilities)
       : capabilities
@@ -723,6 +811,8 @@ export default function Home() {
     if (nextStops) setStops(clonedStops)
     if (nextHero) setHero(nextHeroState)
     if (nextHeroCamera) setHeroCamera(nextHeroCameraState)
+    if (nextTourWashOpacity) setTourWashOpacity(nextTourWashOpacityState)
+    if (nextSectionBackdrops) setSectionBackdrops(nextSectionBackdropsState)
     if (nextCapabilities) setCapabilities(nextCapabilitiesState)
     if (nextFaq) setFaq(nextFaqState)
     localStorage.setItem(
@@ -731,10 +821,57 @@ export default function Home() {
         stops: stopsForStorage(clonedStops),
         hero: nextHeroState,
         heroCamera: nextHeroCameraState,
+        tourWashOpacity: nextTourWashOpacityState,
+        sectionBackdrops: nextSectionBackdropsState,
         capabilities: capabilitiesForStorage(nextCapabilitiesState),
         faq: faqForStorage(nextFaqState),
       }),
     )
+  }
+
+  useEffect(() => {
+    // One-time mount normalization of persisted state; the extra render only
+    // happens when stored data was in the legacy shape.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCapabilities((current) => {
+      const eyebrow = normalizeCapabilitiesEyebrow(current.eyebrow)
+      if (eyebrow === current.eyebrow) return current
+      const next = { ...current, eyebrow }
+      try {
+        const raw = localStorage.getItem(STOPS_STORAGE_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          localStorage.setItem(
+            STOPS_STORAGE_KEY,
+            JSON.stringify({
+              ...parsed,
+              capabilities: capabilitiesForStorage(next),
+            }),
+          )
+        }
+      } catch {
+        // ignore corrupt storage
+      }
+      return next
+    })
+  }, [])
+
+  const updateTourWashOpacity = (themeKey, value) => {
+    saveContent({
+      tourWashOpacity: {
+        ...tourWashOpacity,
+        [themeKey]: value,
+      },
+    })
+  }
+
+  const toggleSectionBackdrop = (sectionId) => {
+    saveContent({
+      sectionBackdrops: {
+        ...sectionBackdrops,
+        [sectionId]: !sectionBackdrops[sectionId],
+      },
+    })
   }
 
   const toggleEditMode = () => {
@@ -807,17 +944,42 @@ export default function Home() {
   const pageGradientStyle = reducedMotion
     ? getLoginGradientStyle(theme)
     : getLoginRadialGradientStyle()
+  const activeWashOpacity =
+    theme === 'dark' ? tourWashOpacity.dark : tourWashOpacity.light
+  const tourWashStyle = {
+    backgroundColor:
+      theme === 'dark'
+        ? `hsl(var(--primary) / ${activeWashOpacity / 100})`
+        : `rgb(255 255 255 / ${activeWashOpacity / 100})`,
+  }
+  const showCampusBackdrop = Boolean(sectionBackdrops[activeSection])
 
   return (
     <div
       ref={scrollerRef}
-      className="homepage2-scroller relative h-full min-h-0 overflow-y-auto snap-y snap-mandatory bg-background text-foreground"
+      className="homepage2-scroller relative h-full min-h-0 overflow-y-auto snap-y snap-mandatory bg-transparent text-foreground"
     >
       <div
-        className="pointer-events-none fixed inset-0 z-0 transition-[background] duration-500 ease-out"
-        style={pageGradientStyle}
+        className={`pointer-events-none fixed inset-0 z-0 overflow-hidden transition-opacity duration-500 ${
+          showCampusBackdrop ? 'opacity-100' : 'opacity-0'
+        }`}
         aria-hidden="true"
-      />
+      >
+        <img
+          src={HOMEPAGE_BLUR_BACKGROUNDS[theme]}
+          alt=""
+          className="homepage-bg-photo transition-opacity duration-500"
+        />
+        <div
+          className={`absolute inset-0 ${
+            theme === 'dark' ? 'bg-background/70' : 'bg-background/60'
+          }`}
+        />
+        <div
+          className="absolute inset-0 opacity-70 mix-blend-soft-light transition-[background] duration-500 ease-out"
+          style={pageGradientStyle}
+        />
+      </div>
       <div className="relative z-[1]">
       <LandingNavBar
         sections={LANDING_SECTIONS}
@@ -836,6 +998,12 @@ export default function Home() {
                   (value) => BAR_VARIANTS[(BAR_VARIANTS.indexOf(value) + 1) % BAR_VARIANTS.length],
                 )
               }
+              theme={theme}
+              tourWashOpacity={tourWashOpacity}
+              onTourWashOpacityChange={updateTourWashOpacity}
+              sectionBackdrops={sectionBackdrops}
+              backdropSections={LANDING_SECTIONS}
+              onToggleSectionBackdrop={toggleSectionBackdrop}
             />
             <ThemeToggleButton variant="nav" />
           </>
@@ -849,17 +1017,24 @@ export default function Home() {
           {/* Campus backdrop — parallax under the scroll-driven factory cutaway */}
           <div
             ref={backgroundWrapperRef}
-            className="absolute -inset-[12%] overflow-hidden pointer-events-none will-change-transform bg-campus-sky"
+            className="homepage-tour-bg-wrapper pointer-events-none will-change-transform"
           >
             <img
               ref={backgroundImgRef}
               src={HOMEPAGE_BACKGROUNDS[theme]}
               alt=""
               aria-hidden="true"
-              className="h-full w-full select-none"
+              className="homepage-tour-bg-photo select-none"
+              style={{ opacity: 0 }}
               draggable={false}
             />
           </div>
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0"
+            style={tourWashStyle}
+          />
 
           <div
             ref={stageRef}
@@ -1065,6 +1240,10 @@ export default function Home() {
         displayCapabilities={displayCapabilities}
         reducedMotion={reducedMotion}
         editMode={editMode}
+        scrollerRef={scrollerRef}
+        theme={theme}
+        sectionBackdrops={sectionBackdrops}
+        onFeatureOverlayOpenChange={setFeatureOverlayOpen}
         onCapabilitiesChange={setEditDraftCapabilities}
         onSaveCapabilities={saveCapabilitiesDraft}
         displayFaq={displayFaq}
