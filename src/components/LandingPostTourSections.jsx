@@ -4,9 +4,10 @@ import Testimonials from './Testimonials'
 import Pricing from './Pricing'
 import FAQ from './FAQ'
 import SignUpSection from './SignUpSection'
+import LoginZonePanel from './LoginZonePanel'
+import LoginZoneBackground from './LoginZoneBackground'
 
-const SECTION_SNAP_CLASS = 'deck-panel'
-const FAQ_SECTION_SNAP_CLASS = SECTION_SNAP_CLASS
+const CAMPUS_PANEL_CLASS = 'deck-panel'
 
 function LandingPostTourSections({
   capabilitiesRef,
@@ -18,47 +19,91 @@ function LandingPostTourSections({
   displayCapabilities,
   reducedMotion,
   editMode,
+  scrollerRef,
+  theme,
+  sectionBackdrops = {},
+  sectionsBackdropStyle,
+  onFeatureOverlayOpenChange,
   onCapabilitiesChange,
-  onSaveCapabilities,
   displayFaq,
   onFaqChange,
-  onSaveFaq,
   onFaqClick,
   onJoinWaitlist,
 }) {
+  const featuresCampusBackdrop = Boolean(sectionBackdrops.features)
+  const proofCampusBackdrop = Boolean(sectionBackdrops.proof)
+  const pricingCampusBackdrop = Boolean(sectionBackdrops.pricing)
+  const faqCampusBackdrop = Boolean(sectionBackdrops.faq)
+  const waitlistCampusBackdrop = Boolean(sectionBackdrops.waitlist)
+
   return (
     <>
-      <div ref={capabilitiesRef} id="capabilities" className={SECTION_SNAP_CLASS}>
-        <Capabilities
-          capabilities={displayCapabilities}
-          reducedMotion={reducedMotion}
-          editMode={editMode}
-          onCapabilitiesChange={onCapabilitiesChange}
-          onSave={onSaveCapabilities}
-        />
+      <div ref={capabilitiesRef} id="features" className={`${CAMPUS_PANEL_CLASS} deck-panel--scroll relative`}>
+        {!featuresCampusBackdrop ? (
+          <LoginZoneBackground
+            theme={theme}
+            reducedMotion={reducedMotion}
+            backdropStyle={sectionsBackdropStyle}
+          />
+        ) : null}
+        <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+          <Capabilities
+            capabilities={displayCapabilities}
+            reducedMotion={reducedMotion}
+            editMode={editMode}
+            scrollerRef={scrollerRef}
+            onOverlayOpenChange={onFeatureOverlayOpenChange}
+            onCapabilitiesChange={onCapabilitiesChange}
+          />
+        </div>
       </div>
 
-      <div ref={testimonialsRef} id="proof" className={SECTION_SNAP_CLASS}>
+      <LoginZonePanel
+        panelRef={testimonialsRef}
+        id="proof"
+        theme={theme}
+        reducedMotion={reducedMotion}
+        showGradientBackdrop={!proofCampusBackdrop}
+        backdropStyle={sectionsBackdropStyle}
+      >
         <Testimonials />
-      </div>
+      </LoginZonePanel>
 
-      <div ref={pricingRef} className={SECTION_SNAP_CLASS}>
+      <LoginZonePanel
+        panelRef={pricingRef}
+        theme={theme}
+        reducedMotion={reducedMotion}
+        showGradientBackdrop={!pricingCampusBackdrop}
+        backdropStyle={sectionsBackdropStyle}
+      >
         <Pricing onFaqClick={onFaqClick} onJoinWaitlist={onJoinWaitlist} />
-      </div>
+      </LoginZonePanel>
 
-      <div ref={faqRef} className={FAQ_SECTION_SNAP_CLASS}>
+      <LoginZonePanel
+        panelRef={faqRef}
+        theme={theme}
+        reducedMotion={reducedMotion}
+        showGradientBackdrop={!faqCampusBackdrop}
+        backdropStyle={sectionsBackdropStyle}
+      >
         <FAQ
           faq={displayFaq}
           reducedMotion={reducedMotion}
           editMode={editMode}
           onFaqChange={onFaqChange}
-          onSave={onSaveFaq}
         />
-      </div>
+      </LoginZonePanel>
 
-      <div ref={signupRef} id="waitlist" className={SECTION_SNAP_CLASS}>
+      <LoginZonePanel
+        panelRef={signupRef}
+        id="waitlist"
+        theme={theme}
+        reducedMotion={reducedMotion}
+        showGradientBackdrop={!waitlistCampusBackdrop}
+        backdropStyle={sectionsBackdropStyle}
+      >
         <SignUpSection source={waitlistSource} />
-      </div>
+      </LoginZonePanel>
     </>
   )
 }

@@ -31,8 +31,35 @@ const ANCHOR_LABELS = {
 }
 
 const labelCls = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground'
+const labelOverlayCls = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-white/60'
 const dpadBtnCls =
   'flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-40'
+const dpadBtnOverlayCls =
+  'flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/30 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-40'
+
+function getControlTheme(variant) {
+  if (variant === 'overlay') {
+    return {
+      label: labelOverlayCls,
+      dpadBtn: dpadBtnOverlayCls,
+      center:
+        'flex h-9 w-9 flex-col items-center justify-center rounded-lg border border-dashed border-white/20 bg-black/20 px-1 text-[10px] leading-tight text-white/70',
+      anchorActive: 'border-primary bg-primary/20 text-white',
+      anchorIdle:
+        'border-white/20 bg-black/30 text-white/70 hover:bg-white/10 hover:text-white',
+    }
+  }
+
+  return {
+    label: labelCls,
+    dpadBtn: dpadBtnCls,
+    center:
+      'flex h-10 w-10 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-1 text-[10px] leading-tight text-muted-foreground',
+    anchorActive: 'border-primary bg-primary/10 text-primary',
+    anchorIdle:
+      'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+  }
+}
 
 export function parsePercent(value) {
   if (typeof value === 'number') return value
@@ -73,8 +100,9 @@ function matchesPreset(card, preset) {
   )
 }
 
-export function CardPlacementDpad({ card, onChange, compact = false }) {
+export function CardPlacementDpad({ card, onChange, compact = false, variant = 'default' }) {
   const safeCard = normalizeCard(card)
+  const theme = getControlTheme(variant)
 
   const applyPreset = (key) => {
     onChange({ ...CARD_PRESETS[key] })
@@ -92,56 +120,57 @@ export function CardPlacementDpad({ card, onChange, compact = false }) {
   }
 
   const cornerActive = (key) => matchesPreset(safeCard, CARD_PRESETS[key])
-  const btnSize = compact ? 'h-8 w-8 text-xs' : 'h-10 w-10'
+  const btnSize = compact || variant === 'overlay' ? 'h-8 w-8 text-xs' : 'h-10 w-10'
+  const overlayBtnSize = variant === 'overlay' ? '!h-9 !w-9' : ''
 
   return (
     <div className="space-y-3">
       <div className="inline-grid grid-cols-3 gap-1.5">
         <button
           type="button"
-          className={`${dpadBtnCls} ${btnSize} ${cornerActive('top-left') ? 'border-primary bg-primary/10 text-primary' : ''}`}
+          className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize} ${cornerActive('top-left') ? 'border-primary bg-primary/20 text-primary' : ''}`}
           onClick={() => applyPreset('top-left')}
           aria-label="Place card top left"
         >
           ↖
         </button>
-        <button type="button" className={`${dpadBtnCls} ${btnSize}`} onClick={() => nudge(0, -NUDGE_STEP)} aria-label="Nudge up">
+        <button type="button" className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize}`} onClick={() => nudge(0, -NUDGE_STEP)} aria-label="Nudge up">
           ↑
         </button>
         <button
           type="button"
-          className={`${dpadBtnCls} ${btnSize} ${cornerActive('top-right') ? 'border-primary bg-primary/10 text-primary' : ''}`}
+          className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize} ${cornerActive('top-right') ? 'border-primary bg-primary/20 text-primary' : ''}`}
           onClick={() => applyPreset('top-right')}
           aria-label="Place card top right"
         >
           ↗
         </button>
 
-        <button type="button" className={`${dpadBtnCls} ${btnSize}`} onClick={() => nudge(-NUDGE_STEP, 0)} aria-label="Nudge left">
+        <button type="button" className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize}`} onClick={() => nudge(-NUDGE_STEP, 0)} aria-label="Nudge left">
           ←
         </button>
-        <div className={`flex ${btnSize} flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-1 text-[10px] leading-tight text-muted-foreground`}>
+        <div className={`${theme.center} ${overlayBtnSize}`}>
           <span>{formatPercent(safeCard.x)}</span>
           <span>{formatPercent(safeCard.y)}</span>
         </div>
-        <button type="button" className={`${dpadBtnCls} ${btnSize}`} onClick={() => nudge(NUDGE_STEP, 0)} aria-label="Nudge right">
+        <button type="button" className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize}`} onClick={() => nudge(NUDGE_STEP, 0)} aria-label="Nudge right">
           →
         </button>
 
         <button
           type="button"
-          className={`${dpadBtnCls} ${btnSize} ${cornerActive('bottom-left') ? 'border-primary bg-primary/10 text-primary' : ''}`}
+          className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize} ${cornerActive('bottom-left') ? 'border-primary bg-primary/20 text-primary' : ''}`}
           onClick={() => applyPreset('bottom-left')}
           aria-label="Place card bottom left"
         >
           ↙
         </button>
-        <button type="button" className={`${dpadBtnCls} ${btnSize}`} onClick={() => nudge(0, NUDGE_STEP)} aria-label="Nudge down">
+        <button type="button" className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize}`} onClick={() => nudge(0, NUDGE_STEP)} aria-label="Nudge down">
           ↓
         </button>
         <button
           type="button"
-          className={`${dpadBtnCls} ${btnSize} ${cornerActive('bottom-right') ? 'border-primary bg-primary/10 text-primary' : ''}`}
+          className={`${theme.dpadBtn} ${btnSize} ${overlayBtnSize} ${cornerActive('bottom-right') ? 'border-primary bg-primary/20 text-primary' : ''}`}
           onClick={() => applyPreset('bottom-right')}
           aria-label="Place card bottom right"
         >
@@ -151,7 +180,7 @@ export function CardPlacementDpad({ card, onChange, compact = false }) {
 
       {!compact && (
         <div>
-          <span className={labelCls}>Anchor corner</span>
+          <span className={theme.label}>Anchor corner</span>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {Object.keys(ANCHOR_LABELS).map((anchor) => (
               <button
@@ -159,9 +188,7 @@ export function CardPlacementDpad({ card, onChange, compact = false }) {
                 type="button"
                 onClick={() => setAnchor(anchor)}
                 className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  safeCard.anchor === anchor
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  safeCard.anchor === anchor ? theme.anchorActive : theme.anchorIdle
                 }`}
               >
                 {ANCHOR_LABELS[anchor]}
@@ -174,14 +201,20 @@ export function CardPlacementDpad({ card, onChange, compact = false }) {
   )
 }
 
-export function CardSizeControls({ card, onChange, compact = false }) {
+export function CardSizeControls({ card, onChange, compact = false, variant = 'default' }) {
   const safeCard = normalizeCard(card)
   const heightAuto = safeCard.heightPx == null
+  const theme = getControlTheme(variant)
+  const sliderCls = variant === 'overlay' ? 'mt-1 w-full accent-primary' : 'mt-1 w-full accent-primary'
+  const autoLabelCls =
+    variant === 'overlay'
+      ? 'flex items-center gap-1.5 text-xs text-white/60'
+      : 'flex items-center gap-1.5 text-xs text-muted-foreground'
 
   return (
     <div className={`space-y-3 ${compact ? '' : ''}`}>
       <div>
-        <label className={labelCls} htmlFor="card-width">
+        <label className={theme.label} htmlFor="card-width">
           Width ({safeCard.widthPx}px)
         </label>
         <input
@@ -192,15 +225,15 @@ export function CardSizeControls({ card, onChange, compact = false }) {
           step={WIDTH_STEP}
           value={safeCard.widthPx}
           onChange={(e) => onChange({ widthPx: Number(e.target.value) })}
-          className="mt-1 w-full accent-primary"
+          className={sliderCls}
         />
       </div>
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className={labelCls} htmlFor="card-height">
+          <label className={theme.label} htmlFor="card-height">
             Height
           </label>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className={autoLabelCls}>
             <input
               type="checkbox"
               checked={heightAuto}

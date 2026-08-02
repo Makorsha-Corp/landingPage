@@ -1,4 +1,11 @@
 import SectionEyebrow from './SectionEyebrow'
+import {
+  iconTileLg,
+  marketingCardInteractive,
+  sectionHeaderWrap,
+  sectionLead,
+  sectionTitle,
+} from '../lib/loginSurfaceStyles'
 
 const DEFAULT_TESTIMONIALS = [
   {
@@ -14,17 +21,19 @@ const DEFAULT_TESTIMONIALS = [
 export default function Testimonials({ testimonials = DEFAULT_TESTIMONIALS }) {
   const count = testimonials.length
   const gridCols =
-    count === 1 ? 'grid-cols-1 max-w-3xl mx-auto' : count === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'
+    count === 1
+      ? 'grid-cols-1 max-w-3xl mx-auto'
+      : count === 2
+        ? 'grid-cols-1 md:grid-cols-2'
+        : 'grid-cols-1 md:grid-cols-3'
 
   return (
     <section className="flex h-full min-h-0 w-full flex-1 flex-col justify-center py-20">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-10 max-w-2xl text-center">
+        <div className={`mb-10 ${sectionHeaderWrap}`}>
           <SectionEyebrow>Proof</SectionEyebrow>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Built inside a working mill
-          </h2>
-          <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+          <h2 className={`mt-3 ${sectionTitle}`}>Built inside a working mill</h2>
+          <p className={`mt-3 ${sectionLead}`}>
             Marker was designed on the floor of a cotton mill, not in a product meeting. Every
             workflow on this page exists because somebody needed it to get through their day.
           </p>
@@ -32,12 +41,9 @@ export default function Testimonials({ testimonials = DEFAULT_TESTIMONIALS }) {
 
         <div className={`grid gap-6 ${gridCols}`}>
           {testimonials.map((testimonial) => (
-            <div
-              key={testimonial.author}
-              className="relative rounded-2xl border border-border bg-card p-6 sm:p-8"
-            >
+            <div key={testimonial.author} className={`relative sm:p-6 ${marketingCardInteractive}`}>
               <svg
-                className="absolute top-6 right-6 h-8 w-8 text-primary/20"
+                className="absolute right-5 top-5 h-8 w-8 text-primary/20"
                 fill="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
@@ -50,9 +56,7 @@ export default function Testimonials({ testimonials = DEFAULT_TESTIMONIALS }) {
               </blockquote>
 
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-semibold">
-                  {testimonial.avatar}
-                </div>
+                <div className={iconTileLg}>{testimonial.avatar}</div>
                 <div>
                   <p className="font-semibold text-foreground">{testimonial.author}</p>
                   <p className="text-sm text-muted-foreground">
@@ -64,7 +68,7 @@ export default function Testimonials({ testimonials = DEFAULT_TESTIMONIALS }) {
           ))}
         </div>
 
-        <div className="mt-10 border-t border-border pt-8">
+        <div className="mt-10 border-t border-border/80 pt-8">
           <p className="mb-6 text-center text-sm text-muted-foreground">In production at</p>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
             <div className="text-lg font-semibold text-muted-foreground">Akbar Cotton Mill</div>

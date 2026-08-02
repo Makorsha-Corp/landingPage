@@ -1,9 +1,9 @@
 import Button from '../components/ui/Button'
 
 export const DEFAULT_HERO_CAMERA = {
-  fx: 0.36,
-  fy: 0.38,
-  scale: 0.62,
+  fx: 0.5,
+  fy: 0.49,
+  scale: 0.84,
 }
 
 const PAN_STEP = 0.02
@@ -35,7 +35,7 @@ function round3(n) {
   return Math.round(n * 1000) / 1000
 }
 
-export default function Homepage2HeroCameraControls({ camera, onChange, onSave, onReset }) {
+export default function Homepage2HeroCameraControls({ camera, onChange, onReset }) {
   const safe = normalizeHeroCamera(camera)
 
   const nudge = (dFx, dFy) => {
@@ -124,11 +124,8 @@ export default function Homepage2HeroCameraControls({ camera, onChange, onSave, 
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button type="button" onClick={onSave} size="xs" className="flex-1">
-          Save
-        </Button>
-        <Button type="button" onClick={onReset} variant="outline" size="xs" className="flex-1 border-white/30 text-white hover:bg-white/10">
+      <div className="flex justify-end">
+        <Button type="button" onClick={onReset} variant="outline" size="xs" className="border-white/30 text-white hover:bg-white/10">
           Reset
         </Button>
       </div>

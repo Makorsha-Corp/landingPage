@@ -5,6 +5,14 @@ const restoreSnap = (scroller) => {
   scroller.style.removeProperty('scroll-snap-type')
 }
 
+function getScrollDest(scroller, target) {
+  return (
+    scroller.scrollTop +
+    target.getBoundingClientRect().top -
+    scroller.getBoundingClientRect().top
+  )
+}
+
 export default function useSectionScroll({
   scrollerRef,
   sectionRefMap,
@@ -38,10 +46,7 @@ export default function useSectionScroll({
 
       cancelGlide()
 
-      const dest =
-        scroller.scrollTop +
-        target.getBoundingClientRect().top -
-        scroller.getBoundingClientRect().top
+      const dest = getScrollDest(scroller, target)
 
       if (reducedMotion) {
         scroller.scrollTo({ top: dest, behavior: 'auto' })
@@ -96,7 +101,8 @@ export default function useSectionScroll({
   const navigateToSection = useCallback(
     (sectionId) => {
       const targetRef = sectionRefMap[sectionId]
-      if (targetRef) glideTo(targetRef)
+      if (!targetRef) return
+      glideTo(targetRef)
     },
     [glideTo, sectionRefMap],
   )

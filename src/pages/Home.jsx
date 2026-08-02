@@ -1,27 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
 import ThemeToggleButton from '../components/ThemeToggleButton'
-import Button from '../components/ui/Button'
 import LandingPostTourSections from '../components/LandingPostTourSections'
+import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
 import useReducedMotion from '../hooks/useReducedMotion'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
+import { DEFAULT_HERO_FACTORY_BLUR_PX } from '../lib/tourScrollMath'
 import {
   DEFAULT_CAPABILITIES,
   cloneCapabilities,
-  capabilitiesForStorage,
-  mergeCapabilitiesFromSaved,
   normalizeCapabilitiesEyebrow,
 } from '../lib/capabilitiesContent'
 import {
   cloneFaq,
-  faqForStorage,
   mergeFaqFromSaved,
 } from '../lib/faqContent'
-import Homepage2StoryCardSettings from './Homepage2StoryCardSettings'
-import Homepage2HeroSettings from './Homepage2HeroSettings'
+import Homepage2FloatingCardLayoutControls from './Homepage2FloatingCardLayoutControls'
 import Homepage2HeroCameraControls, {
   DEFAULT_HERO_CAMERA,
   normalizeHeroCamera,
@@ -31,47 +28,33 @@ import {
   getLoginRadialGradientStyle,
 } from '../../shared/loginGradient.js'
 import useLoginGradientFollow from '../hooks/useLoginGradientFollow'
+import useStoryCardDrag from '../hooks/useStoryCardDrag'
 import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardControls'
 import { getStoryCardStyles } from '../lib/storyCardStyles'
-
-const STOPS_STORAGE_KEY = 'homepage2-section-texts'
-
-const DEFAULT_TOUR_WASH_OPACITY = { light: 15, dark: 15 }
+import {
+  cycleHeroCardLayout,
+  cycleHeroCardStyle,
+  getHeroCardLayoutLabel,
+  getHeroCardStyleLabel,
+  normalizeHeroCardPrefs,
+} from '../lib/heroCardStyles'
+import { copyHomepageContentForCode, normalizeHomepageSnapshot } from '../lib/homepageContentExport'
+import {
+  DEFAULT_SECTIONS_BACKDROP_OPACITY,
+  DEFAULT_TOUR_BACKDROP_OPACITY,
+  getBackgroundOverlayStyle,
+  normalizeBackdropOpacity,
+} from '../lib/homepageWash'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
-  features: false,
-  proof: false,
-  pricing: false,
-  faq: false,
-  waitlist: false,
+  features: true,
+  proof: true,
+  pricing: true,
+  faq: true,
+  waitlist: true,
 }
 
-function normalizeSectionBackdrops(parsed) {
-  const next = { ...DEFAULT_SECTION_BACKDROPS }
-  if (parsed?.sectionBackdrops && typeof parsed.sectionBackdrops === 'object') {
-    for (const key of Object.keys(DEFAULT_SECTION_BACKDROPS)) {
-      if (typeof parsed.sectionBackdrops[key] === 'boolean') {
-        next[key] = parsed.sectionBackdrops[key]
-      }
-    }
-  } else if (typeof parsed?.featuresBackdropEnabled === 'boolean') {
-    next.features = parsed.featuresBackdropEnabled
-  }
-  return next
-}
-
-function normalizeTourWashOpacity(value) {
-  const clampPct = (n, fallback) => {
-    const parsed = Number(n)
-    if (!Number.isFinite(parsed)) return fallback
-    return Math.min(100, Math.max(0, Math.round(parsed)))
-  }
-  return {
-    light: clampPct(value?.light, DEFAULT_TOUR_WASH_OPACITY.light),
-    dark: clampPct(value?.dark, DEFAULT_TOUR_WASH_OPACITY.dark),
-  }
-}
 const HOMEPAGE_BACKGROUNDS = {
   light: '/homepage-background.png',
   dark: '/homepage-background-dark.png',
@@ -182,18 +165,23 @@ const DEFAULT_STOPS = [
     fx: 0.5,
     fy: 0.5,
     scale: 1,
-    card: { x: '6%', y: '50%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '53%', y: '86%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
   {
     id: 'reports',
     title: 'Dashboard & Reports',
-    desc: 'Get the full picture from the executive view — live KPIs, financial summaries, and reports that turn data into clear decisions.',
-    desc2: 'Drill into any metric, export board-ready summaries, and spot trends before they become problems.',
-    points: ['Live KPI dashboards', 'Financial summaries', 'Custom reports', 'Trend alerts'],
+    desc: 'Everything that matters shows up the moment you log in: open orders, pending approvals, running machines, batches in progress, and your cash position.',
+    desc2: "See your biggest costs by item, vendor, customer, and factory, broken down by expense category, so you already know what's going on without even having to schedule a meeting.",
+    points: [
+      'Live operational KPIs',
+      'Net payables & receivables',
+      'Top spend by vendor & item',
+      'Cross-order approval queue',
+    ],
     fx: 0.52,
     fy: 0.34,
     scale: 1.55,
-    card: { x: '94%', y: '88%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '94%', y: '70%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
   {
     id: 'orders',
@@ -209,7 +197,7 @@ const DEFAULT_STOPS = [
     fx: 0.33,
     fy: 0.47,
     scale: 2.2,
-    card: { x: '6%', y: '88%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '6%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
   {
     id: 'accounts',
@@ -225,7 +213,7 @@ const DEFAULT_STOPS = [
     fx: 0.64,
     fy: 0.50,
     scale: 2.2,
-    card: { x: '6%', y: '88%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '10%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
   {
     id: 'production',
@@ -241,7 +229,7 @@ const DEFAULT_STOPS = [
     fx: 0.27,
     fy: 0.76,
     scale: 2.4,
-    card: { x: '94%', y: '88%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '92%', y: '92%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
   {
     id: 'inventory',
@@ -257,7 +245,7 @@ const DEFAULT_STOPS = [
     fx: 0.73,
     fy: 0.78,
     scale: 2.4,
-    card: { x: '6%', y: '88%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '50%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
   },
 ]
 
@@ -274,60 +262,6 @@ function cloneStops(stops) {
     points: [...(s.points || [])],
     card: normalizeCard(s.card, DEFAULT_STOPS[i]?.card || DEFAULT_CARD),
   }))
-}
-
-function mergeStopFromSaved(saved, index) {
-  const defaults = DEFAULT_STOPS[index]
-  if (!defaults) return null
-  return {
-    ...defaults,
-    title: saved.title ?? defaults.title,
-    desc: saved.desc ?? defaults.desc,
-    desc2: saved.desc2 ?? defaults.desc2,
-    points: [...(saved.points || defaults.points || [])],
-    card: normalizeCard(
-      { ...defaults.card, ...saved.card },
-      defaults.card || DEFAULT_CARD,
-    ),
-  }
-}
-
-function stopsForStorage(stops) {
-  return stops.map((s) => ({
-    id: s.id,
-    title: s.title,
-    desc: s.desc,
-    desc2: s.desc2,
-    points: (s.points || []).map((p) => p.trim()).filter(Boolean),
-    card: s.card,
-  }))
-}
-
-function loadSavedContent() {
-  try {
-    const raw = localStorage.getItem(STOPS_STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    const saved = parsed?.stops
-    const result = {
-      hero: { ...DEFAULT_HERO, ...parsed?.hero },
-      heroCamera: normalizeHeroCamera(parsed?.heroCamera ?? DEFAULT_HERO_CAMERA),
-      tourWashOpacity: normalizeTourWashOpacity(
-        parsed?.tourWashOpacity ?? DEFAULT_TOUR_WASH_OPACITY,
-      ),
-      sectionBackdrops: normalizeSectionBackdrops(parsed),
-      capabilities: mergeCapabilitiesFromSaved(parsed?.capabilities),
-      faq: mergeFaqFromSaved(parsed?.faq),
-    }
-    if (saved?.length) {
-      result.stops = saved
-        .map((s, i) => mergeStopFromSaved(s, i))
-        .filter(Boolean)
-    }
-    return result
-  } catch {
-    return null
-  }
 }
 
 const ANCHOR_TRANSLATE = {
@@ -590,8 +524,10 @@ export default function Home() {
   const backgroundWrapperRef = useRef(null)
   const backgroundImgRef = useRef(null)
   const heroBlurRef = useRef(null)
+  const heroFactoryBlurPxRef = useRef(DEFAULT_HERO_FACTORY_BLUR_PX)
   const heroTextRef = useRef(null)
   const storyCardInnerRef = useRef(null)
+  const tourStageRef = useRef(null)
   const rightBarProgressFillRef = useRef(null)
   const rightBarProgressRingRef = useRef(null)
   const tourPanelRefs = useRef([])
@@ -599,36 +535,40 @@ export default function Home() {
   const [barVariant, setBarVariant] = useState('A')
   const [editMode, setEditMode] = useState(false)
   const [factoryPanMode, setFactoryPanMode] = useState(false)
-  const [editDraftStops, setEditDraftStops] = useState(null)
-  const [editDraftHero, setEditDraftHero] = useState(null)
-  const [editDraftHeroCamera, setEditDraftHeroCamera] = useState(null)
-  const [editDraftCapabilities, setEditDraftCapabilities] = useState(null)
-  const [editDraftFaq, setEditDraftFaq] = useState(null)
-  const saved = loadSavedContent()
-  const [stops, setStops] = useState(() => cloneStops(saved?.stops || DEFAULT_STOPS))
-  const [hero, setHero] = useState(() => saved?.hero || { ...DEFAULT_HERO })
-  const [heroCamera, setHeroCamera] = useState(
-    () => saved?.heroCamera || { ...DEFAULT_HERO_CAMERA },
-  )
-  const [tourWashOpacity, setTourWashOpacity] = useState(
-    () => saved?.tourWashOpacity || { ...DEFAULT_TOUR_WASH_OPACITY },
-  )
-  const [sectionBackdrops, setSectionBackdrops] = useState(() =>
-    normalizeSectionBackdrops(saved),
-  )
-  const [capabilities, setCapabilities] = useState(() =>
-    saved?.capabilities ? cloneCapabilities(saved.capabilities) : cloneCapabilities(DEFAULT_CAPABILITIES),
-  )
-  const [faq, setFaq] = useState(() =>
-    saved?.faq ? cloneFaq(saved.faq) : cloneFaq(mergeFaqFromSaved()),
-  )
+  const [stops, setStops] = useState(() => cloneStops(DEFAULT_STOPS))
+  const [hero, setHero] = useState(() => ({ ...DEFAULT_HERO }))
+  const [heroCamera, setHeroCamera] = useState(() => ({ ...DEFAULT_HERO_CAMERA }))
+  const [heroCard, setHeroCard] = useState(() => normalizeHeroCardPrefs())
+  const [heroFactoryBlurPx, setHeroFactoryBlurPx] = useState(DEFAULT_HERO_FACTORY_BLUR_PX)
+  const [tourBackdropOpacity, setTourBackdropOpacity] = useState(() => ({ ...DEFAULT_TOUR_BACKDROP_OPACITY }))
+  const [sectionsBackdropOpacity, setSectionsBackdropOpacity] = useState(() => ({ ...DEFAULT_SECTIONS_BACKDROP_OPACITY }))
+  const [sectionBackdrops, setSectionBackdrops] = useState(() => ({ ...DEFAULT_SECTION_BACKDROPS }))
+  const [capabilities, setCapabilities] = useState(() => cloneCapabilities(DEFAULT_CAPABILITIES))
+  const [faq, setFaq] = useState(() => cloneFaq(mergeFaqFromSaved()))
   const [waitlistSource, setWaitlistSource] = useState('waitlist_section')
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
+  const exportCodeBaseline = useMemo(
+    () =>
+      normalizeHomepageSnapshot({
+        stops: cloneStops(DEFAULT_STOPS),
+        hero: { ...DEFAULT_HERO },
+        heroCamera: { ...DEFAULT_HERO_CAMERA },
+        heroFactoryBlurPx: DEFAULT_HERO_FACTORY_BLUR_PX,
+        tourBackdropOpacity: { ...DEFAULT_TOUR_BACKDROP_OPACITY },
+        sectionsBackdropOpacity: { ...DEFAULT_SECTIONS_BACKDROP_OPACITY },
+        sectionBackdrops: { ...DEFAULT_SECTION_BACKDROPS },
+        capabilities: cloneCapabilities(DEFAULT_CAPABILITIES),
+        faq: cloneFaq(mergeFaqFromSaved()),
+      }),
+    [],
+  )
 
   useEffect(() => {
     document.documentElement.classList.add('homepage2-page')
     return () => document.documentElement.classList.remove('homepage2-page')
   }, [])
+
+  heroFactoryBlurPxRef.current = heroFactoryBlurPx
 
   // Tracked on the scroller so every section inherits --login-grad-x/y.
   useLoginGradientFollow(scrollerRef, !reducedMotion)
@@ -664,9 +604,6 @@ export default function Home() {
     reducedMotion,
   })
 
-  const displayHeroCamera =
-    factoryPanMode && editDraftHeroCamera ? editDraftHeroCamera : heroCamera
-
   const { activeIndex, heroActive } = useTourCamera({
     scrollerRef,
     tourRef,
@@ -674,12 +611,13 @@ export default function Home() {
     backgroundWrapperRef,
     backgroundImgRef,
     heroBlurRef,
+    heroFactoryBlurPxRef,
     heroTextRef,
     storyCardInnerRef,
     rightBarProgressFillRef,
     rightBarRingRef: rightBarProgressRingRef,
     stops,
-    heroCamera: displayHeroCamera,
+    heroCamera,
     reducedMotion,
     editMode,
     overlayPaused: featureOverlayOpen,
@@ -690,13 +628,31 @@ export default function Home() {
   const lastTourPanelIndex = totalPanels - 1
   const TOUR_END_THRESHOLD = 32
 
-  const displayStops = editMode && editDraftStops ? editDraftStops : stops
-  const displayHero = editMode && editDraftHero ? editDraftHero : hero
-  const displayCapabilities =
-    editMode && editDraftCapabilities ? editDraftCapabilities : capabilities
-  const displayFaq = editMode && editDraftFaq ? editDraftFaq : faq
-  const activeStop = displayStops[activeIndex]
+  const activeStop = stops[activeIndex]
   const activeCard = normalizeCard(activeStop?.card, DEFAULT_STOPS[activeIndex]?.card)
+
+  const handleCardPositionChange = useCallback(
+    (patch) => {
+      setStops((prev) =>
+        prev.map((s, i) =>
+          i === activeIndex
+            ? {
+                ...s,
+                card: { ...normalizeCard(s.card, DEFAULT_STOPS[i]?.card), ...patch },
+              }
+            : s,
+        ),
+      )
+    },
+    [activeIndex],
+  )
+
+  const { handleProps: storyCardDragHandleProps } = useStoryCardDrag({
+    boundsRef: tourStageRef,
+    card: activeCard,
+    onCardChange: handleCardPositionChange,
+    enabled: editMode && !heroActive && Boolean(activeStop),
+  })
 
   const getTourPanelScrollTop = (panelIndex) => {
     const scroller = scrollerRef.current
@@ -784,175 +740,121 @@ export default function Home() {
     scrollToStop(0)
   }
 
-  const saveContent = ({
-    stops: nextStops,
-    hero: nextHero,
-    heroCamera: nextHeroCamera,
-    tourWashOpacity: nextTourWashOpacity,
-    sectionBackdrops: nextSectionBackdrops,
-    capabilities: nextCapabilities,
-    faq: nextFaq,
-  }) => {
-    const clonedStops = nextStops ? cloneStops(nextStops) : stops
-    const nextHeroState = nextHero ? { ...nextHero } : hero
-    const nextHeroCameraState = nextHeroCamera
-      ? normalizeHeroCamera(nextHeroCamera)
-      : heroCamera
-    const nextTourWashOpacityState = nextTourWashOpacity
-      ? normalizeTourWashOpacity(nextTourWashOpacity)
-      : tourWashOpacity
-    const nextSectionBackdropsState = nextSectionBackdrops
-      ? normalizeSectionBackdrops({ sectionBackdrops: nextSectionBackdrops })
-      : sectionBackdrops
-    const nextCapabilitiesState = nextCapabilities
-      ? cloneCapabilities(nextCapabilities)
-      : capabilities
-    const nextFaqState = nextFaq ? cloneFaq(nextFaq) : faq
-    if (nextStops) setStops(clonedStops)
-    if (nextHero) setHero(nextHeroState)
-    if (nextHeroCamera) setHeroCamera(nextHeroCameraState)
-    if (nextTourWashOpacity) setTourWashOpacity(nextTourWashOpacityState)
-    if (nextSectionBackdrops) setSectionBackdrops(nextSectionBackdropsState)
-    if (nextCapabilities) setCapabilities(nextCapabilitiesState)
-    if (nextFaq) setFaq(nextFaqState)
-    localStorage.setItem(
-      STOPS_STORAGE_KEY,
-      JSON.stringify({
-        stops: stopsForStorage(clonedStops),
-        hero: nextHeroState,
-        heroCamera: nextHeroCameraState,
-        tourWashOpacity: nextTourWashOpacityState,
-        sectionBackdrops: nextSectionBackdropsState,
-        capabilities: capabilitiesForStorage(nextCapabilitiesState),
-        faq: faqForStorage(nextFaqState),
-      }),
-    )
-  }
-
   useEffect(() => {
-    // One-time mount normalization of persisted state; the extra render only
-    // happens when stored data was in the legacy shape.
+    // One-time mount normalization of legacy eyebrow copy.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCapabilities((current) => {
       const eyebrow = normalizeCapabilitiesEyebrow(current.eyebrow)
       if (eyebrow === current.eyebrow) return current
-      const next = { ...current, eyebrow }
-      try {
-        const raw = localStorage.getItem(STOPS_STORAGE_KEY)
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          localStorage.setItem(
-            STOPS_STORAGE_KEY,
-            JSON.stringify({
-              ...parsed,
-              capabilities: capabilitiesForStorage(next),
-            }),
-          )
-        }
-      } catch {
-        // ignore corrupt storage
-      }
-      return next
+      return { ...current, eyebrow }
     })
   }, [])
 
-  const updateTourWashOpacity = (themeKey, value) => {
-    saveContent({
-      tourWashOpacity: {
-        ...tourWashOpacity,
-        [themeKey]: value,
-      },
-    })
+  const updateTourBackdropOpacity = (themeKey, value) => {
+    setTourBackdropOpacity((current) =>
+      normalizeBackdropOpacity(
+        {
+          ...current,
+          [themeKey]: value,
+        },
+        DEFAULT_TOUR_BACKDROP_OPACITY,
+      ),
+    )
+  }
+
+  const updateSectionsBackdropOpacity = (themeKey, value) => {
+    setSectionsBackdropOpacity((current) =>
+      normalizeBackdropOpacity(
+        {
+          ...current,
+          [themeKey]: value,
+        },
+        DEFAULT_SECTIONS_BACKDROP_OPACITY,
+      ),
+    )
   }
 
   const toggleSectionBackdrop = (sectionId) => {
-    saveContent({
-      sectionBackdrops: {
-        ...sectionBackdrops,
-        [sectionId]: !sectionBackdrops[sectionId],
-      },
+    setSectionBackdrops((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId],
+    }))
+  }
+
+  const handleCycleHeroCardLayout = () => {
+    setHeroCard((current) => ({
+      ...current,
+      layout: cycleHeroCardLayout(current.layout),
+    }))
+  }
+
+  const handleCycleHeroCardStyle = () => {
+    setHeroCard((current) => {
+      if (current.layout === 'none') return current
+      return {
+        ...current,
+        style: cycleHeroCardStyle(current.style),
+      }
     })
   }
 
   const toggleEditMode = () => {
-    if (editMode) {
-      setEditMode(false)
-      setEditDraftStops(null)
-      setEditDraftHero(null)
-      setEditDraftCapabilities(null)
-      setEditDraftFaq(null)
-      return
-    }
-    setEditDraftStops(cloneStops(stops))
-    setEditDraftHero({ ...hero })
-    setEditDraftCapabilities(cloneCapabilities(capabilities))
-    setEditDraftFaq(cloneFaq(faq))
-    setEditMode(true)
+    setEditMode((prev) => !prev)
   }
 
   const toggleFactoryPanMode = () => {
-    if (factoryPanMode) {
-      setFactoryPanMode(false)
-      setEditDraftHeroCamera(null)
-      return
-    }
-    setEditDraftHeroCamera(normalizeHeroCamera(heroCamera))
-    setFactoryPanMode(true)
-    const scroller = scrollerRef.current
-    if (scroller) {
-      scroller.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+    setFactoryPanMode((prev) => {
+      if (!prev) {
+        const scroller = scrollerRef.current
+        if (scroller) {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }
+      return !prev
+    })
   }
 
-  const updateEditDraftStop = (updatedStop) => {
-    setEditDraftStops((prev) =>
-      prev.map((s) => (s.id === updatedStop.id ? updatedStop : s)),
+  const updateStop = (updatedStop) => {
+    setStops((prev) => prev.map((s) => (s.id === updatedStop.id ? updatedStop : s)))
+  }
+
+  const handleCapabilitiesChange = (nextCapabilities) => {
+    setCapabilities(cloneCapabilities(nextCapabilities))
+  }
+
+  const handleFaqChange = (patch) => {
+    setFaq((prev) => ({ ...prev, ...patch }))
+  }
+
+  const resetHeroCamera = () => {
+    setHeroCamera({ ...DEFAULT_HERO_CAMERA })
+  }
+
+  const handleCopyForCode = () =>
+    copyHomepageContentForCode(
+      {
+        stops,
+        hero,
+        heroCamera,
+        heroFactoryBlurPx,
+        tourBackdropOpacity,
+        sectionsBackdropOpacity,
+        sectionBackdrops,
+        capabilities,
+        faq,
+      },
+      { codeBaselineSnapshot: exportCodeBaseline },
     )
-  }
-
-  const saveEditDraft = () => {
-    if (!editDraftStops) return
-    saveContent({ stops: editDraftStops })
-  }
-
-  const saveHeroDraft = () => {
-    if (!editDraftHero) return
-    saveContent({ hero: editDraftHero })
-  }
-
-  const saveHeroCameraDraft = () => {
-    if (!editDraftHeroCamera) return
-    saveContent({ heroCamera: editDraftHeroCamera })
-  }
-
-  const saveCapabilitiesDraft = () => {
-    if (!editDraftCapabilities) return
-    saveContent({ capabilities: editDraftCapabilities })
-  }
-
-  const saveFaqDraft = () => {
-    if (!editDraftFaq) return
-    saveContent({ faq: editDraftFaq })
-  }
-
-  const resetHeroCameraDraft = () => {
-    setEditDraftHeroCamera({ ...DEFAULT_HERO_CAMERA })
-  }
 
   const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
   const scrollHintPillCls = getScrollHintPillStyles(theme)
   const pageGradientStyle = reducedMotion
     ? getLoginGradientStyle(theme)
     : getLoginRadialGradientStyle()
-  const activeWashOpacity =
-    theme === 'dark' ? tourWashOpacity.dark : tourWashOpacity.light
-  const tourWashStyle = {
-    backgroundColor:
-      theme === 'dark'
-        ? `hsl(var(--primary) / ${activeWashOpacity / 100})`
-        : `rgb(255 255 255 / ${activeWashOpacity / 100})`,
-  }
+  const tourBackdropStyle = getBackgroundOverlayStyle(theme, tourBackdropOpacity)
+  const sectionsBackdropStyle = getBackgroundOverlayStyle(theme, sectionsBackdropOpacity)
   const showCampusBackdrop = Boolean(sectionBackdrops[activeSection])
+  const showSectionsBackdropOnCampus = showCampusBackdrop && activeSection !== 'tour'
 
   return (
     <div
@@ -970,11 +872,13 @@ export default function Home() {
           alt=""
           className="homepage-bg-photo transition-opacity duration-500"
         />
-        <div
-          className={`absolute inset-0 ${
-            theme === 'dark' ? 'bg-background/70' : 'bg-background/60'
-          }`}
-        />
+        {showSectionsBackdropOnCampus ? (
+          <div
+            className="absolute inset-0 transition-[background-color] duration-500"
+            style={sectionsBackdropStyle}
+            aria-hidden="true"
+          />
+        ) : null}
         <div
           className="absolute inset-0 opacity-70 mix-blend-soft-light transition-[background] duration-500 ease-out"
           style={pageGradientStyle}
@@ -998,12 +902,21 @@ export default function Home() {
                   (value) => BAR_VARIANTS[(BAR_VARIANTS.indexOf(value) + 1) % BAR_VARIANTS.length],
                 )
               }
+              heroCardLayout={getHeroCardLayoutLabel(heroCard.layout)}
+              heroCardStyle={getHeroCardStyleLabel(heroCard.style)}
+              onCycleHeroCardLayout={handleCycleHeroCardLayout}
+              onCycleHeroCardStyle={handleCycleHeroCardStyle}
+              heroFactoryBlurPx={heroFactoryBlurPx}
+              onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
               theme={theme}
-              tourWashOpacity={tourWashOpacity}
-              onTourWashOpacityChange={updateTourWashOpacity}
+              tourBackdropOpacity={tourBackdropOpacity}
+              onTourBackdropOpacityChange={updateTourBackdropOpacity}
+              sectionsBackdropOpacity={sectionsBackdropOpacity}
+              onSectionsBackdropOpacityChange={updateSectionsBackdropOpacity}
               sectionBackdrops={sectionBackdrops}
               backdropSections={LANDING_SECTIONS}
               onToggleSectionBackdrop={toggleSectionBackdrop}
+              onCopyForCode={handleCopyForCode}
             />
             <ThemeToggleButton variant="nav" />
           </>
@@ -1013,7 +926,10 @@ export default function Home() {
       {/* Scroll-driven building experience */}
       <section ref={tourRef} className="relative">
         {/* Building stage pinned over the snap panels */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
+        <div
+          ref={tourStageRef}
+          className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center"
+        >
           {/* Campus backdrop — parallax under the scroll-driven factory cutaway */}
           <div
             ref={backgroundWrapperRef}
@@ -1033,7 +949,7 @@ export default function Home() {
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-0"
-            style={tourWashStyle}
+            style={tourBackdropStyle}
           />
 
           <div
@@ -1051,7 +967,7 @@ export default function Home() {
           <div
             ref={heroBlurRef}
             aria-hidden="true"
-            className="absolute inset-0 z-20 pointer-events-none backdrop-blur-md"
+            className="absolute inset-0 z-20 pointer-events-none"
             style={{ opacity: 1 }}
           />
 
@@ -1064,51 +980,17 @@ export default function Home() {
             style={{ opacity: 1 }}
           >
             <div className="flex h-full items-center justify-center">
-              <div
-                className={`relative mx-auto max-w-2xl px-6 ${
-                  editMode && heroActive
-                    ? 'rounded-2xl border border-white/20 bg-black/50 p-6 shadow-2xl backdrop-blur-md ring-2 ring-primary/50'
-                    : 'text-center text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]'
-                }`}
-              >
-                {editMode && heroActive ? (
-                  <Homepage2HeroSettings
-                    hero={displayHero}
-                    onChange={setEditDraftHero}
-                    onSave={saveHeroDraft}
-                  />
-                ) : (
-                  <>
-                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
-                      {displayHero.badge}
-                    </span>
-                    <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]">
-                      {displayHero.title}
-                    </h1>
-                    <p className="mx-auto mt-5 max-w-2xl text-lg sm:text-xl font-medium leading-relaxed text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.65)]">
-                      {displayHero.subtitle}
-                    </p>
-                    <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                      <Button
-                        onClick={() => goWaitlist('hero')}
-                        variant="heroPrimary"
-                        size="lg"
-                        className="w-full sm:w-auto"
-                      >
-                        Purchase
-                      </Button>
-                      <Button
-                        onClick={goExplore}
-                        variant="heroGlass"
-                        size="lg"
-                        className="w-full sm:w-auto"
-                      >
-                        Explore
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <Homepage2HeroOverlay
+                hero={hero}
+                theme={theme}
+                layout={heroCard.layout}
+                style={heroCard.style}
+                editMode={editMode}
+                heroActive={heroActive}
+                onGoWaitlist={() => goWaitlist('hero')}
+                onGoExplore={goExplore}
+                onHeroChange={setHero}
+              />
             </div>
 
             {!editMode && !factoryPanMode && (
@@ -1123,16 +1005,23 @@ export default function Home() {
             )}
           </div>
 
-          {factoryPanMode && heroActive && editDraftHeroCamera && (
+          {factoryPanMode && heroActive && (
             <div className="pointer-events-auto absolute bottom-6 left-4 sm:bottom-8 sm:left-6 z-50">
               <Homepage2HeroCameraControls
-                camera={editDraftHeroCamera}
-                onChange={setEditDraftHeroCamera}
-                onSave={saveHeroCameraDraft}
-                onReset={resetHeroCameraDraft}
+                camera={heroCamera}
+                onChange={(nextCamera) => setHeroCamera(normalizeHeroCamera(nextCamera))}
+                onReset={resetHeroCamera}
               />
             </div>
           )}
+
+          {editMode && !heroActive && activeStop ? (
+            <Homepage2FloatingCardLayoutControls
+              boundsRef={tourStageRef}
+              stop={activeStop}
+              onChange={updateStop}
+            />
+          ) : null}
 
           {/* Feature story card — hidden on hero; overview is first card after scroll */}
           <div
@@ -1145,22 +1034,29 @@ export default function Home() {
           >
             <div
               ref={storyCardInnerRef}
-              className={`pointer-events-auto isolate rounded-2xl border p-6 shadow-2xl ${cardCls} ${
+              className={`pointer-events-auto isolate rounded-2xl border shadow-2xl ${cardCls} ${
                 editMode ? 'ring-2 ring-primary/50' : ''
-              }`}
+              } ${editMode ? 'overflow-hidden' : 'p-6'}`}
               style={{
                 ...getCardStyle(activeCard, DEFAULT_STOPS[activeIndex]?.card),
                 transition: 'none',
               }}
             >
-              {editMode && !heroActive ? (
-                <Homepage2StoryCardSettings
-                  stop={activeStop}
-                  onChange={updateEditDraftStop}
-                  onSave={saveEditDraft}
-                />
-              ) : (
-                <>
+              {editMode ? (
+                <div
+                  {...storyCardDragHandleProps}
+                  className={`flex items-center justify-between gap-3 border-b border-primary/25 bg-primary/10 px-4 py-2.5 ${storyCardDragHandleProps.className}`}
+                >
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-primary/90">
+                    Drag to move
+                  </span>
+                  <span className="text-base text-primary/50" aria-hidden="true">
+                    ⠿
+                  </span>
+                </div>
+              ) : null}
+              {activeStop ? (
+                <div className={editMode ? 'p-6 pt-4' : ''}>
                   <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${titleCls}`}>
                     {activeStop.title}
                   </h2>
@@ -1184,8 +1080,8 @@ export default function Home() {
                       ))}
                     </ul>
                   )}
-                </>
-              )}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1193,7 +1089,7 @@ export default function Home() {
             <RightBar
               theme={theme}
               variant={barVariant}
-              stops={displayStops}
+              stops={stops}
               activeIndex={activeIndex}
               progress={0}
               onJump={scrollToStop}
@@ -1237,18 +1133,17 @@ export default function Home() {
         faqRef={faqRef}
         signupRef={signupRef}
         waitlistSource={waitlistSource}
-        displayCapabilities={displayCapabilities}
+        displayCapabilities={capabilities}
         reducedMotion={reducedMotion}
         editMode={editMode}
         scrollerRef={scrollerRef}
         theme={theme}
         sectionBackdrops={sectionBackdrops}
+        sectionsBackdropStyle={sectionsBackdropStyle}
         onFeatureOverlayOpenChange={setFeatureOverlayOpen}
-        onCapabilitiesChange={setEditDraftCapabilities}
-        onSaveCapabilities={saveCapabilitiesDraft}
-        displayFaq={displayFaq}
-        onFaqChange={setEditDraftFaq}
-        onSaveFaq={saveFaqDraft}
+        onCapabilitiesChange={handleCapabilitiesChange}
+        displayFaq={faq}
+        onFaqChange={handleFaqChange}
         onFaqClick={goFaq}
         onJoinWaitlist={(source) => goWaitlist(source)}
       />

@@ -3,6 +3,12 @@ import SectionEyebrow from './SectionEyebrow'
 import FaqSettings from './FaqSettings'
 import useInView from '../hooks/useInView'
 import { isPublishableFaq } from '../lib/faqContent'
+import {
+  marketingCard,
+  sectionHeaderWrap,
+  sectionLead,
+  sectionTitle,
+} from '../lib/loginSurfaceStyles'
 
 function FaqAccordionItem({
   item,
@@ -12,7 +18,6 @@ function FaqAccordionItem({
   reducedMotion,
   editMode,
   onItemChange,
-  onSave,
 }) {
   const panelId = `faq-panel-${item.id}`
   const buttonId = `faq-button-${item.id}`
@@ -23,8 +28,8 @@ function FaqAccordionItem({
   return (
     <div
       ref={ref}
-      className={`rounded-xl border border-border bg-card overflow-hidden transition-all ${
-        isOpen ? 'shadow-md' : ''
+      className={`overflow-hidden transition-all ${marketingCard} ${
+        isOpen ? 'shadow-md ring-1 ring-border/60' : ''
       } ${editMode ? 'ring-2 ring-primary/50' : ''} ${
         reveal ? 'animate-fade-up' : 'opacity-0'
       }`}
@@ -36,7 +41,6 @@ function FaqAccordionItem({
             item={item}
             index={index}
             onChange={onItemChange}
-            onSave={onSave}
           />
         </div>
       ) : (
@@ -47,11 +51,11 @@ function FaqAccordionItem({
             onClick={() => onToggle(index)}
             aria-expanded={isOpen}
             aria-controls={panelId}
-            className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <span className="font-semibold text-foreground pr-4">{item.question}</span>
+            <span className="pr-4 font-semibold text-foreground">{item.question}</span>
             <svg
-              className={`h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${
+              className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 ${
                 isOpen ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -71,7 +75,7 @@ function FaqAccordionItem({
               isOpen ? 'max-h-64' : 'max-h-0'
             }`}
           >
-            <div className="px-6 pb-4 text-muted-foreground leading-relaxed">{item.answer}</div>
+            <div className="px-5 pb-4 leading-relaxed text-muted-foreground">{item.answer}</div>
           </div>
         </>
       )}
@@ -84,20 +88,21 @@ export default function FAQ({
   reducedMotion = false,
   editMode = false,
   onFaqChange,
-  onSave,
 }) {
   const [openIndex, setOpenIndex] = useState(null)
   const visibleItems = editMode ? faq.items : faq.items.filter(isPublishableFaq)
 
+  const handleToggle = (index) => {
+    setOpenIndex((prev) => (prev === index ? null : index))
+  }
+
   return (
     <section id="faq" className="flex h-full min-h-0 w-full flex-1 flex-col justify-center py-20">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col justify-center px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 text-center">
+        <div className={`mb-8 ${sectionHeaderWrap}`}>
           <SectionEyebrow>FAQ</SectionEyebrow>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Frequently asked questions
-          </h2>
-          <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+          <h2 className={`mt-3 ${sectionTitle}`}>Frequently asked questions</h2>
+          <p className={`mt-3 ${sectionLead}`}>
             Can&apos;t find what you&apos;re looking for? Contact our team when support details
             are published.
           </p>
@@ -112,7 +117,7 @@ export default function FAQ({
                 item={item}
                 index={sourceIndex}
                 openIndex={openIndex}
-                onToggle={setOpenIndex}
+                onToggle={handleToggle}
                 reducedMotion={reducedMotion}
                 editMode={editMode}
                 onItemChange={(updated) => {
@@ -121,7 +126,6 @@ export default function FAQ({
                   )
                   onFaqChange?.({ items: nextItems })
                 }}
-                onSave={onSave}
               />
             )
           })}

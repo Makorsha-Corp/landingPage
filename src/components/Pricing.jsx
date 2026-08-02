@@ -1,5 +1,13 @@
 import SectionEyebrow from './SectionEyebrow'
 import Button from './ui/Button'
+import {
+  elevatedCard,
+  iconTileMd,
+  marketingCard,
+  sectionHeaderWrap,
+  sectionLead,
+  sectionTitle,
+} from '../lib/loginSurfaceStyles'
 
 const tiers = [
   {
@@ -53,6 +61,28 @@ const tiers = [
   },
 ]
 
+function FeatureRow({ feature }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className={iconTileMd}>
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+      <span className="pt-1.5 text-xs leading-snug text-muted-foreground sm:text-sm">
+        {feature}
+      </span>
+    </li>
+  )
+}
+
 export default function Pricing({ onFaqClick, onJoinWaitlist }) {
   return (
     <section
@@ -60,12 +90,10 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
       className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden py-8 sm:py-10"
     >
       <div className="relative z-[1] mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto mb-5 max-w-2xl text-center sm:mb-6">
+        <div className={`mb-5 sm:mb-6 ${sectionHeaderWrap}`}>
           <SectionEyebrow>Pricing</SectionEyebrow>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Simple, transparent pricing
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <h2 className={`mt-2 ${sectionTitle}`}>Simple, transparent pricing</h2>
+          <p className={`mt-2 text-sm sm:text-base ${sectionLead}`}>
             Choose the plan that fits your business. All plans include a 14-day free trial.
           </p>
         </div>
@@ -74,24 +102,26 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
           {tiers.map((tier, index) => (
             <div
               key={tier.name}
-              className={`relative flex min-h-0 flex-col rounded-2xl border p-4 sm:p-5 ${
+              className={`relative flex min-h-0 flex-col p-4 sm:p-5 ${
                 tier.highlighted
-                  ? 'z-10 border-primary bg-card shadow-xl shadow-primary/10'
-                  : 'border-border/80 bg-card shadow-sm'
+                  ? `z-10 ${elevatedCard} ring-2 ring-primary/20`
+                  : marketingCard
               } ${index === 1 ? 'lg:-mt-1 lg:mb-1' : ''}`}
             >
-              {tier.highlighted && (
+              {tier.highlighted ? (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="inline-flex items-center rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-white">
                     Most popular
                   </span>
                 </div>
-              )}
+              ) : null}
 
               <div className="mb-3">
                 <h3 className="text-lg font-semibold text-foreground">{tier.name}</h3>
                 <div className="mt-1.5 flex items-baseline gap-1">
-                  <span className="text-3xl font-bold tracking-tight text-foreground">{tier.price}</span>
+                  <span className="text-3xl font-bold tracking-tight text-foreground">
+                    {tier.price}
+                  </span>
                   {tier.period ? (
                     <span className="text-sm text-muted-foreground">{tier.period}</span>
                   ) : null}
@@ -101,23 +131,9 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
                 </p>
               </div>
 
-              <ul className="mt-4 flex-1 space-y-1.5">
+              <ul className="mt-4 flex-1 space-y-2">
                 {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <svg
-                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-xs leading-snug text-muted-foreground sm:text-sm">
-                      {feature}
-                    </span>
-                  </li>
+                  <FeatureRow key={feature} feature={feature} />
                 ))}
               </ul>
 
@@ -126,9 +142,7 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
                 href={tier.name === 'Enterprise' ? '#contact' : undefined}
                 type={tier.name === 'Enterprise' ? undefined : 'button'}
                 onClick={
-                  tier.name === 'Enterprise'
-                    ? undefined
-                    : () => onJoinWaitlist?.('pricing')
+                  tier.name === 'Enterprise' ? undefined : () => onJoinWaitlist?.('pricing')
                 }
                 variant={tier.highlighted ? 'marketing' : 'outline'}
                 size="sm"

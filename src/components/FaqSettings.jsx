@@ -1,10 +1,8 @@
-import Button from './ui/Button'
-
 const inputCls =
   'w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40'
 const labelCls = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'
 
-export default function FaqSettings({ item, index, onChange, onSave }) {
+export default function FaqSettings({ item, index, onChange }) {
   const updateField = (field, value) => {
     onChange({ ...item, [field]: value })
   }
@@ -35,9 +33,6 @@ export default function FaqSettings({ item, index, onChange, onSave }) {
           onChange={(e) => updateField('answer', e.target.value)}
         />
       </div>
-      <Button type="button" onClick={onSave} size="xs" className="w-full">
-        Save section
-      </Button>
     </div>
   )
 }

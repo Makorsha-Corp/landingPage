@@ -1,10 +1,8 @@
-import Button from '../components/ui/Button'
-
 const inputCls =
   'w-full rounded-lg border border-white/20 bg-black/30 px-2.5 py-1.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary/40'
 const labelCls = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-white/60'
 
-export default function Homepage2HeroSettings({ hero, onChange, onSave }) {
+export default function Homepage2HeroSettings({ hero, onChange }) {
   const update = (field, value) => {
     onChange({ ...hero, [field]: value })
   }
@@ -53,10 +51,6 @@ export default function Homepage2HeroSettings({ hero, onChange, onSave }) {
           />
         </div>
       </div>
-
-      <Button type="button" onClick={onSave} size="xs" className="w-full">
-        Save hero
-      </Button>
     </div>
   )
 }

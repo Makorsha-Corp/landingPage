@@ -3,10 +3,19 @@ export const lerp = (a, b, t) => a + (b - a) * t
 export const smoothstep = (t) => t * t * (3 - 2 * t)
 
 export const HERO_EXIT_DURATION_MS = 650
+export const DEFAULT_HERO_FACTORY_BLUR_PX = 4
 const HERO_EXIT_HOLD = 0.3
 export const HERO_TEXT_FADE_END = 0.8
+const HERO_BLUR_HOLD = 0.18
 const STORY_CARD_FADE_SPAN = 0.25
 const STORY_CARD_FADE_START = 1 - STORY_CARD_FADE_SPAN
+
+/** Full blur on hero; gradual unblur through hero→tour exit scroll. */
+export function computeHeroBlurOpacity(displayHeroExitT, heroActive) {
+  if (heroActive) return 1
+  const t = clamp((displayHeroExitT - HERO_BLUR_HOLD) / (1 - HERO_BLUR_HOLD), 0, 1)
+  return 1 - smoothstep(t)
+}
 
 export function heroExitEase(t) {
   if (t <= HERO_EXIT_HOLD) return 0
@@ -28,30 +37,33 @@ export function stopCardScrollOpacity(scaled, stopIndex) {
 const BACKGROUND_PARALLAX = 0.3
 const BACKGROUND_PARALLAX_Y = 0.15
 
+function tourBgTransform(scale) {
+  return `scale(${scale})`
+}
+
 export function computeBackgroundTransforms(tx, ty, scale, heroBlend) {
   const panX = tx * BACKGROUND_PARALLAX
   const panY = ty * BACKGROUND_PARALLAX_Y
-
-  if (heroBlend >= 1) {
-    return {
-      wrapperTransform: `translate(${panX * 0.4}%, ${panY * 0.4}%) scale(1)`,
-      imgTransform: null,
-      imgObjectFit: 'contain',
-      imgObjectPosition: '50% 50%',
-    }
-  }
+  const tourMix = 1 - clamp(heroBlend, 0, 1)
 
   const zoom = 1 + (scale - 1) * BACKGROUND_PARALLAX
   const panExtent = Math.max(Math.abs(panX), Math.abs(panY))
   const upwardPanBoost = Math.max(0, ty) * 0.004
-  const imgOverscan = 1.18 + panExtent * 0.006 + (scale - 1) * 0.12 + upwardPanBoost
+  const tourOverscan =
+    1.12 + panExtent * 0.006 + (scale - 1) * 0.08 + upwardPanBoost
   const zoomT = clamp((scale - 1) / 1.5, 0, 1)
 
+  const wrapperPanX = lerp(panX * 0.4, panX, tourMix)
+  const wrapperPanY = lerp(panY * 0.4, panY, tourMix)
+  const wrapperScale = Math.max(1, lerp(1, zoom, tourMix))
+  const imgOverscan = Math.max(1.12, lerp(1, tourOverscan, tourMix))
+  const objPosY = lerp(42, lerp(40, 25, zoomT), tourMix)
+
   return {
-    wrapperTransform: `translate(${panX}%, ${panY}%) scale(${zoom})`,
-    imgTransform: `scale(${imgOverscan})`,
+    wrapperTransform: `translate(${wrapperPanX}%, ${wrapperPanY}%) scale(${wrapperScale})`,
+    imgTransform: tourBgTransform(imgOverscan),
     imgObjectFit: 'cover',
-    imgObjectPosition: `50% ${lerp(40, 25, zoomT)}%`,
+    imgObjectPosition: `50% ${objPosY}%`,
   }
 }
 
@@ -98,7 +110,7 @@ export function computeTourFrame({
   const fy = lerp(from.fy, to.fy, frac)
   const scale = lerp(from.scale, to.scale, frac)
 
-  const heroBlend = heroActive ? 1 : 0
+  const heroBlend = heroActive ? 1 : clamp(1 - displayHeroExitT, 0, 1)
   const camFx = lerp(fx, heroCamera.fx, heroBlend)
   const camFy = lerp(fy, heroCamera.fy, heroBlend)
   const camScale = lerp(scale, heroCamera.scale, heroBlend)
@@ -113,7 +125,11 @@ export function computeTourFrame({
     scaled,
     heroTextOpacity,
     storyCardOpacity,
-    heroBlurOpacity: 1 - displayHeroExitT,
+    heroBlurOpacity: computeHeroBlurOpacity(displayHeroExitT, heroActive),
+    sharpBgOpacity: heroActive
+      ? 0
+      : clamp((displayHeroExitT - 0.35) / 0.65, 0, 1),
+    displayHeroExitT,
     stageTransform: `translate(${tx}%, ${ty}%) scale(${camScale})`,
     background: computeBackgroundTransforms(tx, ty, camScale, heroBlend),
     tx,

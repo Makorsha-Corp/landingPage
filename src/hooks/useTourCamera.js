@@ -16,6 +16,7 @@ export default function useTourCamera({
   backgroundWrapperRef,
   backgroundImgRef,
   heroBlurRef,
+  heroFactoryBlurPxRef,
   heroTextRef,
   storyCardInnerRef,
   rightBarProgressFillRef,
@@ -28,6 +29,7 @@ export default function useTourCamera({
 }) {
   const progressRef = useRef(0)
   const displayHeroExitTRef = useRef(0)
+  const smoothedBlurOpacityRef = useRef(1)
   const smoothedRef = useRef({ tx: 0, ty: 0, scale: 1 })
   const dirtyRef = useRef(true)
   const activeIndexRef = useRef(0)
@@ -68,11 +70,13 @@ export default function useTourCamera({
 
       if (heroActiveNow || progress < 0.005) {
         displayHeroExitTRef.current = 0
+        smoothedBlurOpacityRef.current = 1
         return
       }
 
       if (reducedMotion) {
         displayHeroExitTRef.current = 1
+        smoothedBlurOpacityRef.current = 0
         return
       }
 
@@ -93,7 +97,12 @@ export default function useTourCamera({
         backgroundImgRef.current.style.objectPosition = background.imgObjectPosition
       }
       if (heroBlurRef.current) {
-        heroBlurRef.current.style.opacity = String(frame.heroBlurOpacity)
+        const baseBlurPx = heroFactoryBlurPxRef?.current ?? 0
+        const blurPx = baseBlurPx * smoothedBlurOpacityRef.current
+        heroBlurRef.current.style.opacity = blurPx > 0.05 ? '1' : '0'
+        const filter = blurPx > 0.05 ? `blur(${blurPx}px)` : 'none'
+        heroBlurRef.current.style.backdropFilter = filter
+        heroBlurRef.current.style.webkitBackdropFilter = filter
       }
       if (heroTextRef.current) {
         heroTextRef.current.style.opacity = String(frame.heroTextOpacity)
@@ -142,6 +151,18 @@ export default function useTourCamera({
         editMode,
       })
 
+      const targetBlurOpacity = frame.heroBlurOpacity
+      if (reducedMotion || frame.heroActive) {
+        smoothedBlurOpacityRef.current = targetBlurOpacity
+      } else {
+        smoothedBlurOpacityRef.current = exponentialSmoothing(
+          smoothedBlurOpacityRef.current,
+          targetBlurOpacity,
+          dt,
+          0.14,
+        )
+      }
+
       const smoothed = smoothedRef.current
       const targetTx = frame.tx
       const targetTy = frame.ty
@@ -179,7 +200,14 @@ export default function useTourCamera({
         Math.abs(smoothed.ty - targetTy) > SETTLE_EPSILON ||
         Math.abs(smoothed.scale - targetScale) > 0.002
 
-      if ((dirtyRef.current || settling) && !overlayPausedRef.current) {
+      const blurSettling = Math.abs(smoothedBlurOpacityRef.current - targetBlurOpacity) > 0.008
+      const exitInProgress =
+        displayHeroExitTRef.current > 0.001 && displayHeroExitTRef.current < 0.999
+
+      if (
+        (dirtyRef.current || settling || blurSettling || exitInProgress) &&
+        !overlayPausedRef.current
+      ) {
         dirtyRef.current = false
         raf = requestAnimationFrame(tick)
       }
@@ -207,6 +235,7 @@ export default function useTourCamera({
       editMode,
     })
     smoothedRef.current = { tx: initial.tx, ty: initial.ty, scale: initial.camScale }
+    smoothedBlurOpacityRef.current = initial.heroBlurOpacity
     dirtyRef.current = true
     if (!overlayPausedRef.current) raf = requestAnimationFrame(tick)
 
@@ -223,6 +252,7 @@ export default function useTourCamera({
     backgroundWrapperRef,
     editMode,
     heroBlurRef,
+    heroFactoryBlurPxRef,
     heroCamera,
     heroTextRef,
     reducedMotion,
