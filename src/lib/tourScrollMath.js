@@ -4,6 +4,11 @@ export const smoothstep = (t) => t * t * (3 - 2 * t)
 
 export const HERO_EXIT_DURATION_MS = 650
 export const DEFAULT_HERO_FACTORY_BLUR_PX = 4
+export const MOBILE_MAX_CAM_SCALE = 1.15
+export const MOBILE_FX_CENTER_BIAS = 0.75
+export const MOBILE_FY_CENTER_BIAS = 0.75
+export const MOBILE_TX_DAMPING = 0.25
+export const MOBILE_TY_DAMPING = 0.25
 const HERO_EXIT_HOLD = 0.3
 export const HERO_TEXT_FADE_END = 0.8
 const HERO_BLUR_HOLD = 0.18
@@ -67,6 +72,17 @@ export function computeBackgroundTransforms(tx, ty, scale, heroBlend) {
   }
 }
 
+function getStopCamera(stop) {
+  if (stop.mobileCamera) {
+    return {
+      fx: stop.mobileCamera.fx,
+      fy: stop.mobileCamera.fy,
+      scale: stop.mobileCamera.scale,
+    }
+  }
+  return { fx: stop.fx, fy: stop.fy, scale: stop.scale }
+}
+
 export function computeTourFrame({
   progress,
   stops,
@@ -74,6 +90,8 @@ export function computeTourFrame({
   displayHeroExitT,
   reducedMotion,
   editMode,
+  isMobile = false,
+  mobileCameraPanMode = false,
 }) {
   const heroPanelCount = 1
   const totalPanels = heroPanelCount + stops.length
@@ -106,17 +124,31 @@ export function computeTourFrame({
 
   const from = stops[index]
   const to = stops[index + 1]
-  const fx = lerp(from.fx, to.fx, frac)
-  const fy = lerp(from.fy, to.fy, frac)
-  const scale = lerp(from.scale, to.scale, frac)
+  const fromCam = getStopCamera(from)
+  const toCam = getStopCamera(to)
+  const fx = lerp(fromCam.fx, toCam.fx, frac)
+  const fy = lerp(fromCam.fy, toCam.fy, frac)
+  const scale = lerp(fromCam.scale, toCam.scale, frac)
 
   const heroBlend = heroActive ? 1 : clamp(1 - displayHeroExitT, 0, 1)
-  const camFx = lerp(fx, heroCamera.fx, heroBlend)
-  const camFy = lerp(fy, heroCamera.fy, heroBlend)
-  const camScale = lerp(scale, heroCamera.scale, heroBlend)
+  let camFx = lerp(fx, heroCamera.fx, heroBlend)
+  let camFy = lerp(fy, heroCamera.fy, heroBlend)
+  let camScale = lerp(scale, heroCamera.scale, heroBlend)
 
-  const tx = (0.5 - camFx) * 100 * camScale
-  const ty = (0.5 - camFy) * 100 * camScale
+  let txDamping = 1
+  let tyDamping = 1
+  const hasMobileCameraOverride = isMobile && (from.mobileCamera || to.mobileCamera)
+  const applyMobileDampening = isMobile && !mobileCameraPanMode && !hasMobileCameraOverride
+  if (applyMobileDampening) {
+    camFx = lerp(camFx, 0.5, MOBILE_FX_CENTER_BIAS)
+    camFy = lerp(camFy, 0.5, MOBILE_FY_CENTER_BIAS)
+    camScale = Math.min(camScale, MOBILE_MAX_CAM_SCALE)
+    txDamping = MOBILE_TX_DAMPING
+    tyDamping = MOBILE_TY_DAMPING
+  }
+
+  const tx = (0.5 - camFx) * 100 * camScale * txDamping
+  const ty = (0.5 - camFy) * 100 * camScale * tyDamping
 
   return {
     heroActive,
@@ -142,4 +174,35 @@ export function computeTourFrame({
 export function exponentialSmoothing(current, target, dtMs, rate = 0.18) {
   const k = 1 - Math.pow(1 - rate, dtMs / 16.67)
   return current + (target - current) * k
+}
+
+/** Scroll-linked 0→1 fade for tour→features sections backdrop. */
+export function computeTourToFeaturesBackdropProgress(
+  scrollerEl,
+  featuresEl,
+  {
+    // Start when Features top hits viewport bottom edge
+    fadeStartViewportRatio = 1.0,
+    fadeEndViewportRatio = 0.08,
+  } = {},
+) {
+  if (!scrollerEl || !featuresEl) return 0
+  const viewportH = scrollerEl.clientHeight
+  if (viewportH <= 0) return 0
+
+  const scrollerTop = scrollerEl.getBoundingClientRect().top
+  const featuresTop = featuresEl.getBoundingClientRect().top - scrollerTop
+
+  const start = viewportH * fadeStartViewportRatio
+  const end = viewportH * fadeEndViewportRatio
+  const span = start - end
+  if (span <= 0) return featuresTop <= end ? 1 : 0
+
+  return smoothstep(clamp((start - featuresTop) / span, 0, 1))
+}
+
+/** Sticky tour stage fades after sections wash has started (avoids early double-dim). */
+export function computeTourStageFadeProgress(washProgress) {
+  const delayed = clamp((washProgress - 0.2) / 0.8, 0, 1)
+  return smoothstep(delayed)
 }

@@ -30,6 +30,17 @@ export function getBackgroundOverlayStyle(theme, opacityPair) {
   }
 }
 
+/** Interpolate tour → sections dim strength (0–1 progress). */
+export function getBlendedBackgroundOverlayStyle(theme, tourPair, sectionsPair, progress) {
+  const tour = theme === 'dark' ? tourPair.dark : tourPair.light
+  const sections = theme === 'dark' ? sectionsPair.dark : sectionsPair.light
+  const t = Math.min(Math.max(progress, 0), 1)
+  const pct = tour + (sections - tour) * t
+  return {
+    backgroundColor: `hsl(var(--background) / ${pct / 100})`,
+  }
+}
+
 /** @deprecated use getBackgroundOverlayStyle */
 export const getWashStyle = getBackgroundOverlayStyle
 

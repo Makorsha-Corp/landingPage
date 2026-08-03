@@ -25,6 +25,8 @@ export default function useTourCamera({
   heroCamera,
   reducedMotion,
   editMode,
+  isMobile = false,
+  mobileCameraPanMode = false,
   overlayPaused = false,
 }) {
   const progressRef = useRef(0)
@@ -149,6 +151,8 @@ export default function useTourCamera({
         displayHeroExitT: displayHeroExitTRef.current,
         reducedMotion,
         editMode,
+        isMobile,
+        mobileCameraPanMode,
       })
 
       const targetBlurOpacity = frame.heroBlurOpacity
@@ -233,6 +237,8 @@ export default function useTourCamera({
       displayHeroExitT: displayHeroExitTRef.current,
       reducedMotion,
       editMode,
+      isMobile,
+      mobileCameraPanMode,
     })
     smoothedRef.current = { tx: initial.tx, ty: initial.ty, scale: initial.camScale }
     smoothedBlurOpacityRef.current = initial.heroBlurOpacity
@@ -255,6 +261,8 @@ export default function useTourCamera({
     heroFactoryBlurPxRef,
     heroCamera,
     heroTextRef,
+    isMobile,
+    mobileCameraPanMode,
     reducedMotion,
     rightBarProgressFillRef,
     rightBarRingRef,

@@ -114,26 +114,24 @@ export default function CapabilitiesGrid({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto overflow-x-hidden py-1">
-        <div
-          ref={gridRef}
-          className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5"
-          aria-label="Feature cards"
-        >
-          {visibleCards.map((card, index) => (
-            <CapabilityCard
-              key={card.id}
-              card={card}
-              index={index}
-              theme={theme}
-              reducedMotion={reducedMotion}
-              editMode={editMode}
-              reveal={revealCards}
-              onCardChange={onCardChange}
-              onOpen={openCard}
-            />
-          ))}
-        </div>
+      <div
+        ref={gridRef}
+        className="grid auto-rows-fr grid-cols-1 gap-4 py-1 md:grid-cols-2 lg:grid-cols-3 lg:gap-5"
+        aria-label="Feature cards"
+      >
+        {visibleCards.map((card, index) => (
+          <CapabilityCard
+            key={card.id}
+            card={card}
+            index={index}
+            theme={theme}
+            reducedMotion={reducedMotion}
+            editMode={editMode}
+            reveal={revealCards}
+            onCardChange={onCardChange}
+            onOpen={openCard}
+          />
+        ))}
       </div>
 
       {!editMode && (

@@ -1,3 +1,4 @@
+import { RainbowButton } from '@/components/ui/rainbow-button'
 import Button from './ui/Button'
 import Homepage2HeroSettings from '../pages/Homepage2HeroSettings'
 import {
@@ -9,14 +10,15 @@ import {
 function HeroButtons({ onGoWaitlist, onGoExplore }) {
   return (
     <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-      <Button
+      <RainbowButton
+        type="button"
         onClick={onGoWaitlist}
-        variant="heroPrimary"
+        variant="brand"
         size="lg"
         className="w-full sm:w-auto"
       >
         Sign Up
-      </Button>
+      </RainbowButton>
       <Button onClick={onGoExplore} variant="heroGlass" size="lg" className="w-full sm:w-auto">
         Explore
       </Button>
@@ -32,18 +34,24 @@ function HeroBadge({ className, children }) {
   )
 }
 
-function HeroTitle({ className, children }) {
+function HeroTitle({ className, children, inCard = false }) {
+  const sizeCls = inCard
+    ? 'text-3xl sm:text-4xl lg:text-5xl'
+    : 'text-4xl sm:text-5xl'
   return (
-    <h1 className={`mt-3 text-4xl sm:text-5xl font-bold tracking-tight ${className}`}>
+    <h1 className={`mt-3 font-bold tracking-tight ${sizeCls} ${className}`}>
       {children}
     </h1>
   )
 }
 
-function HeroSubtitle({ className, textShadow, children }) {
+function HeroSubtitle({ className, textShadow, children, inCard = false }) {
+  const sizeCls = inCard
+    ? 'text-base sm:text-lg lg:text-xl'
+    : 'text-lg sm:text-xl'
   return (
     <p
-      className={`mx-auto mt-5 max-w-2xl text-lg sm:text-xl font-medium leading-relaxed ${className} ${textShadow}`}
+      className={`mx-auto mt-5 max-w-2xl font-medium leading-relaxed ${sizeCls} ${className} ${textShadow}`}
     >
       {children}
     </p>
@@ -79,10 +87,12 @@ export default function Homepage2HeroOverlay({
 
   if (layout === 'wrap_all') {
     return (
-      <div className={`relative mx-auto max-w-2xl px-6 text-center ${shellCls} p-6 sm:p-8`}>
+      <div className={`relative mx-4 sm:mx-auto max-w-2xl text-center ${shellCls} p-5 sm:p-8`}>
         <HeroBadge className={colors.badge}>{hero.badge}</HeroBadge>
-        <HeroTitle className={titleInCardCls}>{hero.title}</HeroTitle>
-        <HeroSubtitle className={colors.subtitle} textShadow={colors.textShadow}>
+        <HeroTitle className={titleInCardCls} inCard>
+          {hero.title}
+        </HeroTitle>
+        <HeroSubtitle className={colors.subtitle} textShadow={colors.textShadow} inCard>
           {hero.subtitle}
         </HeroSubtitle>
         <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />

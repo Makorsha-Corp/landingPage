@@ -8,7 +8,7 @@ import WaitlistForm from './waitlist/WaitlistForm'
 import WaitlistSuccess from './waitlist/WaitlistSuccess'
 import PurpleSplitLayout from './waitlist/PurpleSplitLayout'
 
-export default function SignUpSection({ source = 'waitlist_section' }) {
+export default function SignUpSection({ source = 'waitlist_section', shineColors }) {
   const turnstileSiteKey = getTurnstileSiteKey()
   const turnstileRef = useRef(null)
   const honeypotRef = useRef(null)
@@ -77,6 +77,7 @@ export default function SignUpSection({ source = 'waitlist_section' }) {
       <div className="mx-auto w-full max-w-4xl">
         <PurpleSplitLayout
           isSuccess={isSuccess}
+          shineColors={shineColors}
           renderForm={() => <WaitlistForm {...formProps} />}
           renderSuccess={() => <WaitlistSuccess />}
         />

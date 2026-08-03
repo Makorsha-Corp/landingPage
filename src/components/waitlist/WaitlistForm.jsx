@@ -1,5 +1,6 @@
 import { Turnstile } from '@marsidev/react-turnstile'
 import Button from '../ui/Button'
+import WaitlistCheckbox from './WaitlistCheckbox'
 import { loginInput } from '../../lib/loginSurfaceStyles'
 
 export default function WaitlistForm({
@@ -45,15 +46,13 @@ export default function WaitlistForm({
         </Button>
       </div>
 
-      <label className="flex items-start gap-3 text-sm text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={wantsUpdates}
-          onChange={(event) => setWantsUpdates(event.target.checked)}
-          className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/40"
-        />
-        <span>Also send me product updates and factory ops tips</span>
-      </label>
+      <WaitlistCheckbox
+        id="waitlist-updates"
+        checked={wantsUpdates}
+        onChange={(event) => setWantsUpdates(event.target.checked)}
+      >
+        Also send me product updates and factory ops tips
+      </WaitlistCheckbox>
 
       <div className="hidden" aria-hidden="true">
         <label htmlFor="waitlist-website">Website</label>

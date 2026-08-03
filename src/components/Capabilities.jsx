@@ -21,8 +21,8 @@ export default function Capabilities({
   }
 
   return (
-    <section className="relative flex h-full min-h-0 w-full flex-1 flex-col justify-start pt-28 pb-16 sm:pt-32 sm:pb-20">
-      <div className="relative z-[1] mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
+    <section className="relative w-full pt-28 pb-16 sm:pt-32 sm:pb-20">
+      <div className="relative z-[1] mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div
           className={`mx-auto mb-10 max-w-2xl shrink-0 text-center sm:mb-12 ${
             editMode ? 'rounded-2xl p-4 ring-2 ring-primary/50' : ''

@@ -1,8 +1,17 @@
 import { WaitlistCopyHeader, WaitlistTrustList } from './WaitlistCopy'
+import { ShineBorder } from '@/components/ui/shine-border'
+import { getWaitlistShineColors } from '../../lib/rainbowColorPresets'
 
-export default function PurpleSplitLayout({ isSuccess, renderForm, renderSuccess }) {
+export default function PurpleSplitLayout({ isSuccess, renderForm, renderSuccess, shineColors }) {
+  const resolvedShineColors = shineColors ?? getWaitlistShineColors()
+
   return (
-    <div className="overflow-hidden rounded-3xl shadow-2xl ring-1 ring-border/70 md:grid md:grid-cols-[1.05fr_1fr]">
+    <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-border/70 md:grid md:grid-cols-[1.05fr_1fr]">
+      <ShineBorder
+        borderWidth={2}
+        duration={12}
+        shineColor={resolvedShineColors}
+      />
       <div className="bg-primary px-6 py-8 sm:px-8 sm:py-10">
         <WaitlistCopyHeader
           eyebrowClassName="text-white/70"

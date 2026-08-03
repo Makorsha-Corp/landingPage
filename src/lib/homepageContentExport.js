@@ -29,7 +29,18 @@ function normalizeStop(stop) {
     fy: stop.fy,
     scale: stop.scale,
     card: normalizeCard(stop.card),
+    mobileCamera: stop.mobileCamera
+      ? {
+          fx: stop.mobileCamera.fx,
+          fy: stop.mobileCamera.fy,
+          scale: stop.mobileCamera.scale,
+        }
+      : null,
   }
+}
+
+function formatMobileCamera(mobileCamera) {
+  return `{ fx: ${mobileCamera.fx}, fy: ${mobileCamera.fy}, scale: ${mobileCamera.scale} }`
 }
 
 export function normalizeHomepageSnapshot({
@@ -90,6 +101,9 @@ function formatCard(card) {
 
 function formatStop(stop) {
   const points = stop.points.map((point) => `      ${jsString(point)},`).join('\n')
+  const mobileCameraLine = stop.mobileCamera
+    ? `\n    mobileCamera: ${formatMobileCamera(stop.mobileCamera)},`
+    : ''
 
   return `  {
     id: ${jsString(stop.id)},
@@ -102,7 +116,7 @@ ${points}
     fx: ${stop.fx},
     fy: ${stop.fy},
     scale: ${stop.scale},
-    card: ${formatCard(stop.card)},
+    card: ${formatCard(stop.card)},${mobileCameraLine}
   }`
 }
 
@@ -118,6 +132,14 @@ function formatStopFieldPatch(stop, fields) {
       lines.push(`card: ${formatCard(stop.card)},`)
       continue
     }
+    if (field === 'mobileCamera') {
+      if (stop.mobileCamera) {
+        lines.push(`mobileCamera: ${formatMobileCamera(stop.mobileCamera)},`)
+      } else {
+        lines.push('// remove mobileCamera from this stop')
+      }
+      continue
+    }
     lines.push(`${field}: ${jsString(stop[field])},`)
   }
   return lines.join('\n')
@@ -130,6 +152,7 @@ function getChangedStopFields(current, baseline) {
   }
   if (!stableEqual(current.points, baseline.points)) fields.push('points')
   if (!stableEqual(current.card, baseline.card)) fields.push('card')
+  if (!stableEqual(current.mobileCamera, baseline.mobileCamera)) fields.push('mobileCamera')
   return fields
 }
 

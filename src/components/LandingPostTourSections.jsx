@@ -29,6 +29,7 @@ function LandingPostTourSections({
   onFaqChange,
   onFaqClick,
   onJoinWaitlist,
+  waitlistShineColors,
 }) {
   const featuresCampusBackdrop = Boolean(sectionBackdrops.features)
   const proofCampusBackdrop = Boolean(sectionBackdrops.proof)
@@ -38,7 +39,7 @@ function LandingPostTourSections({
 
   return (
     <>
-      <div ref={capabilitiesRef} id="features" className={`${CAMPUS_PANEL_CLASS} deck-panel--scroll relative`}>
+      <div ref={capabilitiesRef} id="features" className={`${CAMPUS_PANEL_CLASS} deck-panel--flow relative`}>
         {!featuresCampusBackdrop ? (
           <LoginZoneBackground
             theme={theme}
@@ -46,7 +47,7 @@ function LandingPostTourSections({
             backdropStyle={sectionsBackdropStyle}
           />
         ) : null}
-        <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+        <div className="relative z-[1]">
           <Capabilities
             capabilities={displayCapabilities}
             reducedMotion={reducedMotion}
@@ -71,6 +72,7 @@ function LandingPostTourSections({
 
       <LoginZonePanel
         panelRef={pricingRef}
+        flow
         theme={theme}
         reducedMotion={reducedMotion}
         showGradientBackdrop={!pricingCampusBackdrop}
@@ -102,7 +104,7 @@ function LandingPostTourSections({
         showGradientBackdrop={!waitlistCampusBackdrop}
         backdropStyle={sectionsBackdropStyle}
       >
-        <SignUpSection source={waitlistSource} />
+        <SignUpSection source={waitlistSource} shineColors={waitlistShineColors} />
       </LoginZonePanel>
     </>
   )

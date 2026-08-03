@@ -5,10 +5,14 @@ import DevToolsPopover from '../components/DevToolsPopover'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import LandingPostTourSections from '../components/LandingPostTourSections'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
+import TourMobileCompactCard from '../components/tour/TourMobileCompactCard'
+import TourMobileStopPanel from '../components/tour/TourMobileStopPanel'
 import useReducedMotion from '../hooks/useReducedMotion'
+import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
-import { DEFAULT_HERO_FACTORY_BLUR_PX } from '../lib/tourScrollMath'
+import useTourFeaturesBackdrop from '../hooks/useTourFeaturesBackdrop'
+import { DEFAULT_HERO_FACTORY_BLUR_PX, computeTourStageFadeProgress } from '../lib/tourScrollMath'
 import {
   DEFAULT_CAPABILITIES,
   cloneCapabilities,
@@ -22,6 +26,8 @@ import Homepage2FloatingCardLayoutControls from './Homepage2FloatingCardLayoutCo
 import Homepage2HeroCameraControls, {
   DEFAULT_HERO_CAMERA,
   normalizeHeroCamera,
+  normalizeTourCamera,
+  TOUR_CAMERA_LIMITS,
 } from './Homepage2HeroCameraControls'
 import {
   getLoginGradientStyle,
@@ -40,9 +46,17 @@ import {
 } from '../lib/heroCardStyles'
 import { copyHomepageContentForCode, normalizeHomepageSnapshot } from '../lib/homepageContentExport'
 import {
+  applyRainbowColorPreset,
+  clearRainbowColorPresetOverrides,
+  DEFAULT_RAINBOW_COLOR_PRESET,
+  getWaitlistShineColors,
+  RAINBOW_COLOR_PRESET_LIST,
+} from '../lib/rainbowColorPresets'
+import {
   DEFAULT_SECTIONS_BACKDROP_OPACITY,
   DEFAULT_TOUR_BACKDROP_OPACITY,
   getBackgroundOverlayStyle,
+  getBlendedBackgroundOverlayStyle,
   normalizeBackdropOpacity,
 } from '../lib/homepageWash'
 
@@ -64,6 +78,8 @@ const HOMEPAGE_BLUR_BACKGROUNDS = {
   light: '/homepage-background-blur.png',
   dark: '/homepage-background-blur-dark.png',
 }
+
+const BUILDING_IMAGE = '/building-compressed.png'
 
 function getScrollHintPillStyles(theme) {
   if (theme === 'dark') {
@@ -148,7 +164,8 @@ function RightBarShell({ wrap, bar, gap, onStepPrev, onStepNext, children }) {
 /**
  * Focus stops. fx/fy are the focus point as a fraction (0..1) of the
  * building image; scale is how far to zoom in at that stop. These are
- * tuned by eye against /building.png (1024x831) and can be adjusted.
+ * tuned by eye against the building cutaway (4572x3712, aspect 1024:831).
+ * Production uses BUILDING_IMAGE (compressed); full PNG kept in public/ for re-export.
  */
 const DEFAULT_STOPS = [
   {
@@ -166,6 +183,7 @@ const DEFAULT_STOPS = [
     fy: 0.5,
     scale: 1,
     card: { x: '53%', y: '86%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.5, fy: 0.56, scale: 0.7 },
   },
   {
     id: 'reports',
@@ -182,6 +200,7 @@ const DEFAULT_STOPS = [
     fy: 0.34,
     scale: 1.55,
     card: { x: '94%', y: '70%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.48, fy: 0.24, scale: 1.55 },
   },
   {
     id: 'orders',
@@ -198,6 +217,7 @@ const DEFAULT_STOPS = [
     fy: 0.47,
     scale: 2.2,
     card: { x: '6%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.33, fy: 0.47, scale: 1.86 },
   },
   {
     id: 'accounts',
@@ -214,6 +234,7 @@ const DEFAULT_STOPS = [
     fy: 0.50,
     scale: 2.2,
     card: { x: '10%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.68, fy: 0.54, scale: 1.52 },
   },
   {
     id: 'production',
@@ -230,6 +251,7 @@ const DEFAULT_STOPS = [
     fy: 0.76,
     scale: 2.4,
     card: { x: '92%', y: '92%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.25, fy: 0.74, scale: 1.9 },
   },
   {
     id: 'inventory',
@@ -246,6 +268,7 @@ const DEFAULT_STOPS = [
     fy: 0.78,
     scale: 2.4,
     card: { x: '50%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    mobileCamera: { fx: 0.65, fy: 0.8, scale: 1.88 },
   },
 ]
 
@@ -261,6 +284,7 @@ function cloneStops(stops) {
     ...s,
     points: [...(s.points || [])],
     card: normalizeCard(s.card, DEFAULT_STOPS[i]?.card || DEFAULT_CARD),
+    mobileCamera: s.mobileCamera ? { ...s.mobileCamera } : undefined,
   }))
 }
 
@@ -532,9 +556,11 @@ export default function Home() {
   const rightBarProgressRingRef = useRef(null)
   const tourPanelRefs = useRef([])
   const reducedMotion = useReducedMotion()
+  const isMobileTour = useIsMobileTour()
   const [barVariant, setBarVariant] = useState('A')
   const [editMode, setEditMode] = useState(false)
   const [factoryPanMode, setFactoryPanMode] = useState(false)
+  const [mobileCameraPanMode, setMobileCameraPanMode] = useState(false)
   const [stops, setStops] = useState(() => cloneStops(DEFAULT_STOPS))
   const [hero, setHero] = useState(() => ({ ...DEFAULT_HERO }))
   const [heroCamera, setHeroCamera] = useState(() => ({ ...DEFAULT_HERO_CAMERA }))
@@ -547,6 +573,8 @@ export default function Home() {
   const [faq, setFaq] = useState(() => cloneFaq(mergeFaqFromSaved()))
   const [waitlistSource, setWaitlistSource] = useState('waitlist_section')
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
+  const [mobileStopPanelStopId, setMobileStopPanelStopId] = useState(null)
+  const [rainbowColorPreset, setRainbowColorPreset] = useState(DEFAULT_RAINBOW_COLOR_PRESET)
   const exportCodeBaseline = useMemo(
     () =>
       normalizeHomepageSnapshot({
@@ -568,7 +596,19 @@ export default function Home() {
     return () => document.documentElement.classList.remove('homepage2-page')
   }, [])
 
-  heroFactoryBlurPxRef.current = heroFactoryBlurPx
+  useEffect(() => {
+    heroFactoryBlurPxRef.current = heroFactoryBlurPx
+  }, [heroFactoryBlurPx])
+
+  useEffect(() => {
+    applyRainbowColorPreset(rainbowColorPreset)
+    return () => clearRainbowColorPresetOverrides()
+  }, [rainbowColorPreset])
+
+  const waitlistShineColors = useMemo(
+    () => getWaitlistShineColors(rainbowColorPreset),
+    [rainbowColorPreset],
+  )
 
   // Tracked on the scroller so every section inherits --login-grad-x/y.
   useLoginGradientFollow(scrollerRef, !reducedMotion)
@@ -604,6 +644,12 @@ export default function Home() {
     reducedMotion,
   })
 
+  const featuresBackdropProgress = useTourFeaturesBackdrop({
+    scrollerRef,
+    featuresRef: capabilitiesRef,
+    enabled: !reducedMotion,
+  })
+
   const { activeIndex, heroActive } = useTourCamera({
     scrollerRef,
     tourRef,
@@ -620,8 +666,13 @@ export default function Home() {
     heroCamera,
     reducedMotion,
     editMode,
+    isMobile: isMobileTour,
+    mobileCameraPanMode,
     overlayPaused: featureOverlayOpen,
   })
+
+  const mobilePanelStop =
+    mobileStopPanelStopId && activeStop?.id === mobileStopPanelStopId ? activeStop : null
 
   const heroPanelCount = 1
   const totalPanels = heroPanelCount + stops.length
@@ -651,7 +702,7 @@ export default function Home() {
     boundsRef: tourStageRef,
     card: activeCard,
     onCardChange: handleCardPositionChange,
-    enabled: editMode && !heroActive && Boolean(activeStop),
+    enabled: editMode && !heroActive && Boolean(activeStop) && !isMobileTour,
   })
 
   const getTourPanelScrollTop = (panelIndex) => {
@@ -818,6 +869,21 @@ export default function Home() {
     setStops((prev) => prev.map((s) => (s.id === updatedStop.id ? updatedStop : s)))
   }
 
+  const handleMobileTourCameraChange = (nextCamera) => {
+    if (!activeStop) return
+    updateStop({
+      ...activeStop,
+      mobileCamera: normalizeTourCamera(nextCamera, activeStop),
+    })
+  }
+
+  const resetMobileTourCamera = () => {
+    if (!activeStop?.mobileCamera) return
+    const nextStop = { ...activeStop }
+    delete nextStop.mobileCamera
+    updateStop(nextStop)
+  }
+
   const handleCapabilitiesChange = (nextCapabilities) => {
     setCapabilities(cloneCapabilities(nextCapabilities))
   }
@@ -848,13 +914,33 @@ export default function Home() {
 
   const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
   const scrollHintPillCls = getScrollHintPillStyles(theme)
+  const lightHeroRadialSoft = theme === 'light' && heroActive && !reducedMotion
   const pageGradientStyle = reducedMotion
     ? getLoginGradientStyle(theme)
-    : getLoginRadialGradientStyle()
+    : getLoginRadialGradientStyle(lightHeroRadialSoft ? 'hero-light' : 'default')
+  const pageGradientLayerCls = lightHeroRadialSoft
+    ? 'opacity-40 mix-blend-normal'
+    : 'opacity-70 mix-blend-soft-light'
   const tourBackdropStyle = getBackgroundOverlayStyle(theme, tourBackdropOpacity)
   const sectionsBackdropStyle = getBackgroundOverlayStyle(theme, sectionsBackdropOpacity)
   const showCampusBackdrop = Boolean(sectionBackdrops[activeSection])
-  const showSectionsBackdropOnCampus = showCampusBackdrop && activeSection !== 'tour'
+  const scrollLinkedFeaturesWash = !reducedMotion
+  const sectionsBackdropT = scrollLinkedFeaturesWash
+    ? featuresBackdropProgress
+    : activeSection !== 'tour'
+      ? 1
+      : 0
+  const tourStageOpacity = scrollLinkedFeaturesWash
+    ? Math.max(1 - computeTourStageFadeProgress(featuresBackdropProgress), 0)
+    : 1
+  const campusSectionsOverlayStyle = scrollLinkedFeaturesWash
+    ? getBlendedBackgroundOverlayStyle(
+        theme,
+        tourBackdropOpacity,
+        sectionsBackdropOpacity,
+        sectionsBackdropT,
+      )
+    : sectionsBackdropStyle
 
   return (
     <div
@@ -872,15 +958,19 @@ export default function Home() {
           alt=""
           className="homepage-bg-photo transition-opacity duration-500"
         />
-        {showSectionsBackdropOnCampus ? (
+        {showCampusBackdrop && sectionsBackdropT > 0 ? (
           <div
-            className="absolute inset-0 transition-[background-color] duration-500"
-            style={sectionsBackdropStyle}
+            className="absolute inset-0"
+            style={
+              scrollLinkedFeaturesWash
+                ? campusSectionsOverlayStyle
+                : { ...sectionsBackdropStyle, opacity: sectionsBackdropT }
+            }
             aria-hidden="true"
           />
         ) : null}
         <div
-          className="absolute inset-0 opacity-70 mix-blend-soft-light transition-[background] duration-500 ease-out"
+          className={`absolute inset-0 transition-[background,opacity] duration-500 ease-out ${pageGradientLayerCls}`}
           style={pageGradientStyle}
         />
       </div>
@@ -889,13 +979,16 @@ export default function Home() {
         sections={LANDING_SECTIONS}
         activeSection={activeSection}
         onSectionNavigate={handleSectionNavigate}
-        actions={
-          <>
+        desktopActions={
+          <div className="hidden items-center gap-2 sm:gap-3 md:flex">
             <DevToolsPopover
               editMode={editMode}
               onToggleEditMode={toggleEditMode}
               factoryPanMode={factoryPanMode}
               onToggleFactoryPanMode={toggleFactoryPanMode}
+              mobileCameraPanMode={mobileCameraPanMode}
+              onToggleMobileCameraPanMode={() => setMobileCameraPanMode((value) => !value)}
+              isMobileTour={isMobileTour}
               barVariant={barVariant}
               onCycleBarVariant={() =>
                 setBarVariant(
@@ -917,10 +1010,43 @@ export default function Home() {
               backdropSections={LANDING_SECTIONS}
               onToggleSectionBackdrop={toggleSectionBackdrop}
               onCopyForCode={handleCopyForCode}
+              rainbowColorPreset={rainbowColorPreset}
+              onRainbowColorPresetChange={setRainbowColorPreset}
+              rainbowColorPresets={RAINBOW_COLOR_PRESET_LIST}
             />
             <ThemeToggleButton variant="nav" />
-          </>
+          </div>
         }
+        devToolsProps={{
+          editMode,
+          onToggleEditMode: toggleEditMode,
+          factoryPanMode,
+          onToggleFactoryPanMode: toggleFactoryPanMode,
+          mobileCameraPanMode,
+          onToggleMobileCameraPanMode: () => setMobileCameraPanMode((value) => !value),
+          isMobileTour,
+          barVariant,
+          onCycleBarVariant: () =>
+            setBarVariant((value) => BAR_VARIANTS[(BAR_VARIANTS.indexOf(value) + 1) % BAR_VARIANTS.length]),
+          heroCardLayout: getHeroCardLayoutLabel(heroCard.layout),
+          heroCardStyle: getHeroCardStyleLabel(heroCard.style),
+          onCycleHeroCardLayout: handleCycleHeroCardLayout,
+          onCycleHeroCardStyle: handleCycleHeroCardStyle,
+          heroFactoryBlurPx,
+          onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
+          theme,
+          tourBackdropOpacity,
+          onTourBackdropOpacityChange: updateTourBackdropOpacity,
+          sectionsBackdropOpacity,
+          onSectionsBackdropOpacityChange: updateSectionsBackdropOpacity,
+          sectionBackdrops,
+          backdropSections: LANDING_SECTIONS,
+          onToggleSectionBackdrop: toggleSectionBackdrop,
+          onCopyForCode: handleCopyForCode,
+          rainbowColorPreset,
+          onRainbowColorPresetChange: setRainbowColorPreset,
+          rainbowColorPresets: RAINBOW_COLOR_PRESET_LIST,
+        }}
       />
 
       {/* Scroll-driven building experience */}
@@ -928,7 +1054,8 @@ export default function Home() {
         {/* Building stage pinned over the snap panels */}
         <div
           ref={tourStageRef}
-          className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center"
+          className="homepage-tour-dvh sticky top-0 w-full overflow-hidden flex items-center justify-center"
+          style={scrollLinkedFeaturesWash ? { opacity: tourStageOpacity } : undefined}
         >
           {/* Campus backdrop — parallax under the scroll-driven factory cutaway */}
           <div
@@ -954,10 +1081,10 @@ export default function Home() {
 
           <div
             ref={stageRef}
-            className="relative z-[1] h-screen aspect-[1024/831] will-change-transform"
+            className="relative z-[1] homepage-tour-dvh aspect-[1024/831] will-change-transform"
           >
             <img
-              src="/building.png"
+              src={BUILDING_IMAGE}
               alt="Marker headquarters cutaway"
               className="h-full w-full object-cover select-none"
               draggable={false}
@@ -974,12 +1101,20 @@ export default function Home() {
           {/* Hero overlay — first screen before scroll */}
           <div
             ref={heroTextRef}
-            className={`absolute inset-0 ${
+            className={`absolute inset-0 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-0 ${
               heroActive ? '' : 'pointer-events-none'
             } ${editMode && heroActive ? 'z-40 pointer-events-auto' : 'z-30'}`}
             style={{ opacity: 1 }}
           >
-            <div className="flex h-full items-center justify-center">
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${
+                theme === 'light'
+                  ? 'from-black/18 via-black/8 to-transparent'
+                  : 'from-black/60 via-black/35 to-black/10'
+              }`}
+            />
+            <div className="relative flex h-full items-center justify-center">
               <Homepage2HeroOverlay
                 hero={hero}
                 theme={theme}
@@ -993,7 +1128,7 @@ export default function Home() {
               />
             </div>
 
-            {!editMode && !factoryPanMode && (
+            {!editMode && !factoryPanMode && !mobileCameraPanMode && (
               <div className="pointer-events-none absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
                 <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${scrollHintPillCls}`}>
                   <span>Scroll to explore</span>
@@ -1015,7 +1150,20 @@ export default function Home() {
             </div>
           )}
 
-          {editMode && !heroActive && activeStop ? (
+          {isMobileTour && mobileCameraPanMode && !heroActive && activeStop && (
+            <div className="pointer-events-auto absolute left-4 top-[calc(env(safe-area-inset-top,0px)+4.75rem)] z-50 md:hidden">
+              <Homepage2HeroCameraControls
+                title="Mobile tour camera"
+                description={`Pan/zoom “${activeStop.title}”. Saves per-stop override this session.`}
+                limits={TOUR_CAMERA_LIMITS}
+                camera={normalizeTourCamera(activeStop.mobileCamera, activeStop)}
+                onChange={handleMobileTourCameraChange}
+                onReset={resetMobileTourCamera}
+              />
+            </div>
+          )}
+
+          {editMode && !heroActive && activeStop && !isMobileTour ? (
             <Homepage2FloatingCardLayoutControls
               boundsRef={tourStageRef}
               stop={activeStop}
@@ -1023,9 +1171,9 @@ export default function Home() {
             />
           ) : null}
 
-          {/* Feature story card — hidden on hero; overview is first card after scroll */}
+          {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
-            className={`pointer-events-none absolute ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute hidden md:block ${editMode ? 'z-40' : 'z-10'}`}
             style={{
               left: activeCard.x,
               top: activeCard.y,
@@ -1085,7 +1233,14 @@ export default function Home() {
             </div>
           </div>
 
-          {!heroActive && (
+          <TourMobileCompactCard
+            stop={activeStop}
+            theme={theme}
+            visible={!heroActive && Boolean(activeStop)}
+            onOpen={() => activeStop?.id && setMobileStopPanelStopId(activeStop.id)}
+          />
+
+          {!heroActive && !isMobileTour && (
             <RightBar
               theme={theme}
               variant={barVariant}
@@ -1104,13 +1259,13 @@ export default function Home() {
 
         {/* Snap panels — one per stop. Pulled up under the sticky stage so the
             first panel aligns with progress 0. Each is a scroll-snap target. */}
-        <div style={{ marginTop: '-100vh' }}>
+        <div className="homepage-tour-panels-offset">
           <div
             ref={(el) => {
               tourPanelRefs.current[0] = el
             }}
             key="hero"
-            className="h-screen snap-start"
+            className="homepage-tour-dvh snap-start"
             aria-hidden="true"
           />
           {stops.map((stop, idx) => (
@@ -1119,12 +1274,20 @@ export default function Home() {
                 tourPanelRefs.current[idx + 1] = el
               }}
               key={stop.id}
-              className={`h-screen snap-start${idx === stops.length - 1 ? ' snap-always' : ''}`}
+              className={`homepage-tour-dvh snap-start${idx === stops.length - 1 ? ' snap-always' : ''}`}
               aria-hidden="true"
             />
           ))}
         </div>
       </section>
+
+      <TourMobileStopPanel
+        stop={mobilePanelStop}
+        theme={theme}
+        scrollerRef={scrollerRef}
+        reducedMotion={reducedMotion}
+        onClose={() => setMobileStopPanelStopId(null)}
+      />
 
       <LandingPostTourSections
         capabilitiesRef={capabilitiesRef}
@@ -1146,6 +1309,7 @@ export default function Home() {
         onFaqChange={handleFaqChange}
         onFaqClick={goFaq}
         onJoinWaitlist={(source) => goWaitlist(source)}
+        waitlistShineColors={waitlistShineColors}
       />
       </div>
     </div>

@@ -9,13 +9,18 @@ export default function LoginZonePanel({
   theme,
   reducedMotion,
   showGradientBackdrop = true,
+  flow = false,
   washStyle,
   backdropStyle,
   children,
 }) {
   const overlayStyle = backdropStyle ?? washStyle
   return (
-    <div ref={panelRef} id={id} className="deck-panel relative">
+    <div
+      ref={panelRef}
+      id={id}
+      className={`deck-panel relative${flow ? ' deck-panel--flow' : ''}`}
+    >
       {showGradientBackdrop ? (
         <LoginZoneBackground theme={theme} reducedMotion={reducedMotion} backdropStyle={overlayStyle} />
       ) : null}

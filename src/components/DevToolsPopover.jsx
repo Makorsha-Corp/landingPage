@@ -65,6 +65,9 @@ function DevToolsFloatingPanel({
   onToggleEditMode,
   factoryPanMode,
   onToggleFactoryPanMode,
+  mobileCameraPanMode,
+  onToggleMobileCameraPanMode,
+  isMobileTour,
   barVariant,
   onCycleBarVariant,
   heroCardLayout,
@@ -81,6 +84,9 @@ function DevToolsFloatingPanel({
   backdropSections,
   onToggleSectionBackdrop,
   onCopyForCode,
+  rainbowColorPreset,
+  onRainbowColorPresetChange,
+  rainbowColorPresets = [],
 }) {
   const boundsRef = useRef(null)
   const panelRef = useRef(null)
@@ -179,7 +185,27 @@ function DevToolsFloatingPanel({
                 >
                   Factory pan
                 </Button>
+                <Button
+                  type="button"
+                  onClick={onToggleMobileCameraPanMode}
+                  variant="navGhost"
+                  size="default"
+                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${mobileCameraPanMode ? activeCls : ''}`}
+                  aria-pressed={mobileCameraPanMode}
+                >
+                  Mobile camera
+                </Button>
               </div>
+              {!isMobileTour && mobileCameraPanMode ? (
+                <p className="mt-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+                  Mobile camera is on — resize below md or use device mode to see controls on tour stops.
+                </p>
+              ) : null}
+              {isMobileTour && mobileCameraPanMode ? (
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  D-pad appears top-left on each tour stop. Overrides persist this session.
+                </p>
+              ) : null}
             </div>
 
             <div>
@@ -218,12 +244,36 @@ function DevToolsFloatingPanel({
                   onClick={onCycleHeroCardStyle}
                   variant="navGhost"
                   size="default"
-                  disabled={heroCardLayout === 'none'}
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${heroCardLayout === 'none' ? 'opacity-40' : ''}`}
+                  disabled={heroCardLayout === 'None'}
+                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${heroCardLayout === 'None' ? 'opacity-40' : ''}`}
                 >
                   Style: {heroCardStyle}
                 </Button>
               </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Rainbow colors</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Preset palettes for hero Sign Up rainbow + waitlist shine border.
+              </p>
+              {onRainbowColorPresetChange && rainbowColorPresets.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {rainbowColorPresets.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      onClick={() => onRainbowColorPresetChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${rainbowColorPreset === id ? activeCls : ''}`}
+                      aria-pressed={rainbowColorPreset === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="lg:col-span-2">
@@ -326,26 +376,37 @@ function DevToolsFloatingPanel({
   )
 }
 
-export default function DevToolsPopover(props) {
-  const [open, setOpen] = useState(false)
-  const buttonRef = useRef(null)
+export default function DevToolsPopover({
+  showTrigger = true,
+  open: controlledOpen,
+  onOpenChange,
+  buttonRef: externalButtonRef,
+  ...props
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const internalButtonRef = useRef(null)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
+  const buttonRef = externalButtonRef ?? internalButtonRef
 
   return (
     <>
-      <span ref={buttonRef} className="inline-flex">
-        <Button
-          type="button"
-          variant="navGhost"
-          size="default"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-haspopup="dialog"
-          aria-label="Open dev tools"
-          className={`!h-10 !px-4 !text-sm ${open ? activeCls : ''}`}
-        >
-          Dev tools
-        </Button>
-      </span>
+      {showTrigger ? (
+        <span ref={buttonRef} className="inline-flex">
+          <Button
+            type="button"
+            variant="navGhost"
+            size="default"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            aria-label="Open dev tools"
+            className={`!h-10 !px-4 !text-sm ${open ? activeCls : ''}`}
+          >
+            Dev tools
+          </Button>
+        </span>
+      ) : null}
 
       <DevToolsFloatingPanel
         {...props}

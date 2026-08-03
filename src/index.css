@@ -33,6 +33,32 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --animate-shine: shine var(--duration) infinite linear;
+  @keyframes shine {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    to {
+      background-position: 0% 0%;
+    }
+  }
+  --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+  --color-color-5: var(--color-5);
+  --color-color-4: var(--color-4);
+  --color-color-3: var(--color-3);
+  --color-color-2: var(--color-2);
+  --color-color-1: var(--color-1);
+  @keyframes rainbow {
+    0% {
+      background-position: 0%;
+    }
+    100% {
+      background-position: 200%;
+    }
+  }
 }
 
 @layer base {
@@ -179,6 +205,15 @@
   height: 0;
 }
 
+.homepage-tour-dvh {
+  height: 100dvh;
+  min-height: 100dvh;
+}
+
+.homepage-tour-panels-offset {
+  margin-top: -100dvh;
+}
+
 .deck-panel {
   display: flex;
   flex-direction: column;
@@ -191,6 +226,12 @@
   overflow-y: auto;
 }
 
+.deck-panel.deck-panel--flow {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 @media (min-height: 700px) {
   .deck-panel {
     height: 100vh;
@@ -200,6 +241,11 @@
   .deck-panel.deck-panel--scroll {
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  .deck-panel.deck-panel--flow {
+    height: auto;
+    overflow: visible;
   }
 }
 
@@ -233,6 +279,43 @@
   animation: fade-in 0.4s ease both;
 }
 
+@keyframes pricing-tier-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pricing-tier-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-pricing-tier-from-right {
+  animation: pricing-tier-from-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-pricing-tier-from-left {
+  animation: pricing-tier-from-left 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pricing-tier-from-right,
+  .animate-pricing-tier-from-left {
+    animation: fade-in 0.2s ease both;
+  }
+}
+
 @keyframes story-card-opacity {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -256,3 +339,19 @@
 
 .bg-campus-sky { background-color: var(--campus-sky-light); }
 .dark .bg-campus-sky { background-color: var(--campus-sky-dark); }
+
+:root {
+  --color-1: oklch(66.2% 0.225 25.9);
+  --color-2: oklch(60.4% 0.26 302);
+  --color-3: oklch(69.6% 0.165 251);
+  --color-4: oklch(80.2% 0.134 225);
+  --color-5: oklch(90.7% 0.231 133);
+}
+
+.dark {
+  --color-1: oklch(66.2% 0.225 25.9);
+  --color-2: oklch(60.4% 0.26 302);
+  --color-3: oklch(69.6% 0.165 251);
+  --color-4: oklch(80.2% 0.134 225);
+  --color-5: oklch(90.7% 0.231 133);
+}
