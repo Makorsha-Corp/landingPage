@@ -25,6 +25,7 @@ import {
 import Homepage2FloatingCardLayoutControls from './Homepage2FloatingCardLayoutControls'
 import Homepage2HeroCameraControls, {
   DEFAULT_HERO_CAMERA,
+  DEFAULT_HERO_MOBILE_CAMERA,
   normalizeHeroCamera,
   normalizeTourCamera,
   TOUR_CAMERA_LIMITS,
@@ -60,6 +61,7 @@ import {
   DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
   HERO_SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
+import { PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
@@ -80,7 +82,7 @@ const HOMEPAGE_BLUR_BACKGROUNDS = {
   dark: '/homepage-background-blur-dark.png',
 }
 
-const BUILDING_IMAGE = '/building-95.png'
+const BUILDING_IMAGE = PRIMARY_BUILDING_IMAGE
 
 function getScrollHintPillStyles(theme) {
   if (theme === 'dark') {
@@ -144,7 +146,7 @@ function RightBarShell({ wrap, bar, gap, onStepPrev, onStepNext, children }) {
  * Focus stops. fx/fy are the focus point as a fraction (0..1) of the
  * building image; scale is how far to zoom in at that stop. These are
  * tuned by eye against the building cutaway (4572x3712, aspect 1024:831).
- * Production uses BUILDING_IMAGE (compressed); full PNG kept in public/ for re-export.
+ * Production asset: PRIMARY_BUILDING_IMAGE (`/building-95.png`).
  */
 const DEFAULT_STOPS = [
   {
@@ -162,7 +164,7 @@ const DEFAULT_STOPS = [
     fy: 0.5,
     scale: 1,
     card: { x: '53%', y: '58%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
-    mobileCamera: { fx: 0.5, fy: 0.56, scale: 0.7 },
+    mobileCamera: { fx: 0.5, fy: 0.56, scale: 0.62 },
   },
   {
     id: 'reports',
@@ -463,6 +465,7 @@ export default function Home() {
     tourCardContentSpeedRef,
     stops,
     heroCamera,
+    heroMobileCamera: DEFAULT_HERO_MOBILE_CAMERA,
     reducedMotion,
     editMode,
     isMobile: isMobileTour,
@@ -885,7 +888,11 @@ export default function Home() {
 
           <div
             ref={stageRef}
-            className="relative z-[1] homepage-tour-dvh aspect-[1024/831] will-change-transform overflow-hidden"
+            className={`relative z-[1] will-change-transform overflow-hidden ${
+              isMobileTour
+                ? 'homepage-tour-stage--mobile'
+                : 'homepage-tour-dvh aspect-[1024/831]'
+            }`}
           >
             <img
               src={BUILDING_IMAGE}

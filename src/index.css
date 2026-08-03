@@ -230,6 +230,13 @@
   min-height: 100dvh;
 }
 
+.homepage-tour-stage--mobile {
+  width: 100%;
+  max-height: 100dvh;
+  aspect-ratio: 1024 / 831;
+  height: auto;
+}
+
 .homepage-tour-panels-offset {
   margin-top: -100dvh;
 }

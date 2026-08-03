@@ -6,6 +6,13 @@ export const DEFAULT_HERO_CAMERA = {
   scale: 0.84,
 }
 
+/** Hero framing on mobile tour — wider zoom-out so isometric sides stay visible. */
+export const DEFAULT_HERO_MOBILE_CAMERA = {
+  fx: 0.5,
+  fy: 0.56,
+  scale: 0.6,
+}
+
 export const HERO_CAMERA_LIMITS = {
   fxMin: 0.2,
   fxMax: 0.8,

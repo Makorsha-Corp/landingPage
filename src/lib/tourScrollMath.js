@@ -216,6 +216,7 @@ export function computeTourFrame({
   progress,
   stops,
   heroCamera,
+  heroMobileCamera = null,
   displayHeroExitT,
   reducedMotion,
   editMode,
@@ -263,9 +264,11 @@ export function computeTourFrame({
   const scale = lerp(fromCam.scale, toCam.scale, frac)
 
   const heroBlend = heroActive ? 1 : clamp(1 - displayHeroExitT, 0, 1)
-  let camFx = lerp(fx, heroCamera.fx, heroBlend)
-  let camFy = lerp(fy, heroCamera.fy, heroBlend)
-  let camScale = lerp(scale, heroCamera.scale, heroBlend)
+  const activeHeroCamera =
+    isMobile && heroMobileCamera ? heroMobileCamera : heroCamera
+  let camFx = lerp(fx, activeHeroCamera.fx, heroBlend)
+  let camFy = lerp(fy, activeHeroCamera.fy, heroBlend)
+  let camScale = lerp(scale, activeHeroCamera.scale, heroBlend)
 
   let txDamping = 1
   let tyDamping = 1
