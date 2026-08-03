@@ -1,11 +1,14 @@
 import { RainbowButton } from '@/components/ui/rainbow-button'
 import Button from './ui/Button'
 import Homepage2HeroSettings from '../pages/Homepage2HeroSettings'
-import {
-  getHeroCardContentColors,
-  getHeroCardShellClass,
-  getHeroFloatingTextClasses,
-} from '../lib/heroCardStyles'
+
+const heroFloatingWrap =
+  'text-center text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]'
+const heroFloatingBadge =
+  'text-xs font-semibold uppercase tracking-[0.2em] text-white/80'
+const heroFloatingTitle =
+  'mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]'
+const heroBodyTextShadow = '[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]'
 
 function HeroButtons({ onGoWaitlist, onGoExplore }) {
   return (
@@ -34,48 +37,34 @@ function HeroBadge({ className, children }) {
   )
 }
 
-function HeroTitle({ className, children, inCard = false }) {
-  const sizeCls = inCard
-    ? 'text-3xl sm:text-4xl lg:text-5xl'
-    : 'text-4xl sm:text-5xl'
+function HeroTitle({ className, children }) {
   return (
-    <h1 className={`mt-3 font-bold tracking-tight ${sizeCls} ${className}`}>
+    <h1 className={`mt-3 text-4xl sm:text-5xl font-bold tracking-tight ${className}`}>
       {children}
     </h1>
   )
 }
 
-function HeroSubtitle({ className, textShadow, children, inCard = false, compactTop = false }) {
-  const sizeCls = inCard
-    ? 'text-base sm:text-lg lg:text-xl'
-    : 'text-lg sm:text-xl'
+function HeroSubtitle({ className, textShadow, children, compactTop = false }) {
   const topCls = compactTop ? 'mt-4' : 'mt-5'
   return (
     <p
-      className={`mx-auto ${topCls} max-w-2xl font-medium leading-relaxed ${sizeCls} ${className} ${textShadow}`}
+      className={`mx-auto ${topCls} max-w-2xl text-lg sm:text-xl font-medium leading-relaxed ${className} ${textShadow}`}
     >
       {children}
     </p>
   )
 }
 
-function HeroBodyParagraphs({
-  hero,
-  className,
-  textShadow,
-  inCard = false,
-  splitLayout = false,
-}) {
-  const splitCls = splitLayout ? 'max-w-none text-base sm:text-lg' : ''
+function HeroBodyParagraphs({ hero, className, textShadow }) {
   const paragraphs = [hero.paragraph, hero.paragraph2].filter(Boolean)
   const hasSubtitle = Boolean(hero.subtitle?.trim())
 
   return paragraphs.map((text, index) => (
     <HeroSubtitle
       key={index}
-      className={`${className} ${splitCls}`}
+      className={className}
       textShadow={textShadow}
-      inCard={inCard}
       compactTop={hasSubtitle || index > 0}
     >
       {text}
@@ -85,9 +74,6 @@ function HeroBodyParagraphs({
 
 export default function Homepage2HeroOverlay({
   hero,
-  theme,
-  layout,
-  style,
   editMode,
   heroActive,
   onGoWaitlist,
@@ -102,82 +88,16 @@ export default function Homepage2HeroOverlay({
     )
   }
 
-  const shellCls = getHeroCardShellClass(style, theme)
-  const colors = getHeroCardContentColors(style, theme)
-  const floating = getHeroFloatingTextClasses()
-
-  const titleInCardCls = colors.textShadow
-    ? `${colors.title} [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]`
-    : colors.title
-
-  if (layout === 'wrap_all') {
-    return (
-      <div className={`relative mx-4 sm:mx-auto max-w-2xl text-center ${shellCls} p-5 sm:p-8`}>
-        <HeroBadge className={colors.badge}>{hero.badge}</HeroBadge>
-        <HeroTitle className={titleInCardCls} inCard>
-          {hero.title}
-        </HeroTitle>
-        {hero.subtitle?.trim() ? (
-          <HeroSubtitle className={colors.subtitle} textShadow={colors.textShadow} inCard>
-            {hero.subtitle}
-          </HeroSubtitle>
-        ) : null}
-        <HeroBodyParagraphs
-          hero={hero}
-          className={colors.subtitle}
-          textShadow={colors.textShadow}
-          inCard
-        />
-        <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
-      </div>
-    )
-  }
-
-  if (layout === 'below_copy' || layout === 'split') {
-    const cardGap = layout === 'split' ? 'mt-4' : 'mt-6'
-    const cardPadding = layout === 'split' ? 'p-4 sm:p-5' : 'p-6 sm:p-8'
-    const cardWidth = layout === 'split' ? 'max-w-xl' : 'max-w-2xl'
-
-    return (
-      <div className={`relative mx-auto max-w-2xl px-6 ${floating.wrap}`}>
-        <HeroBadge className={floating.badge}>{hero.badge}</HeroBadge>
-        <HeroTitle className={floating.title}>{hero.title}</HeroTitle>
-        <div className={`${cardGap} mx-auto ${cardWidth} text-center ${shellCls} ${cardPadding}`}>
-          {hero.subtitle?.trim() ? (
-            <HeroSubtitle
-              className={`${colors.subtitle} ${layout === 'split' ? 'mt-0 max-w-none text-base sm:text-lg' : ''}`}
-              textShadow={colors.textShadow}
-            >
-              {hero.subtitle}
-            </HeroSubtitle>
-          ) : null}
-          <HeroBodyParagraphs
-            hero={hero}
-            className={colors.subtitle}
-            textShadow={colors.textShadow}
-            inCard={layout !== 'split'}
-            splitLayout={layout === 'split'}
-          />
-          <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className={`relative mx-auto max-w-2xl px-6 ${floating.wrap}`}>
-      <HeroBadge className={floating.badge}>{hero.badge}</HeroBadge>
-      <HeroTitle className={floating.title}>{hero.title}</HeroTitle>
+    <div className={`relative mx-auto max-w-2xl px-6 ${heroFloatingWrap}`}>
+      <HeroBadge className={heroFloatingBadge}>{hero.badge}</HeroBadge>
+      <HeroTitle className={heroFloatingTitle}>{hero.title}</HeroTitle>
       {hero.subtitle?.trim() ? (
-        <HeroSubtitle className="text-white/95" textShadow="[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]">
+        <HeroSubtitle className="text-white/95" textShadow={heroBodyTextShadow}>
           {hero.subtitle}
         </HeroSubtitle>
       ) : null}
-      <HeroBodyParagraphs
-        hero={hero}
-        className="text-white/95"
-        textShadow="[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]"
-      />
+      <HeroBodyParagraphs hero={hero} className="text-white/95" textShadow={heroBodyTextShadow} />
       <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
     </div>
   )

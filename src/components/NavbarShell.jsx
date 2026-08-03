@@ -1,18 +1,6 @@
 import { navChromeBorderClass, navShellSurfaceClass } from '../lib/navChrome'
 
-export default function NavbarShell({ layout = 'island', children, className = '' }) {
-  if (layout === 'bar') {
-    return (
-      <header className={`fixed top-0 inset-x-0 z-50 pointer-events-none ${className}`}>
-        <div
-          className={`pointer-events-auto border-b ${navChromeBorderClass} ${navShellSurfaceClass}`}
-        >
-          {children}
-        </div>
-      </header>
-    )
-  }
-
+export default function NavbarShell({ children, className = '' }) {
   return (
     <header
       className={`fixed top-0 inset-x-0 z-50 px-4 sm:px-6 lg:px-8 pt-3 pointer-events-none ${className}`}

@@ -43,8 +43,6 @@ export default function useTourCamera({
   storyCardCopyRef,
   tourTransitionSpeedRef,
   tourCardContentSpeedRef,
-  rightBarProgressFillRef,
-  rightBarRingRef,
   stops,
   heroCamera,
   reducedMotion,
@@ -249,15 +247,6 @@ export default function useTourCamera({
           storyCardCopyRef.current.style.opacity = String(opacity)
           storyCardCopyRef.current.style.transform = `translate3d(0, ${offsetY}px, 0)`
         }
-      }
-      if (rightBarProgressFillRef?.current) {
-        rightBarProgressFillRef.current.style.height = `${frame.stopProgress * 100}%`
-      }
-      if (rightBarRingRef?.current) {
-        const circumference = 2 * Math.PI * 16
-        rightBarRingRef.current.style.strokeDashoffset = String(
-          circumference * (1 - frame.stopProgress),
-        )
       }
     }
 
@@ -543,8 +532,6 @@ export default function useTourCamera({
     isMobile,
     mobileCameraPanMode,
     reducedMotion,
-    rightBarProgressFillRef,
-    rightBarRingRef,
     scrollerRef,
     stageRef,
     stops,

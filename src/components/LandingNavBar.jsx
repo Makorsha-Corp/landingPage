@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useNavLayout } from '../context/NavLayoutContext'
 import { navTitleClass } from '../lib/navChrome'
 import BrandLogo from './BrandLogo'
 import LandingSectionNav from './LandingSectionNav'
@@ -14,10 +13,8 @@ export default function LandingNavBar({
   desktopActions,
   devToolsProps,
 }) {
-  const { navLayout } = useNavLayout()
-
   return (
-    <NavbarShell layout={navLayout}>
+    <NavbarShell>
       <div className="relative flex h-14 items-center gap-2 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandLogo variant="soft" />

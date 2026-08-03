@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Button from './ui/Button'
-import NavLayoutToggle from './NavLayoutToggle'
 import useFloatingPanelDrag from '../hooks/useFloatingPanelDrag'
 import useViewportLayoutSignals from '../hooks/useViewportLayoutSignals'
 import { getBackdropOpacityLabel } from '../lib/homepageWash'
@@ -97,13 +96,59 @@ function TransitionSpeedSlider({ label, helperText, speed, defaultSpeed, onChang
   )
 }
 
+function CollapsibleDevSection({ title, description, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const sectionId = title.toLowerCase().replace(/\s+/g, '-')
+
+  return (
+    <div className="lg:col-span-2">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={`devtools-section-${sectionId}`}
+        className="flex w-full items-start justify-between gap-3 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
+      >
+        <span className="min-w-0">
+          <span className={sectionLabelCls}>{title}</span>
+          {description ? (
+            <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">
+              {description}
+            </span>
+          ) : null}
+        </span>
+        <span className="shrink-0 pt-0.5 text-sm text-muted-foreground" aria-hidden="true">
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open ? (
+        <div id={`devtools-section-${sectionId}`} className="mt-2">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function ViewportLayoutReadout({ isMobileTour }) {
   const signals = useViewportLayoutSignals()
+  const tailwindMdProbeRef = useRef(null)
+  const [tailwindMdActive, setTailwindMdActive] = useState(null)
+
+  useLayoutEffect(() => {
+    const probe = tailwindMdProbeRef.current
+    if (!probe) return
+    setTailwindMdActive(getComputedStyle(probe).display !== 'none')
+  }, [signals.innerWidth, signals.innerHeight])
 
   const flag = (on) => (on ? 'yes' : 'no')
 
+  const cssMdMismatch =
+    tailwindMdActive !== null && tailwindMdActive !== signals.isDesktopMd
+
   return (
     <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+      <span ref={tailwindMdProbeRef} className="hidden md:block" aria-hidden="true" />
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
         <dt className="font-medium text-foreground">Viewport</dt>
         <dd className="tabular-nums">
@@ -116,9 +161,19 @@ function ViewportLayoutReadout({ isMobileTour }) {
         </dd>
         <dt className="font-medium text-foreground">CSS md ({TOUR_MD_MIN_PX}+)</dt>
         <dd>{flag(signals.isDesktopMd)}</dd>
+        <dt className="font-medium text-foreground">Tailwind md:</dt>
+        <dd>
+          {tailwindMdActive === null ? '…' : flag(tailwindMdActive)}
+          {cssMdMismatch ? ' (CSS broken)' : ''}
+        </dd>
         <dt className="font-medium text-foreground">CSS lg ({DESKTOP_LG_MIN_PX}+)</dt>
         <dd>{flag(signals.isDesktopLg)}</dd>
       </dl>
+      {cssMdMismatch ? (
+        <p className="mt-2 leading-snug text-[10px] font-medium text-amber-600 dark:text-amber-400">
+          Tailwind md: utilities not applying — nav/pricing may stay mobile. Tour uses JS fallback.
+        </p>
+      ) : null}
       <p className="mt-2 leading-snug text-[10px] text-muted-foreground/80">
         Floating story card + right bar when md=yes. Pricing grid when md=yes (carousel when md=no).
         Width-only detection — no Safari or device sniffing.
@@ -166,12 +221,6 @@ function DevToolsFloatingPanel({
   mobileCameraPanMode,
   onToggleMobileCameraPanMode,
   isMobileTour,
-  barVariant,
-  onCycleBarVariant,
-  heroCardLayout,
-  heroCardStyle,
-  onCycleHeroCardLayout,
-  onCycleHeroCardStyle,
   heroFactoryBlurPx,
   onHeroFactoryBlurPxChange,
   tourTransitionSpeed,
@@ -269,39 +318,43 @@ function DevToolsFloatingPanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="grid gap-5 lg:grid-cols-2">
-            <div>
+            <div className="lg:col-span-2">
               <p className={sectionLabelCls}>Editor</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={onToggleEditMode}
-                  variant="navGhost"
-                  size="default"
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${editMode ? activeCls : ''}`}
-                  aria-pressed={editMode}
-                >
-                  Edit mode
-                </Button>
-                <Button
-                  type="button"
-                  onClick={onToggleFactoryPanMode}
-                  variant="navGhost"
-                  size="default"
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${factoryPanMode ? activeCls : ''}`}
-                  aria-pressed={factoryPanMode}
-                >
-                  Factory pan
-                </Button>
-                <Button
-                  type="button"
-                  onClick={onToggleMobileCameraPanMode}
-                  variant="navGhost"
-                  size="default"
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${mobileCameraPanMode ? activeCls : ''}`}
-                  aria-pressed={mobileCameraPanMode}
-                >
-                  Mobile camera
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={onToggleEditMode}
+                    variant="navGhost"
+                    size="default"
+                    className={`${menuBtnCls} !h-10 !px-4 !text-sm ${editMode ? activeCls : ''}`}
+                    aria-pressed={editMode}
+                  >
+                    Edit mode
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={onToggleFactoryPanMode}
+                    variant="navGhost"
+                    size="default"
+                    className={`${menuBtnCls} !h-10 !px-4 !text-sm ${factoryPanMode ? activeCls : ''}`}
+                    aria-pressed={factoryPanMode}
+                  >
+                    Factory pan
+                  </Button>
+                </div>
+                <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
+                  <Button
+                    type="button"
+                    onClick={onToggleMobileCameraPanMode}
+                    variant="navGhost"
+                    size="default"
+                    className={`${menuBtnCls} !h-10 !px-4 !text-sm ${mobileCameraPanMode ? activeCls : ''}`}
+                    aria-pressed={mobileCameraPanMode}
+                  >
+                    Mobile camera
+                  </Button>
+                </div>
               </div>
               {!isMobileTour && mobileCameraPanMode ? (
                 <p className="mt-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
@@ -315,31 +368,12 @@ function DevToolsFloatingPanel({
               ) : null}
             </div>
 
-            <div>
-              <p className={sectionLabelCls}>Layout</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={onCycleBarVariant}
-                  variant="navGhost"
-                  size="default"
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm`}
-                >
-                  Bar: {barVariant}
-                </Button>
-                <NavLayoutToggle className="!inline-flex shrink-0 !h-10" />
-              </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              <p className={sectionLabelCls}>Viewport / layout</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Live breakpoint flags — share with anyone seeing the wrong mobile or desktop layout.
-              </p>
-              <div className="mt-2">
-                <ViewportLayoutReadout isMobileTour={isMobileTour} />
-              </div>
-            </div>
+            <CollapsibleDevSection
+              title="Viewport / layout"
+              description="Live breakpoint flags — share with anyone seeing the wrong mobile or desktop layout."
+            >
+              <ViewportLayoutReadout isMobileTour={isMobileTour} />
+            </CollapsibleDevSection>
 
             <div className="lg:col-span-2">
               <p className={sectionLabelCls}>Story transitions</p>
@@ -363,34 +397,6 @@ function DevToolsFloatingPanel({
                   onChange={onTourCardContentSpeedChange}
                   ariaLabel="Card copy transition speed"
                 />
-              </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              <p className={sectionLabelCls}>Hero card</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Experiment with card layout and surface style on the opening screen.
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={onCycleHeroCardLayout}
-                  variant="navGhost"
-                  size="default"
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm`}
-                >
-                  Layout: {heroCardLayout}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={onCycleHeroCardStyle}
-                  variant="navGhost"
-                  size="default"
-                  disabled={heroCardLayout === 'None'}
-                  className={`${menuBtnCls} !h-10 !px-4 !text-sm ${heroCardLayout === 'None' ? 'opacity-40' : ''}`}
-                >
-                  Style: {heroCardStyle}
-                </Button>
               </div>
             </div>
 

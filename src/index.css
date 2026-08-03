@@ -3,6 +3,22 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Safari: default Tailwind v4 uses nested (width>=…) media — md:/lg: can fail in dev + some browsers. */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+}
+
+@custom-variant sm (@media (min-width: 40rem));
+@custom-variant md (@media (min-width: 48rem));
+@custom-variant lg (@media (min-width: 64rem));
+@custom-variant xl (@media (min-width: 80rem));
+@custom-variant 2xl (@media (min-width: 96rem));
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -33,8 +49,6 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --breakpoint-md: 48rem;
-  --breakpoint-lg: 64rem;
   --animate-shine: shine var(--duration) infinite linear;
   @keyframes shine {
     0% {

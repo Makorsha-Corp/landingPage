@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { navActiveSectionClass, navLinkClass } from '../lib/navChrome'
+import useIsMobileTour from '../hooks/useIsMobileTour'
 
 const SWIPE_THRESHOLD_PX = 48
 const DISMISS_CLICK_GUARD_MS = 450
@@ -21,6 +22,7 @@ function SectionDots({ sections, activeIndex }) {
 }
 
 export default function LandingMobileMenu({ sections, activeSection, onNavigate }) {
+  const isMobileTour = useIsMobileTour()
   const [open, setOpen] = useState(false)
   const buttonRef = useRef(null)
   const panelRef = useRef(null)
@@ -122,6 +124,8 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [open])
+
+  if (!isMobileTour) return null
 
   return (
     <div className="relative flex min-w-0 flex-1 justify-center md:hidden">

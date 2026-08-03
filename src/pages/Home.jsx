@@ -34,13 +34,6 @@ import { getLoginGradientStyle } from '../../shared/loginGradient.js'
 import useStoryCardDrag from '../hooks/useStoryCardDrag'
 import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardControls'
 import { getStoryCardStyles } from '../lib/storyCardStyles'
-import {
-  cycleHeroCardLayout,
-  cycleHeroCardStyle,
-  getHeroCardLayoutLabel,
-  getHeroCardStyleLabel,
-  normalizeHeroCardPrefs,
-} from '../lib/heroCardStyles'
 import { copyHomepageContentForCode, normalizeHomepageSnapshot } from '../lib/homepageContentExport'
 import {
   applyRainbowColorPreset,
@@ -100,18 +93,7 @@ function getRightBarStyles(theme) {
   if (theme === 'dark') {
     return {
       wrap: `${base} border border-white/10 bg-black/25`,
-      counter:
-        'text-xs font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]',
       tickInactive: 'bg-white/40 hover:bg-white/70',
-      track: 'bg-white/25',
-      trackLine: 'bg-white/30',
-      label: 'bg-black/55 text-white backdrop-blur-sm',
-      nodeInactive: 'bg-black/40 text-white/70 hover:text-white',
-      iconInactive: 'bg-black/40 text-white/70 hover:text-white hover:bg-black/55',
-      fillTickInactive: 'bg-white/60 hover:bg-white',
-      fillTickActiveRing: 'ring-white/70',
-      dotInactive: 'bg-white/40 hover:bg-white/70',
-      ringTrackStroke: 'rgba(255,255,255,0.25)',
       arrowBtn:
         'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-25',
     }
@@ -119,18 +101,7 @@ function getRightBarStyles(theme) {
 
   return {
     wrap: `${base} border border-white/60 bg-white/75 ring-1 ring-black/5`,
-    counter: 'text-xs font-semibold tabular-nums text-foreground',
     tickInactive: 'bg-black/25 hover:bg-black/40',
-    track: 'bg-black/15',
-    trackLine: 'bg-black/20',
-    label:
-      'bg-white/90 text-foreground backdrop-blur-sm border border-black/5 shadow-md',
-    nodeInactive: 'bg-black/10 text-muted-foreground hover:text-foreground',
-    iconInactive: 'bg-black/10 text-muted-foreground hover:text-foreground hover:bg-black/15',
-    fillTickInactive: 'bg-black/30 hover:bg-black/45',
-    fillTickActiveRing: 'ring-black/20',
-    dotInactive: 'bg-black/25 hover:bg-black/40',
-    ringTrackStroke: 'rgba(0,0,0,0.15)',
     arrowBtn:
       'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-25',
   }
@@ -296,8 +267,6 @@ function cloneStops(stops) {
   }))
 }
 
-const BAR_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F']
-
 const LANDING_SECTIONS = [
   { id: 'tour', label: 'Tour' },
   { id: 'features', label: 'Features' },
@@ -307,218 +276,11 @@ const LANDING_SECTIONS = [
   { id: 'waitlist', label: 'Join waitlist' },
 ]
 
-// Inline icon paths keyed by stop id (variant E).
-const STOP_ICON_PATHS = {
-  overview: 'M4 6h16M4 12h16M4 18h16',
-  reports: 'M3 3v18h18M7 14l3-3 3 3 5-5',
-  orders: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-  accounts: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z',
-  production: 'M10.34 3.94c.09-.54.56-.94 1.11-.94h1.09c.55 0 1.02.4 1.11.94l.15.89c.41.16.78.38 1.11.65l.84-.32c.51-.2 1.09.01 1.35.49l.55.94c.26.48.16 1.08-.24 1.45l-.68.6c.05.43.05.87 0 1.3l.68.6c.4.37.5.97.24 1.45l-.55.94c-.26.48-.84.69-1.35.49l-.84-.32c-.33.27-.7.49-1.11.65l-.15.89c-.09.54-.56.94-1.11.94h-1.09c-.55 0-1.02-.4-1.11-.94l-.15-.89a5.5 5.5 0 01-1.11-.65l-.84.32c-.51.2-1.09-.01-1.35-.49l-.55-.94c-.26-.48-.16-1.08.24-1.45l.68-.6a5.5 5.5 0 010-1.3l-.68-.6c-.4-.37-.5-.97-.24-1.45l.55-.94c.26-.48.84-.69 1.35-.49l.84.32c.33-.27.7-.49 1.11-.65l.15-.89zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
-  inventory: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
-}
-
-function RightBar({
-  theme,
-  variant,
-  stops,
-  activeIndex,
-  progress,
-  onJump,
-  onStepPrev,
-  onStepNext,
-  progressFillRef,
-  progressRingRef,
-}) {
-  const total = stops.length
-  const counter = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`
+function RightBar({ theme, stops, activeIndex, onJump, onStepPrev, onStepNext }) {
   const bar = getRightBarStyles(theme)
-  const wrap = bar.wrap
-  const shellProps = { wrap, bar, onStepPrev, onStepNext }
 
-  // A — Ticks
-  if (variant === 'A') {
-    return (
-      <RightBarShell {...shellProps} gap="gap-2">
-        <div className="flex flex-col items-center gap-2">
-          {stops.map((stop, idx) => (
-            <button
-              key={stop.id}
-              onClick={() => onJump(idx)}
-              aria-label={stop.title}
-              aria-current={idx === activeIndex}
-              className={`h-3 w-1.5 rounded-full transition-all duration-300 ${
-                idx === activeIndex ? 'bg-primary' : bar.tickInactive
-              }`}
-            />
-          ))}
-        </div>
-      </RightBarShell>
-    )
-  }
-
-  // B — Rail with section labels
-  if (variant === 'B') {
-    return (
-      <RightBarShell {...shellProps} gap="gap-2">
-        <div className="relative flex flex-col items-center gap-4 py-2">
-          <span className={`absolute -top-7 left-1/2 -translate-x-1/2 w-px h-5 ${bar.trackLine}`} />
-          {stops.map((stop, idx) => {
-            const active = idx === activeIndex
-            return (
-              <button
-                key={stop.id}
-                onClick={() => onJump(idx)}
-                aria-label={stop.title}
-                aria-current={active}
-                className="group relative flex items-center"
-              >
-                <span
-                  className={`absolute right-full mr-3 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-opacity duration-200 ${bar.label} ${
-                    active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                >
-                  {stop.title}
-                </span>
-                <span
-                  className={`block rounded-full transition-all duration-300 ${
-                    active
-                      ? 'h-3 w-3 bg-primary scale-125'
-                      : `h-2 w-2 ${bar.dotInactive}`
-                  }`}
-                />
-              </button>
-            )
-          })}
-        </div>
-      </RightBarShell>
-    )
-  }
-
-  // C — Numbered nodes + progress line
-  if (variant === 'C') {
-    return (
-      <RightBarShell {...shellProps} gap="gap-4">
-        <span className={bar.counter}>{counter}</span>
-        <div className="relative flex flex-col items-center gap-3">
-          <span className={`absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px ${bar.track}`} />
-          <span
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-px bg-primary transition-all duration-300"
-            style={{ height: `${(activeIndex / (total - 1)) * 100}%` }}
-          />
-          {stops.map((stop, idx) => {
-            const active = idx === activeIndex
-            const done = idx < activeIndex
-            return (
-              <button
-                key={stop.id}
-                onClick={() => onJump(idx)}
-                aria-label={stop.title}
-                aria-current={active}
-                className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 ${
-                  active
-                    ? 'bg-primary text-white scale-110'
-                    : done
-                      ? 'bg-primary/70 text-white'
-                      : bar.nodeInactive
-                }`}
-              >
-                {idx + 1}
-              </button>
-            )
-          })}
-        </div>
-      </RightBarShell>
-    )
-  }
-
-  // D — Fill track (real scrollbar feel) + tick marks
-  if (variant === 'D') {
-    return (
-      <RightBarShell {...shellProps} gap="gap-4">
-        <span className={bar.counter}>{counter}</span>
-        <div className={`relative h-48 w-1.5 rounded-full ${bar.track}`}>
-          <div
-            ref={progressFillRef}
-            className="absolute top-0 left-0 w-full rounded-full bg-primary transition-all duration-300"
-            style={progressFillRef ? undefined : { height: `${progress * 100}%` }}
-          />
-          {stops.map((stop, idx) => (
-            <button
-              key={stop.id}
-              onClick={() => onJump(idx)}
-              aria-label={stop.title}
-              aria-current={idx === activeIndex}
-              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full"
-              style={{ top: `${(idx / (total - 1)) * 100}%` }}
-            >
-              <span
-                className={`block h-full w-full rounded-full transition-all duration-300 ${
-                  idx === activeIndex
-                    ? `bg-primary ring-2 ${bar.fillTickActiveRing} scale-110`
-                    : bar.fillTickInactive
-                }`}
-              />
-            </button>
-          ))}
-        </div>
-      </RightBarShell>
-    )
-  }
-
-  // E — Per-section icon dots
-  if (variant === 'E') {
-    return (
-      <RightBarShell {...shellProps} gap="gap-3">
-        {stops.map((stop, idx) => {
-          const active = idx === activeIndex
-          return (
-            <button
-              key={stop.id}
-              onClick={() => onJump(idx)}
-              aria-label={stop.title}
-              aria-current={active}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300 ${
-                active
-                  ? 'bg-primary text-white scale-110'
-                  : bar.iconInactive
-              }`}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={STOP_ICON_PATHS[stop.id] || STOP_ICON_PATHS.overview} />
-              </svg>
-            </button>
-          )
-        })}
-      </RightBarShell>
-    )
-  }
-
-  // F — Progress ring + dots
-  const R = 16
-  const C = 2 * Math.PI * R
   return (
-    <RightBarShell {...shellProps} gap="gap-4">
-      <div className="relative h-12 w-12">
-        <svg className="h-12 w-12 -rotate-90" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r={R} fill="none" stroke={bar.ringTrackStroke} strokeWidth="3" />
-          <circle
-            ref={progressRingRef}
-            cx="20"
-            cy="20"
-            r={R}
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray={C}
-            strokeDashoffset={progressRingRef ? C : C * (1 - progress)}
-            style={progressRingRef ? { transition: 'stroke-dashoffset 0.3s ease' } : { transition: 'stroke-dashoffset 0.3s ease' }}
-          />
-        </svg>
-        <span className={`absolute inset-0 flex items-center justify-center ${bar.counter}`}>
-          {String(activeIndex + 1).padStart(2, '0')}
-        </span>
-      </div>
+    <RightBarShell wrap={bar.wrap} bar={bar} gap="gap-2" onStepPrev={onStepPrev} onStepNext={onStepNext}>
       <div className="flex flex-col items-center gap-2">
         {stops.map((stop, idx) => (
           <button
@@ -526,8 +288,8 @@ function RightBar({
             onClick={() => onJump(idx)}
             aria-label={stop.title}
             aria-current={idx === activeIndex}
-            className={`h-2 w-2 rounded-full transition-all duration-300 ${
-              idx === activeIndex ? 'bg-primary scale-150' : bar.dotInactive
+            className={`h-3 w-1.5 rounded-full transition-all duration-300 ${
+              idx === activeIndex ? 'bg-primary' : bar.tickInactive
             }`}
           />
         ))}
@@ -558,19 +320,15 @@ export default function Home() {
   const storyCardContentShellRef = useRef(null)
   const storyCardCopyRef = useRef(null)
   const tourStageRef = useRef(null)
-  const rightBarProgressFillRef = useRef(null)
-  const rightBarProgressRingRef = useRef(null)
   const tourPanelRefs = useRef([])
   const { reducedMotion } = useLandingMotion()
   const isMobileTour = useIsMobileTour()
-  const [barVariant, setBarVariant] = useState('A')
   const [editMode, setEditMode] = useState(false)
   const [factoryPanMode, setFactoryPanMode] = useState(false)
   const [mobileCameraPanMode, setMobileCameraPanMode] = useState(false)
   const [stops, setStops] = useState(() => cloneStops(DEFAULT_STOPS))
   const [hero, setHero] = useState(() => ({ ...DEFAULT_HERO }))
   const [heroCamera, setHeroCamera] = useState(() => ({ ...DEFAULT_HERO_CAMERA }))
-  const [heroCard, setHeroCard] = useState(() => normalizeHeroCardPrefs())
   const [heroFactoryBlurPx, setHeroFactoryBlurPx] = useState(DEFAULT_HERO_FACTORY_BLUR_PX)
   const [tourTransitionSpeed, setTourTransitionSpeed] = useState(DEFAULT_TOUR_TRANSITION_SPEED)
   const [tourCardContentSpeed, setTourCardContentSpeed] = useState(DEFAULT_TOUR_CARD_CONTENT_SPEED)
@@ -697,8 +455,6 @@ export default function Home() {
     storyCardCopyRef,
     tourTransitionSpeedRef,
     tourCardContentSpeedRef,
-    rightBarProgressFillRef,
-    rightBarRingRef: rightBarProgressRingRef,
     stops,
     heroCamera,
     reducedMotion,
@@ -883,23 +639,6 @@ export default function Home() {
     }))
   }
 
-  const handleCycleHeroCardLayout = () => {
-    setHeroCard((current) => ({
-      ...current,
-      layout: cycleHeroCardLayout(current.layout),
-    }))
-  }
-
-  const handleCycleHeroCardStyle = () => {
-    setHeroCard((current) => {
-      if (current.layout === 'none') return current
-      return {
-        ...current,
-        style: cycleHeroCardStyle(current.style),
-      }
-    })
-  }
-
   const toggleEditMode = () => {
     setEditMode((prev) => !prev)
   }
@@ -1035,16 +774,6 @@ export default function Home() {
               mobileCameraPanMode={mobileCameraPanMode}
               onToggleMobileCameraPanMode={() => setMobileCameraPanMode((value) => !value)}
               isMobileTour={isMobileTour}
-              barVariant={barVariant}
-              onCycleBarVariant={() =>
-                setBarVariant(
-                  (value) => BAR_VARIANTS[(BAR_VARIANTS.indexOf(value) + 1) % BAR_VARIANTS.length],
-                )
-              }
-              heroCardLayout={getHeroCardLayoutLabel(heroCard.layout)}
-              heroCardStyle={getHeroCardStyleLabel(heroCard.style)}
-              onCycleHeroCardLayout={handleCycleHeroCardLayout}
-              onCycleHeroCardStyle={handleCycleHeroCardStyle}
               heroFactoryBlurPx={heroFactoryBlurPx}
               onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
               tourTransitionSpeed={tourTransitionSpeed}
@@ -1080,13 +809,6 @@ export default function Home() {
           mobileCameraPanMode,
           onToggleMobileCameraPanMode: () => setMobileCameraPanMode((value) => !value),
           isMobileTour,
-          barVariant,
-          onCycleBarVariant: () =>
-            setBarVariant((value) => BAR_VARIANTS[(BAR_VARIANTS.indexOf(value) + 1) % BAR_VARIANTS.length]),
-          heroCardLayout: getHeroCardLayoutLabel(heroCard.layout),
-          heroCardStyle: getHeroCardStyleLabel(heroCard.style),
-          onCycleHeroCardLayout: handleCycleHeroCardLayout,
-          onCycleHeroCardStyle: handleCycleHeroCardStyle,
           heroFactoryBlurPx,
           onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
           tourTransitionSpeed,
@@ -1181,9 +903,6 @@ export default function Home() {
             <div className="relative flex h-full items-center justify-center">
               <Homepage2HeroOverlay
                 hero={hero}
-                theme={theme}
-                layout={heroCard.layout}
-                style={heroCard.style}
                 editMode={editMode}
                 heroActive={heroActive}
                 onGoWaitlist={() => goWaitlist('hero')}
@@ -1238,7 +957,7 @@ export default function Home() {
           {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
             ref={storyCardWrapperRef}
-            className={`pointer-events-none absolute hidden md:block ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
             style={
               editMode
                 ? {
@@ -1298,25 +1017,23 @@ export default function Home() {
             </div>
           </div>
 
-          <TourMobileCompactCard
-            stop={activeStop}
-            theme={theme}
-            visible={!heroActive && Boolean(activeStop)}
-            onOpen={() => activeStop?.id && setMobileStopPanelStopId(activeStop.id)}
-          />
+          {isMobileTour ? (
+            <TourMobileCompactCard
+              stop={activeStop}
+              theme={theme}
+              visible={!heroActive && Boolean(activeStop)}
+              onOpen={() => activeStop?.id && setMobileStopPanelStopId(activeStop.id)}
+            />
+          ) : null}
 
           {!heroActive && !isMobileTour && (
             <RightBar
               theme={theme}
-              variant={barVariant}
               stops={stops}
               activeIndex={activeIndex}
-              progress={0}
               onJump={scrollToStop}
               onStepPrev={stepTourPrev}
               onStepNext={stepTourNext}
-              progressFillRef={rightBarProgressFillRef}
-              progressRingRef={rightBarProgressRingRef}
             />
           )}
 

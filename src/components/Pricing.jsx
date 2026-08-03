@@ -1,6 +1,7 @@
 import SectionEyebrow from './SectionEyebrow'
 import PricingMobileCarousel from './pricing/PricingMobileCarousel'
 import PricingTierCard from './pricing/PricingTierCard'
+import useIsMobileTour from '../hooks/useIsMobileTour'
 import { PRICING_TIERS } from '../lib/pricingTiers'
 import {
   sectionHeaderWrap,
@@ -9,6 +10,8 @@ import {
 } from '../lib/loginSurfaceStyles'
 
 export default function Pricing({ onFaqClick, onJoinWaitlist }) {
+  const isMobileTour = useIsMobileTour()
+
   return (
     <section id="pricing" className="relative w-full py-20 sm:py-24">
       <div className="relative z-[1] mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -20,23 +23,23 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
           </p>
         </div>
 
-        <div className="md:hidden">
+        {isMobileTour ? (
           <PricingMobileCarousel tiers={PRICING_TIERS} onJoinWaitlist={onJoinWaitlist} />
-        </div>
-
-        <div className="hidden items-stretch gap-5 md:grid md:grid-cols-3">
-          {PRICING_TIERS.map((tier) => (
-            <PricingTierCard
-              key={tier.name}
-              tier={tier}
-              presentation={tier.highlighted ? 'mobileHero' : 'mobileMuted'}
-              reserveBadgeSpace
-              interactive
-              className={tier.highlighted ? 'z-10 h-full' : 'h-full'}
-              onJoinWaitlist={onJoinWaitlist}
-            />
-          ))}
-        </div>
+        ) : (
+          <div className="grid grid-cols-3 items-stretch gap-5">
+            {PRICING_TIERS.map((tier) => (
+              <PricingTierCard
+                key={tier.name}
+                tier={tier}
+                presentation={tier.highlighted ? 'mobileHero' : 'mobileMuted'}
+                reserveBadgeSpace
+                interactive
+                className={tier.highlighted ? 'z-10 h-full' : 'h-full'}
+                onJoinWaitlist={onJoinWaitlist}
+              />
+            ))}
+          </div>
+        )}
 
         <p className="mt-4 text-center text-xs text-muted-foreground sm:mt-5 sm:text-sm">
           All prices in USD. Billed monthly or annually (save 20%).

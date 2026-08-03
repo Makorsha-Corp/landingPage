@@ -13,6 +13,9 @@ export default defineConfig({
     },
   },
   plugins: [react(), tailwindcss()],
+  css: {
+    transformer: 'lightningcss',
+  },
   server: {
     port: 5174
   }
