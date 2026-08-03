@@ -1,20 +1,29 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
+  cardAtAbsoluteRest,
   clamp,
   computeBackgroundTransforms,
+  computeCardCopyPhase,
   computeTourFrame,
+  DEFAULT_CARD_HEIGHT_PX,
   DEFAULT_TOUR_TRANSITION_SPEED,
+  TOUR_SCROLL_LOCK_SPEED,
   exponentialSmoothing,
   getStoryCardAbsoluteWrapperStyle,
   getStoryCardInnerSizeStyle,
   getTourSmoothRate,
+  lerp,
   BASE_TOUR_BLUR_SMOOTH_RATE,
   BASE_TOUR_CAMERA_SMOOTH_RATE,
+  BASE_TOUR_CARD_SMOOTH_RATE,
+  BASE_TOUR_CONTENT_SMOOTH_RATE,
   BASE_TOUR_HERO_EXIT_SMOOTH_RATE,
   smoothstep,
 } from '../lib/tourScrollMath'
 
 const SETTLE_EPSILON = 0.05
+const CARD_SETTLE_EPSILON = 0.5
+const CONTENT_POS_SETTLE_EPSILON = 0.008
 
 export default function useTourCamera({
   scrollerRef,
@@ -28,6 +37,8 @@ export default function useTourCamera({
   heroTextRef,
   storyCardInnerRef,
   storyCardWrapperRef,
+  storyCardContentShellRef,
+  storyCardCopyRef,
   tourTransitionSpeedRef,
   rightBarProgressFillRef,
   rightBarRingRef,
@@ -44,18 +55,76 @@ export default function useTourCamera({
   const heroExitTargetRef = useRef(0)
   const smoothedBlurOpacityRef = useRef(1)
   const smoothedRef = useRef({ tx: 0, ty: 0, scale: 1 })
+  const smoothedCardRef = useRef({
+    leftPx: 0,
+    topPx: 0,
+    widthPx: 640,
+    minHeightPx: DEFAULT_CARD_HEIGHT_PX,
+  })
+  const smoothedContentPosRef = useRef(0)
+  const contentHeightsByStopIdRef = useRef(new Map())
+  const renderedStopIndexRef = useRef(0)
   const dirtyRef = useRef(true)
   const activeIndexRef = useRef(0)
+  const contentStopIndexRef = useRef(0)
   const heroActiveRef = useRef(true)
   const snapCameraRef = useRef(false)
   const overlayPausedRef = useRef(overlayPaused)
+  const kickRafRef = useRef(null)
+
   useEffect(() => {
     overlayPausedRef.current = overlayPaused
   }, [overlayPaused])
+
   const SNAP_PROGRESS_DELTA = 0.015
 
   const [activeIndex, setActiveIndex] = useState(0)
+  const [contentStopIndex, setContentStopIndex] = useState(0)
   const [heroActive, setHeroActive] = useState(true)
+
+  const getSegments = () => Math.max(stops.length - 1, 0)
+
+  const resolveContentHeight = (stopIndex) => {
+    const stop = stops[stopIndex]
+    const id = stop?.id
+    if (id && contentHeightsByStopIdRef.current.has(id)) {
+      return contentHeightsByStopIdRef.current.get(id)
+    }
+    return DEFAULT_CARD_HEIGHT_PX
+  }
+
+  const deriveContentState = (contentPos) => {
+    const segments = getSegments()
+    if (segments <= 0) {
+      return { segIdx: 0, t: 0, wantedStopIndex: 0 }
+    }
+    const clampedPos = clamp(contentPos, 0, segments)
+    const segIdx = clamp(Math.floor(clampedPos), 0, segments - 1)
+    const t = clampedPos - segIdx
+    const phase = computeCardCopyPhase(t)
+    const wantedStopIndex = clamp(
+      phase.useNextStop ? segIdx + 1 : segIdx,
+      0,
+      stops.length - 1,
+    )
+    return { segIdx, t, wantedStopIndex, phase }
+  }
+
+  useLayoutEffect(() => {
+    renderedStopIndexRef.current = contentStopIndex
+
+    const copyEl = storyCardCopyRef?.current
+    const stop = stops[contentStopIndex]
+    if (copyEl && stop?.id) {
+      const height = copyEl.scrollHeight
+      if (height > 0) {
+        contentHeightsByStopIdRef.current.set(stop.id, height)
+      }
+    }
+
+    dirtyRef.current = true
+    if (kickRafRef.current) kickRafRef.current()
+  }, [contentStopIndex, stops, storyCardCopyRef])
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -110,7 +179,13 @@ export default function useTourCamera({
       heroExitTargetRef.current = scrollExitT
     }
 
-    const applyDomFrame = (frame, stageTransform, background) => {
+    const getRestCardForStop = (stopIndex) => {
+      const stop = stops[stopIndex]
+      if (!stop?.card) return null
+      return cardAtAbsoluteRest(stop, stop.card, getStageWidthPx(), getStageHeightPx())
+    }
+
+    const applyDomFrame = (frame, stageTransform, background, smoothedCard, contentState, effectiveCard) => {
       if (stageRef.current) {
         stageRef.current.style.transform = stageTransform
       }
@@ -137,14 +212,20 @@ export default function useTourCamera({
       if (storyCardInnerRef.current) {
         storyCardInnerRef.current.style.opacity = String(frame.storyCardOpacity)
       }
-      if (!editMode && frame.interpolatedCard && storyCardWrapperRef?.current) {
+      if (!editMode && effectiveCard && storyCardWrapperRef?.current && smoothedCard) {
         const stageWidthPx = getStageWidthPx()
-        const wrapperStyle = getStoryCardAbsoluteWrapperStyle(frame.interpolatedCard)
+        const displayCard = {
+          ...effectiveCard,
+          leftPx: Math.round(smoothedCard.leftPx),
+          topPx: Math.round(smoothedCard.topPx),
+          widthPx: Math.round(smoothedCard.widthPx),
+        }
+        const wrapperStyle = getStoryCardAbsoluteWrapperStyle(displayCard)
         storyCardWrapperRef.current.style.left = wrapperStyle.left
         storyCardWrapperRef.current.style.top = wrapperStyle.top
         storyCardWrapperRef.current.style.transform = wrapperStyle.transform
         if (storyCardInnerRef.current) {
-          const sizeStyle = getStoryCardInnerSizeStyle(frame.interpolatedCard, stageWidthPx)
+          const sizeStyle = getStoryCardInnerSizeStyle(displayCard, stageWidthPx)
           storyCardInnerRef.current.style.width = sizeStyle.width
           storyCardInnerRef.current.style.maxWidth = sizeStyle.maxWidth
           if (sizeStyle.height) {
@@ -154,6 +235,16 @@ export default function useTourCamera({
             storyCardInnerRef.current.style.removeProperty('height')
             storyCardInnerRef.current.style.removeProperty('overflow-y')
           }
+        }
+        if (storyCardContentShellRef?.current) {
+          storyCardContentShellRef.current.style.minHeight = `${Math.round(smoothedCard.minHeightPx)}px`
+        }
+        const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
+        const opacity = committed ? contentState.phase.opacity : 0
+        const offsetY = committed ? contentState.phase.offsetY : 0
+        if (storyCardCopyRef?.current) {
+          storyCardCopyRef.current.style.opacity = String(opacity)
+          storyCardCopyRef.current.style.transform = `translate3d(0, ${offsetY}px, 0)`
         }
       }
       if (rightBarProgressFillRef?.current) {
@@ -167,10 +258,14 @@ export default function useTourCamera({
       }
     }
 
-    const syncReactState = (frame) => {
+    const syncReactState = (frame, wantedStopIndex) => {
       if (frame.activeIndex !== activeIndexRef.current) {
         activeIndexRef.current = frame.activeIndex
         setActiveIndex(frame.activeIndex)
+      }
+      if (wantedStopIndex !== contentStopIndexRef.current) {
+        contentStopIndexRef.current = wantedStopIndex
+        setContentStopIndex(wantedStopIndex)
       }
       if (frame.heroActive !== heroActiveRef.current) {
         heroActiveRef.current = frame.heroActive
@@ -190,7 +285,7 @@ export default function useTourCamera({
 
       const transitionSpeed = tourTransitionSpeedRef?.current ?? DEFAULT_TOUR_TRANSITION_SPEED
       const useSmoothedHeroExit =
-        !reducedMotion && Math.abs(transitionSpeed - DEFAULT_TOUR_TRANSITION_SPEED) > 0.01
+        !reducedMotion && Math.abs(transitionSpeed - TOUR_SCROLL_LOCK_SPEED) > 0.01
       if (useSmoothedHeroExit) {
         displayHeroExitTRef.current = exponentialSmoothing(
           displayHeroExitTRef.current,
@@ -215,10 +310,22 @@ export default function useTourCamera({
         stageHeightPx: getStageHeightPx(),
       })
 
+      const segments = getSegments()
+      const targetContentPos = frame.heroActive || segments <= 0 ? 0 : clamp(frame.scaled, 0, segments)
+
+      const heroCardSeed = frame.heroActive && !editMode ? getRestCardForStop(0) : null
+      const effectiveCard = frame.interpolatedCard ?? heroCardSeed
+
+      const targetLeftPx = effectiveCard?.leftPx ?? smoothedCardRef.current.leftPx
+      const targetTopPx = effectiveCard?.topPx ?? smoothedCardRef.current.topPx
+      const targetWidthPx = effectiveCard?.widthPx ?? smoothedCardRef.current.widthPx
+
       const targetBlurOpacity = frame.heroBlurOpacity
       const blurRate = getTourSmoothRate(BASE_TOUR_BLUR_SMOOTH_RATE, transitionSpeed)
       const cameraRate = getTourSmoothRate(BASE_TOUR_CAMERA_SMOOTH_RATE, transitionSpeed)
-      const preferSmoothCamera = transitionSpeed < DEFAULT_TOUR_TRANSITION_SPEED - 0.01
+      const cardRate = getTourSmoothRate(BASE_TOUR_CARD_SMOOTH_RATE, transitionSpeed)
+      const contentRate = getTourSmoothRate(BASE_TOUR_CONTENT_SMOOTH_RATE, transitionSpeed)
+      const preferSmoothMotion = transitionSpeed < TOUR_SCROLL_LOCK_SPEED - 0.01
 
       if (reducedMotion || frame.heroActive) {
         smoothedBlurOpacityRef.current = targetBlurOpacity
@@ -237,7 +344,8 @@ export default function useTourCamera({
       const targetScale = frame.camScale
 
       const leavingHero = heroActiveRef.current && !frame.heroActive
-      if ((snapCameraRef.current && !preferSmoothCamera) || (leavingHero && !preferSmoothCamera)) {
+      const snapNow = snapCameraRef.current && !preferSmoothMotion
+      if (snapNow || (leavingHero && !preferSmoothMotion)) {
         smoothed.tx = targetTx
         smoothed.ty = targetTy
         smoothed.scale = targetScale
@@ -252,6 +360,59 @@ export default function useTourCamera({
         smoothed.scale = exponentialSmoothing(smoothed.scale, targetScale, dt, cameraRate)
       }
 
+      const smoothedCard = smoothedCardRef.current
+      if (snapNow || leavingHero) {
+        smoothedCard.leftPx = targetLeftPx
+        smoothedCard.topPx = targetTopPx
+        smoothedCard.widthPx = targetWidthPx
+        smoothedContentPosRef.current = targetContentPos
+      } else if (reducedMotion || frame.heroActive || editMode || !effectiveCard) {
+        smoothedCard.leftPx = targetLeftPx
+        smoothedCard.topPx = targetTopPx
+        smoothedCard.widthPx = targetWidthPx
+        smoothedContentPosRef.current = targetContentPos
+      } else {
+        smoothedCard.leftPx = exponentialSmoothing(
+          smoothedCard.leftPx,
+          targetLeftPx,
+          dt,
+          cardRate,
+        )
+        smoothedCard.topPx = exponentialSmoothing(smoothedCard.topPx, targetTopPx, dt, cardRate)
+        smoothedCard.widthPx = exponentialSmoothing(
+          smoothedCard.widthPx,
+          targetWidthPx,
+          dt,
+          cardRate,
+        )
+        smoothedContentPosRef.current = exponentialSmoothing(
+          smoothedContentPosRef.current,
+          targetContentPos,
+          dt,
+          contentRate,
+        )
+      }
+
+      const contentState = deriveContentState(smoothedContentPosRef.current)
+      const fromHeight = resolveContentHeight(contentState.segIdx)
+      const toHeight = resolveContentHeight(
+        clamp(contentState.segIdx + 1, 0, stops.length - 1),
+      )
+      const targetMinHeightPx = lerp(fromHeight, toHeight, contentState.t)
+
+      if (snapNow || leavingHero) {
+        smoothedCard.minHeightPx = targetMinHeightPx
+      } else if (reducedMotion || frame.heroActive || editMode || !effectiveCard) {
+        smoothedCard.minHeightPx = targetMinHeightPx
+      } else {
+        smoothedCard.minHeightPx = exponentialSmoothing(
+          smoothedCard.minHeightPx,
+          targetMinHeightPx,
+          dt,
+          cardRate,
+        )
+      }
+
       const stageTransform = `translate(${smoothed.tx}%, ${smoothed.ty}%) scale(${smoothed.scale})`
       const background = computeBackgroundTransforms(
         smoothed.tx,
@@ -260,13 +421,26 @@ export default function useTourCamera({
         frame.heroBlend,
       )
 
-      applyDomFrame(frame, stageTransform, background)
-      syncReactState(frame)
+      applyDomFrame(frame, stageTransform, background, smoothedCard, contentState, effectiveCard)
+      syncReactState(frame, contentState.wantedStopIndex)
 
       const settling =
         Math.abs(smoothed.tx - targetTx) > SETTLE_EPSILON ||
         Math.abs(smoothed.ty - targetTy) > SETTLE_EPSILON ||
         Math.abs(smoothed.scale - targetScale) > 0.002
+
+      const cardSettling =
+        !editMode &&
+        effectiveCard &&
+        (Math.abs(smoothedCard.leftPx - targetLeftPx) > CARD_SETTLE_EPSILON ||
+          Math.abs(smoothedCard.topPx - targetTopPx) > CARD_SETTLE_EPSILON ||
+          Math.abs(smoothedCard.widthPx - targetWidthPx) > CARD_SETTLE_EPSILON ||
+          Math.abs(smoothedCard.minHeightPx - targetMinHeightPx) > CARD_SETTLE_EPSILON)
+
+      const contentSettling =
+        !editMode &&
+        effectiveCard &&
+        Math.abs(smoothedContentPosRef.current - targetContentPos) > CONTENT_POS_SETTLE_EPSILON
 
       const blurSettling = Math.abs(smoothedBlurOpacityRef.current - targetBlurOpacity) > 0.008
       const heroExitSettling =
@@ -275,12 +449,23 @@ export default function useTourCamera({
         displayHeroExitTRef.current > 0.001 && displayHeroExitTRef.current < 0.999
 
       if (
-        (dirtyRef.current || settling || blurSettling || heroExitSettling || exitInProgress) &&
+        (dirtyRef.current ||
+          settling ||
+          cardSettling ||
+          contentSettling ||
+          blurSettling ||
+          heroExitSettling ||
+          exitInProgress) &&
         !overlayPausedRef.current
       ) {
         dirtyRef.current = false
         raf = requestAnimationFrame(tick)
       }
+    }
+
+    kickRafRef.current = () => {
+      dirtyRef.current = true
+      if (!raf && !overlayPausedRef.current) raf = requestAnimationFrame(tick)
     }
 
     const onScroll = () => {
@@ -310,6 +495,25 @@ export default function useTourCamera({
     })
     smoothedRef.current = { tx: initial.tx, ty: initial.ty, scale: initial.camScale }
     smoothedBlurOpacityRef.current = initial.heroBlurOpacity
+    const overviewCard = getRestCardForStop(0)
+    if (initial.interpolatedCard) {
+      smoothedCardRef.current = {
+        leftPx: initial.interpolatedCard.leftPx,
+        topPx: initial.interpolatedCard.topPx,
+        widthPx: initial.interpolatedCard.widthPx,
+        minHeightPx: DEFAULT_CARD_HEIGHT_PX,
+      }
+    } else if (overviewCard) {
+      smoothedCardRef.current = {
+        leftPx: overviewCard.leftPx,
+        topPx: overviewCard.topPx,
+        widthPx: overviewCard.widthPx,
+        minHeightPx: DEFAULT_CARD_HEIGHT_PX,
+      }
+    }
+    const segments = getSegments()
+    smoothedContentPosRef.current =
+      initial.heroActive || segments <= 0 ? 0 : clamp(initial.scaled, 0, segments)
     dirtyRef.current = true
     if (!overlayPausedRef.current) raf = requestAnimationFrame(tick)
 
@@ -320,6 +524,7 @@ export default function useTourCamera({
       scroller.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
+      kickRafRef.current = null
     }
   }, [
     backgroundImgRef,
@@ -338,11 +543,13 @@ export default function useTourCamera({
     scrollerRef,
     stageRef,
     stops,
+    storyCardContentShellRef,
+    storyCardCopyRef,
     storyCardInnerRef,
     storyCardWrapperRef,
     tourTransitionSpeedRef,
     tourRef,
   ])
 
-  return { activeIndex, heroActive }
+  return { activeIndex, heroActive, contentStopIndex }
 }

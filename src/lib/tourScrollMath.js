@@ -13,12 +13,34 @@ const HERO_BLUR_HOLD = 0.18
 const STORY_CARD_FADE_SPAN = 0.25
 const STORY_CARD_FADE_START = 0
 
-export const DEFAULT_TOUR_TRANSITION_SPEED = 1
+export const DEFAULT_TOUR_TRANSITION_SPEED = 0.75
+export const TOUR_SCROLL_LOCK_SPEED = 1
 export const TOUR_TRANSITION_SPEED_MIN = 0.25
 export const TOUR_TRANSITION_SPEED_MAX = 4
 export const BASE_TOUR_CAMERA_SMOOTH_RATE = 0.18
 export const BASE_TOUR_BLUR_SMOOTH_RATE = 0.14
 export const BASE_TOUR_HERO_EXIT_SMOOTH_RATE = 0.2
+export const BASE_TOUR_CARD_SMOOTH_RATE = 0.18
+export const BASE_TOUR_CONTENT_SMOOTH_RATE = 0.18
+
+export const CARD_COPY_HOLD_OUT = 0.18
+export const CARD_COPY_FADE_OUT_END = 0.45
+export const CARD_COPY_FADE_IN_START = 0.55
+export const CARD_COPY_HOLD_IN = 0.82
+export const CARD_COPY_SLIDE_PX = 8
+
+export function computeCardCopyPhase(t) {
+  if (t <= CARD_COPY_FADE_OUT_END) {
+    const p = smoothstep(
+      clamp((t - CARD_COPY_HOLD_OUT) / (CARD_COPY_FADE_OUT_END - CARD_COPY_HOLD_OUT), 0, 1),
+    )
+    return { opacity: 1 - p, offsetY: CARD_COPY_SLIDE_PX * p, useNextStop: false }
+  }
+  const p = smoothstep(
+    clamp((t - CARD_COPY_FADE_IN_START) / (CARD_COPY_HOLD_IN - CARD_COPY_FADE_IN_START), 0, 1),
+  )
+  return { opacity: p, offsetY: -CARD_COPY_SLIDE_PX * (1 - p), useNextStop: true }
+}
 
 export function getTourSmoothRate(baseRate, speed = DEFAULT_TOUR_TRANSITION_SPEED) {
   return clamp(baseRate * speed, 0.01, 0.95)
@@ -175,7 +197,7 @@ export function getStoryCardInnerSizeStyle(card, stageWidthPx = 0) {
   }
 }
 
-function cardAtAbsoluteRest(stop, card, stageWidthPx, stageHeightPx) {
+export function cardAtAbsoluteRest(stop, card, stageWidthPx, stageHeightPx) {
   const normalized = normalizeCardForLerp(card)
   const abs = cardToAbsoluteTopLeft(normalized, stageWidthPx, stageHeightPx)
   return {

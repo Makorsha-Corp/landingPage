@@ -7,6 +7,7 @@ import LandingPostTourSections from '../components/LandingPostTourSections'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
 import TourMobileCompactCard from '../components/tour/TourMobileCompactCard'
 import TourMobileStopPanel from '../components/tour/TourMobileStopPanel'
+import TourStoryCardBody from '../components/tour/TourStoryCardBody'
 import useLandingMotion from '../hooks/useLandingMotion'
 import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
@@ -553,6 +554,8 @@ export default function Home() {
   const heroTextRef = useRef(null)
   const storyCardInnerRef = useRef(null)
   const storyCardWrapperRef = useRef(null)
+  const storyCardContentShellRef = useRef(null)
+  const storyCardCopyRef = useRef(null)
   const tourStageRef = useRef(null)
   const rightBarProgressFillRef = useRef(null)
   const rightBarProgressRingRef = useRef(null)
@@ -672,7 +675,7 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
-  const { activeIndex, heroActive } = useTourCamera({
+  const { activeIndex, heroActive, contentStopIndex } = useTourCamera({
     scrollerRef,
     tourRef,
     stageRef,
@@ -684,6 +687,8 @@ export default function Home() {
     heroTextRef,
     storyCardInnerRef,
     storyCardWrapperRef,
+    storyCardContentShellRef,
+    storyCardCopyRef,
     tourTransitionSpeedRef,
     rightBarProgressFillRef,
     rightBarRingRef: rightBarProgressRingRef,
@@ -705,6 +710,7 @@ export default function Home() {
   const TOUR_END_THRESHOLD = 32
 
   const activeStop = stops[activeIndex]
+  const contentStop = stops[contentStopIndex]
   const activeCard = normalizeCard(activeStop?.card, DEFAULT_STOPS[activeIndex]?.card)
 
   const handleCardPositionChange = useCallback(
@@ -1259,31 +1265,23 @@ export default function Home() {
                   </span>
                 </div>
               ) : null}
-              {activeStop ? (
-                <div className={editMode ? 'p-6 pt-4' : ''}>
-                  <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${titleCls}`}>
-                    {activeStop.title}
-                  </h2>
-                  <p className={`mt-3 text-sm sm:text-base leading-relaxed ${descCls}`}>
-                    {activeStop.desc}
-                  </p>
-                  {activeStop.desc2 && (
-                    <p className={`mt-3 text-sm sm:text-base leading-relaxed ${descCls}`}>
-                      {activeStop.desc2}
-                    </p>
-                  )}
-                  {activeStop.points && (
-                    <ul className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2.5">
-                      {activeStop.points.map((p) => (
-                        <li key={p} className={`flex items-start gap-2 text-sm ${descCls}`}>
-                          <svg className="mt-0.5 h-4 w-4 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>{p}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+              {editMode && activeStop ? (
+                <TourStoryCardBody
+                  stop={activeStop}
+                  titleCls={titleCls}
+                  descCls={descCls}
+                  className="p-6 pt-4"
+                />
+              ) : null}
+              {!editMode && contentStop ? (
+                <div ref={storyCardContentShellRef} className="relative">
+                  <div ref={storyCardCopyRef} style={{ willChange: 'opacity, transform' }}>
+                    <TourStoryCardBody
+                      stop={contentStop}
+                      titleCls={titleCls}
+                      descCls={descCls}
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>

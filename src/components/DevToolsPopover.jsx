@@ -70,22 +70,27 @@ function StoryTransitionSpeedSlider({ tourTransitionSpeed, onChange }) {
   const percent = Math.round(speed * 100)
 
   return (
-    <label className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
-      <span className="w-24 shrink-0 text-xs font-medium text-foreground">Story speed</span>
-      <input
-        type="range"
-        min={minPercent}
-        max={maxPercent}
-        step={25}
-        value={percent}
-        onChange={(event) => onChange(Number(event.target.value) / 100)}
-        className="h-2 min-w-0 flex-1 cursor-pointer accent-primary"
-        aria-label="Story transition speed"
-      />
-      <span className="w-10 shrink-0 tabular-nums text-right text-foreground">
-        {(speed).toFixed(2).replace(/\.?0+$/, '')}×
-      </span>
-    </label>
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+      <label className="flex min-w-0 items-center gap-3 text-sm text-muted-foreground">
+        <span className="w-24 shrink-0 text-xs font-medium text-foreground">Story speed</span>
+        <input
+          type="range"
+          min={minPercent}
+          max={maxPercent}
+          step={25}
+          value={percent}
+          onChange={(event) => onChange(Number(event.target.value) / 100)}
+          className="h-2 min-w-0 flex-1 cursor-pointer accent-primary"
+          aria-label="Story transition speed"
+        />
+        <span className="w-10 shrink-0 tabular-nums text-right text-foreground">
+          {(speed).toFixed(2).replace(/\.?0+$/, '')}×
+        </span>
+      </label>
+      <p className="pl-[6.5rem] text-[10px] leading-snug text-muted-foreground/80">
+        Camera, blur, and card
+      </p>
+    </div>
   )
 }
 
