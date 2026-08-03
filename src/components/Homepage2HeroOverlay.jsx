@@ -45,17 +45,42 @@ function HeroTitle({ className, children, inCard = false }) {
   )
 }
 
-function HeroSubtitle({ className, textShadow, children, inCard = false }) {
+function HeroSubtitle({ className, textShadow, children, inCard = false, compactTop = false }) {
   const sizeCls = inCard
     ? 'text-base sm:text-lg lg:text-xl'
     : 'text-lg sm:text-xl'
+  const topCls = compactTop ? 'mt-4' : 'mt-5'
   return (
     <p
-      className={`mx-auto mt-5 max-w-2xl font-medium leading-relaxed ${sizeCls} ${className} ${textShadow}`}
+      className={`mx-auto ${topCls} max-w-2xl font-medium leading-relaxed ${sizeCls} ${className} ${textShadow}`}
     >
       {children}
     </p>
   )
+}
+
+function HeroBodyParagraphs({
+  hero,
+  className,
+  textShadow,
+  inCard = false,
+  splitLayout = false,
+}) {
+  const splitCls = splitLayout ? 'max-w-none text-base sm:text-lg' : ''
+  const paragraphs = [hero.paragraph, hero.paragraph2].filter(Boolean)
+  const hasSubtitle = Boolean(hero.subtitle?.trim())
+
+  return paragraphs.map((text, index) => (
+    <HeroSubtitle
+      key={index}
+      className={`${className} ${splitCls}`}
+      textShadow={textShadow}
+      inCard={inCard}
+      compactTop={hasSubtitle || index > 0}
+    >
+      {text}
+    </HeroSubtitle>
+  ))
 }
 
 export default function Homepage2HeroOverlay({
@@ -92,9 +117,17 @@ export default function Homepage2HeroOverlay({
         <HeroTitle className={titleInCardCls} inCard>
           {hero.title}
         </HeroTitle>
-        <HeroSubtitle className={colors.subtitle} textShadow={colors.textShadow} inCard>
-          {hero.subtitle}
-        </HeroSubtitle>
+        {hero.subtitle?.trim() ? (
+          <HeroSubtitle className={colors.subtitle} textShadow={colors.textShadow} inCard>
+            {hero.subtitle}
+          </HeroSubtitle>
+        ) : null}
+        <HeroBodyParagraphs
+          hero={hero}
+          className={colors.subtitle}
+          textShadow={colors.textShadow}
+          inCard
+        />
         <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
       </div>
     )
@@ -110,12 +143,21 @@ export default function Homepage2HeroOverlay({
         <HeroBadge className={floating.badge}>{hero.badge}</HeroBadge>
         <HeroTitle className={floating.title}>{hero.title}</HeroTitle>
         <div className={`${cardGap} mx-auto ${cardWidth} text-center ${shellCls} ${cardPadding}`}>
-          <HeroSubtitle
-            className={`${colors.subtitle} ${layout === 'split' ? 'mt-0 max-w-none text-base sm:text-lg' : ''}`}
+          {hero.subtitle?.trim() ? (
+            <HeroSubtitle
+              className={`${colors.subtitle} ${layout === 'split' ? 'mt-0 max-w-none text-base sm:text-lg' : ''}`}
+              textShadow={colors.textShadow}
+            >
+              {hero.subtitle}
+            </HeroSubtitle>
+          ) : null}
+          <HeroBodyParagraphs
+            hero={hero}
+            className={colors.subtitle}
             textShadow={colors.textShadow}
-          >
-            {hero.subtitle}
-          </HeroSubtitle>
+            inCard={layout !== 'split'}
+            splitLayout={layout === 'split'}
+          />
           <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
         </div>
       </div>
@@ -126,9 +168,16 @@ export default function Homepage2HeroOverlay({
     <div className={`relative mx-auto max-w-2xl px-6 ${floating.wrap}`}>
       <HeroBadge className={floating.badge}>{hero.badge}</HeroBadge>
       <HeroTitle className={floating.title}>{hero.title}</HeroTitle>
-      <HeroSubtitle className="text-white" textShadow="[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]">
-        {hero.subtitle}
-      </HeroSubtitle>
+      {hero.subtitle?.trim() ? (
+        <HeroSubtitle className="text-white/95" textShadow="[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]">
+          {hero.subtitle}
+        </HeroSubtitle>
+      ) : null}
+      <HeroBodyParagraphs
+        hero={hero}
+        className="text-white/95"
+        textShadow="[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]"
+      />
       <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
     </div>
   )

@@ -29,11 +29,7 @@ import Homepage2HeroCameraControls, {
   normalizeTourCamera,
   TOUR_CAMERA_LIMITS,
 } from './Homepage2HeroCameraControls'
-import {
-  getLoginGradientStyle,
-  getLoginRadialGradientStyle,
-} from '../../shared/loginGradient.js'
-import useLoginGradientFollow from '../hooks/useLoginGradientFollow'
+import { getLoginGradientStyle } from '../../shared/loginGradient.js'
 import useStoryCardDrag from '../hooks/useStoryCardDrag'
 import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardControls'
 import { getStoryCardStyles } from '../lib/storyCardStyles'
@@ -283,8 +279,11 @@ const DEFAULT_STOPS = [
 const DEFAULT_HERO = {
   badge: 'Kolom ERP',
   title: 'Your factory at your fingertips.',
-  subtitle:
-    "Kolom aims to help you manage your entire workspace from anywhere. Whether you're running solo, or collaborating with a massive team, or are an experienced manager working with multiple corporations, get detailed insights of how your operations are running at a price that won't break the bank, but instead help you make some. You won't know how much you're losing until you start tracking.",
+  subtitle: '',
+  paragraph:
+    "Manage your entire workspace from anywhere. Whether you're running solo, or collaborating with a massive team, or are an experienced manager working with multiple corporations, get detailed insights of how your operations are running.",
+  paragraph2:
+    "You won't know how much you're losing until you start tracking, at a price that won't break the bank but instead help you make some.",
 }
 
 function cloneStops(stops) {
@@ -635,8 +634,6 @@ export default function Home() {
     [heroOverlayScrimStrength, theme, heroOverlayScrimStyle],
   )
 
-  // Tracked on the scroller so every section inherits --login-grad-x/y.
-  useLoginGradientFollow(scrollerRef, !reducedMotion)
 
   const sectionRefMap = useMemo(
     () => ({
@@ -951,13 +948,8 @@ export default function Home() {
 
   const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
   const scrollHintPillCls = getScrollHintPillStyles(theme)
-  const lightHeroRadialSoft = theme === 'light' && heroActive && !reducedMotion
-  const pageGradientStyle = reducedMotion
-    ? getLoginGradientStyle(theme)
-    : getLoginRadialGradientStyle(lightHeroRadialSoft ? 'hero-light' : 'default')
-  const pageGradientLayerCls = lightHeroRadialSoft
-    ? 'opacity-40 mix-blend-normal'
-    : 'opacity-70 mix-blend-soft-light'
+  const pageGradientStyle = getLoginGradientStyle(theme)
+  const pageGradientLayerCls = 'opacity-70 mix-blend-soft-light'
   const tourBackdropStyle = getBackgroundOverlayStyle(theme, tourBackdropOpacity)
   const sectionsBackdropStyle = getBackgroundOverlayStyle(theme, sectionsBackdropOpacity)
   const showCampusBackdrop = Boolean(sectionBackdrops[activeSection])
@@ -1175,8 +1167,8 @@ export default function Home() {
               />
             </div>
 
-            {!editMode && !factoryPanMode && !mobileCameraPanMode && (
-              <div className="pointer-events-none absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
+            {!editMode && !factoryPanMode && !mobileCameraPanMode && !isMobileTour && (
+              <div className="pointer-events-none absolute bottom-8 sm:bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center">
                 <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${scrollHintPillCls}`}>
                   <span>Scroll to explore</span>
                   <svg className="h-4 w-4 animate-bounce text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

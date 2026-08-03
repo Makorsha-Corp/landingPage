@@ -19,6 +19,14 @@ export default function Homepage2HeroSettings({ hero, onChange }) {
         <p className="mx-auto mt-2 max-w-xl text-base font-medium leading-relaxed text-white/95">
           {hero.subtitle}
         </p>
+        {[hero.paragraph, hero.paragraph2].filter(Boolean).map((text, index) => (
+          <p
+            key={index}
+            className="mx-auto mt-2 max-w-xl text-base font-medium leading-relaxed text-white/95"
+          >
+            {text}
+          </p>
+        ))}
       </div>
 
       <div className="space-y-2.5">
@@ -44,10 +52,30 @@ export default function Homepage2HeroSettings({ hero, onChange }) {
           <label className={labelCls} htmlFor="hero-subtitle">Subtitle</label>
           <textarea
             id="hero-subtitle"
-            rows={3}
+            rows={2}
             className={inputCls}
             value={hero.subtitle}
             onChange={(e) => update('subtitle', e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="hero-paragraph">Paragraph 1</label>
+          <textarea
+            id="hero-paragraph"
+            rows={3}
+            className={inputCls}
+            value={hero.paragraph ?? ''}
+            onChange={(e) => update('paragraph', e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="hero-paragraph-2">Paragraph 2</label>
+          <textarea
+            id="hero-paragraph-2"
+            rows={3}
+            className={inputCls}
+            value={hero.paragraph2 ?? ''}
+            onChange={(e) => update('paragraph2', e.target.value)}
           />
         </div>
       </div>

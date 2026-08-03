@@ -60,6 +60,8 @@ export function normalizeHomepageSnapshot({
       badge: hero.badge,
       title: hero.title,
       subtitle: hero.subtitle,
+      paragraph: hero.paragraph ?? '',
+      paragraph2: hero.paragraph2 ?? '',
     },
     heroCamera: {
       fx: heroCamera.fx,
@@ -178,7 +180,9 @@ function diffStops(currentStops, baselineStops) {
 }
 
 function diffHero(current, baseline) {
-  const fields = ['badge', 'title', 'subtitle'].filter((key) => current[key] !== baseline[key])
+  const fields = ['badge', 'title', 'subtitle', 'paragraph', 'paragraph2'].filter(
+    (key) => current[key] !== baseline[key],
+  )
   return fields.length ? { current, fields } : null
 }
 
