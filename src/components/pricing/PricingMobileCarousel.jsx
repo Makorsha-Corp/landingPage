@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
 import usePricingCardViewportBudget from '../../hooks/usePricingCardViewportBudget'
-import useReducedMotion from '../../hooks/useReducedMotion'
 import PricingTierCard from './PricingTierCard'
 import PricingTierSwitcher from './PricingTierSwitcher'
 
@@ -18,7 +17,6 @@ export default function PricingMobileCarousel({ tiers, onJoinWaitlist }) {
   const [activeIndex, setActiveIndex] = useState(DEFAULT_INDEX)
   const [slideDirection, setSlideDirection] = useState(0)
   const cardMinHeight = usePricingCardViewportBudget()
-  const reducedMotion = useReducedMotion()
   const pointerStartRef = useRef(null)
   const activeTier = tiers[activeIndex] ?? tiers[DEFAULT_INDEX]
 
@@ -82,7 +80,7 @@ export default function PricingMobileCarousel({ tiers, onJoinWaitlist }) {
     }
   }
 
-  const cardAnimationClass = getTierAnimationClass(slideDirection, reducedMotion)
+  const cardAnimationClass = getTierAnimationClass(slideDirection, false)
 
   return (
     <div onKeyDown={handleKeyDown}>

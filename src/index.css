@@ -316,6 +316,14 @@
   }
 }
 
+.homepage2-page .animate-pricing-tier-from-right {
+  animation: pricing-tier-from-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.homepage2-page .animate-pricing-tier-from-left {
+  animation: pricing-tier-from-left 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes story-card-opacity {
   from { opacity: 0; }
   to { opacity: 1; }

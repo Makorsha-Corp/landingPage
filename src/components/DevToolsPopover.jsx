@@ -56,6 +56,33 @@ function HeroFactoryBlurSlider({ heroFactoryBlurPx, onChange }) {
   )
 }
 
+function HeroOverlayScrimSlider({ theme, heroOverlayScrimStrength, onChange, disabled = false }) {
+  if (!onChange) return null
+
+  const themeKey = theme === 'dark' ? 'dark' : 'light'
+  const value = heroOverlayScrimStrength?.[themeKey] ?? 0
+
+  return (
+    <label
+      className={`flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground ${disabled ? 'opacity-50' : ''}`}
+    >
+      <span className="w-24 shrink-0 text-xs font-medium text-foreground">Strength</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(themeKey, Number(event.target.value))}
+        className="h-2 min-w-0 flex-1 cursor-pointer accent-primary disabled:cursor-not-allowed"
+        aria-label="Hero dark scrim strength"
+      />
+      <span className="w-10 shrink-0 tabular-nums text-right text-foreground">{value}%</span>
+    </label>
+  )
+}
+
 function DevToolsFloatingPanel({
   open,
   onClose,
@@ -76,6 +103,11 @@ function DevToolsFloatingPanel({
   onCycleHeroCardStyle,
   heroFactoryBlurPx,
   onHeroFactoryBlurPxChange,
+  heroOverlayScrimStrength,
+  onHeroOverlayScrimStrengthChange,
+  heroOverlayScrimStyle,
+  onHeroOverlayScrimStyleChange,
+  heroOverlayScrimStyles = [],
   tourBackdropOpacity,
   onTourBackdropOpacityChange,
   sectionsBackdropOpacity,
@@ -309,6 +341,38 @@ function DevToolsFloatingPanel({
                 <HeroFactoryBlurSlider
                   heroFactoryBlurPx={heroFactoryBlurPx}
                   onChange={onHeroFactoryBlurPxChange}
+                />
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Dark scrim</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Overlay on hero copy and building (not campus photo dim). Strength follows current theme.
+              </p>
+              {onHeroOverlayScrimStyleChange && heroOverlayScrimStyles.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {heroOverlayScrimStyles.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      onClick={() => onHeroOverlayScrimStyleChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${heroOverlayScrimStyle === id ? activeCls : ''}`}
+                      aria-pressed={heroOverlayScrimStyle === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-2">
+                <HeroOverlayScrimSlider
+                  theme={theme}
+                  heroOverlayScrimStrength={heroOverlayScrimStrength}
+                  onChange={onHeroOverlayScrimStrengthChange}
+                  disabled={heroOverlayScrimStyle === 'none'}
                 />
               </div>
             </div>

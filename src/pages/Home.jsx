@@ -7,7 +7,7 @@ import LandingPostTourSections from '../components/LandingPostTourSections'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
 import TourMobileCompactCard from '../components/tour/TourMobileCompactCard'
 import TourMobileStopPanel from '../components/tour/TourMobileStopPanel'
-import useReducedMotion from '../hooks/useReducedMotion'
+import useLandingMotion from '../hooks/useLandingMotion'
 import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
@@ -59,6 +59,14 @@ import {
   getBlendedBackgroundOverlayStyle,
   normalizeBackdropOpacity,
 } from '../lib/homepageWash'
+import {
+  DEFAULT_HERO_OVERLAY_SCRIM_STRENGTH,
+  DEFAULT_HERO_OVERLAY_SCRIM_STYLE,
+  getHeroOverlayScrimLayer,
+  getHeroOverlayScrimOpacity,
+  HERO_OVERLAY_SCRIM_STYLE_LIST,
+  normalizeHeroOverlayScrimStrength,
+} from '../lib/heroScrimStyles'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
@@ -555,7 +563,7 @@ export default function Home() {
   const rightBarProgressFillRef = useRef(null)
   const rightBarProgressRingRef = useRef(null)
   const tourPanelRefs = useRef([])
-  const reducedMotion = useReducedMotion()
+  const { reducedMotion } = useLandingMotion()
   const isMobileTour = useIsMobileTour()
   const [barVariant, setBarVariant] = useState('A')
   const [editMode, setEditMode] = useState(false)
@@ -575,6 +583,12 @@ export default function Home() {
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
   const [mobileStopPanelStopId, setMobileStopPanelStopId] = useState(null)
   const [rainbowColorPreset, setRainbowColorPreset] = useState(DEFAULT_RAINBOW_COLOR_PRESET)
+  const [heroOverlayScrimStrength, setHeroOverlayScrimStrength] = useState(
+    () => ({ ...DEFAULT_HERO_OVERLAY_SCRIM_STRENGTH }),
+  )
+  const [heroOverlayScrimStyle, setHeroOverlayScrimStyle] = useState(
+    DEFAULT_HERO_OVERLAY_SCRIM_STYLE,
+  )
   const exportCodeBaseline = useMemo(
     () =>
       normalizeHomepageSnapshot({
@@ -608,6 +622,17 @@ export default function Home() {
   const waitlistShineColors = useMemo(
     () => getWaitlistShineColors(rainbowColorPreset),
     [rainbowColorPreset],
+  )
+
+  const heroOverlayScrimLayer = useMemo(
+    () => getHeroOverlayScrimLayer(theme, heroOverlayScrimStyle),
+    [theme, heroOverlayScrimStyle],
+  )
+
+  const heroOverlayScrimOpacity = useMemo(
+    () =>
+      getHeroOverlayScrimOpacity(heroOverlayScrimStrength, theme, heroOverlayScrimStyle),
+    [heroOverlayScrimStrength, theme, heroOverlayScrimStyle],
   )
 
   // Tracked on the scroller so every section inherits --login-grad-x/y.
@@ -825,6 +850,18 @@ export default function Home() {
     )
   }
 
+  const updateHeroOverlayScrimStrength = (themeKey, value) => {
+    setHeroOverlayScrimStrength((current) =>
+      normalizeHeroOverlayScrimStrength(
+        {
+          ...current,
+          [themeKey]: value,
+        },
+        DEFAULT_HERO_OVERLAY_SCRIM_STRENGTH,
+      ),
+    )
+  }
+
   const toggleSectionBackdrop = (sectionId) => {
     setSectionBackdrops((current) => ({
       ...current,
@@ -1001,6 +1038,11 @@ export default function Home() {
               onCycleHeroCardStyle={handleCycleHeroCardStyle}
               heroFactoryBlurPx={heroFactoryBlurPx}
               onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
+              heroOverlayScrimStrength={heroOverlayScrimStrength}
+              onHeroOverlayScrimStrengthChange={updateHeroOverlayScrimStrength}
+              heroOverlayScrimStyle={heroOverlayScrimStyle}
+              onHeroOverlayScrimStyleChange={setHeroOverlayScrimStyle}
+              heroOverlayScrimStyles={HERO_OVERLAY_SCRIM_STYLE_LIST}
               theme={theme}
               tourBackdropOpacity={tourBackdropOpacity}
               onTourBackdropOpacityChange={updateTourBackdropOpacity}
@@ -1034,6 +1076,11 @@ export default function Home() {
           onCycleHeroCardStyle: handleCycleHeroCardStyle,
           heroFactoryBlurPx,
           onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
+          heroOverlayScrimStrength,
+          onHeroOverlayScrimStrengthChange: updateHeroOverlayScrimStrength,
+          heroOverlayScrimStyle,
+          onHeroOverlayScrimStyleChange: setHeroOverlayScrimStyle,
+          heroOverlayScrimStyles: HERO_OVERLAY_SCRIM_STYLE_LIST,
           theme,
           tourBackdropOpacity,
           onTourBackdropOpacityChange: updateTourBackdropOpacity,
@@ -1108,11 +1155,11 @@ export default function Home() {
           >
             <div
               aria-hidden="true"
-              className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${
-                theme === 'light'
-                  ? 'from-black/18 via-black/8 to-transparent'
-                  : 'from-black/60 via-black/35 to-black/10'
-              }`}
+              className={heroOverlayScrimLayer.className}
+              style={{
+                ...heroOverlayScrimLayer.style,
+                opacity: heroOverlayScrimOpacity,
+              }}
             />
             <div className="relative flex h-full items-center justify-center">
               <Homepage2HeroOverlay

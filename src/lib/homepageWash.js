@@ -1,6 +1,6 @@
 /** Background dim over photo / gradient — not a purple/white color wash. */
 export const DEFAULT_TOUR_BACKDROP_OPACITY = { light: 35, dark: 45 }
-export const DEFAULT_SECTIONS_BACKDROP_OPACITY = { light: 80, dark: 95 }
+export const DEFAULT_SECTIONS_BACKDROP_OPACITY = { light: 70, dark: 70 }
 
 /** @deprecated use DEFAULT_TOUR_BACKDROP_OPACITY */
 export const DEFAULT_TOUR_WASH_OPACITY = DEFAULT_TOUR_BACKDROP_OPACITY
