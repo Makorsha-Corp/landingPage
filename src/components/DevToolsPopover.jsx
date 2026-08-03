@@ -243,6 +243,9 @@ function DevToolsFloatingPanel({
   rainbowColorPreset,
   onRainbowColorPresetChange,
   rainbowColorPresets = [],
+  heroSignUpButtonVariant,
+  onHeroSignUpButtonVariantChange,
+  heroSignUpButtonVariants = [],
 }) {
   const boundsRef = useRef(null)
   const panelRef = useRef(null)
@@ -398,6 +401,30 @@ function DevToolsFloatingPanel({
                   ariaLabel="Card copy transition speed"
                 />
               </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Sign Up button</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Hero CTA style — rainbow border uses preset above.
+              </p>
+              {onHeroSignUpButtonVariantChange && heroSignUpButtonVariants.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {heroSignUpButtonVariants.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      onClick={() => onHeroSignUpButtonVariantChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${heroSignUpButtonVariant === id ? activeCls : ''}`}
+                      aria-pressed={heroSignUpButtonVariant === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="lg:col-span-2">

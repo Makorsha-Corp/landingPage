@@ -10,19 +10,24 @@ const heroFloatingTitle =
   'mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]'
 const heroBodyTextShadow = '[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]'
 
-function HeroButtons({ onGoWaitlist, onGoExplore }) {
+function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand' }) {
   return (
-    <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+    <div className="mt-8 flex flex-row items-center justify-center gap-3 sm:gap-4">
       <RainbowButton
         type="button"
         onClick={onGoWaitlist}
-        variant="brand"
+        variant={signUpVariant}
         size="lg"
-        className="w-full sm:w-auto"
+        className="min-w-0 flex-1 sm:flex-none sm:w-auto"
       >
         Sign Up
       </RainbowButton>
-      <Button onClick={onGoExplore} variant="heroGlass" size="lg" className="w-full sm:w-auto">
+      <Button
+        onClick={onGoExplore}
+        variant="heroGlass"
+        size="lg"
+        className="min-w-0 flex-1 sm:flex-none sm:w-auto"
+      >
         Explore
       </Button>
     </div>
@@ -79,6 +84,7 @@ export default function Homepage2HeroOverlay({
   onGoWaitlist,
   onGoExplore,
   onHeroChange,
+  heroSignUpButtonVariant = 'brand',
 }) {
   if (editMode && heroActive) {
     return (
@@ -98,7 +104,11 @@ export default function Homepage2HeroOverlay({
         </HeroSubtitle>
       ) : null}
       <HeroBodyParagraphs hero={hero} className="text-white/95" textShadow={heroBodyTextShadow} />
-      <HeroButtons onGoWaitlist={onGoWaitlist} onGoExplore={onGoExplore} />
+      <HeroButtons
+        onGoWaitlist={onGoWaitlist}
+        onGoExplore={onGoExplore}
+        signUpVariant={heroSignUpButtonVariant}
+      />
     </div>
   )
 }

@@ -5,8 +5,7 @@ import DevToolsPopover from '../components/DevToolsPopover'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import LandingPostTourSections from '../components/LandingPostTourSections'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
-import TourMobileCompactCard from '../components/tour/TourMobileCompactCard'
-import TourMobileStopPanel from '../components/tour/TourMobileStopPanel'
+import TourMobileStopDrawer from '../components/tour/TourMobileStopDrawer'
 import TourStoryCardBody from '../components/tour/TourStoryCardBody'
 import useLandingMotion from '../hooks/useLandingMotion'
 import useIsMobileTour from '../hooks/useIsMobileTour'
@@ -57,6 +56,10 @@ import {
   HERO_OVERLAY_SCRIM_STYLE_LIST,
   normalizeHeroOverlayScrimStrength,
 } from '../lib/heroScrimStyles'
+import {
+  DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
+  HERO_SIGN_UP_BUTTON_VARIANT_LIST,
+} from '../lib/heroSignUpButtonVariants'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
@@ -77,7 +80,7 @@ const HOMEPAGE_BLUR_BACKGROUNDS = {
   dark: '/homepage-background-blur-dark.png',
 }
 
-const BUILDING_IMAGE = '/building-compressed.png'
+const BUILDING_IMAGE = '/building-95.png'
 
 function getScrollHintPillStyles(theme) {
   if (theme === 'dark') {
@@ -347,6 +350,9 @@ export default function Home() {
   const [heroOverlayScrimStyle, setHeroOverlayScrimStyle] = useState(
     DEFAULT_HERO_OVERLAY_SCRIM_STYLE,
   )
+  const [heroSignUpButtonVariant, setHeroSignUpButtonVariant] = useState(
+    DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
+  )
   const exportCodeBaseline = useMemo(
     () =>
       normalizeHomepageSnapshot({
@@ -439,7 +445,7 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
-  const { activeIndex, heroActive, contentStopIndex } = useTourCamera({
+  const { activeIndex, heroActive, contentStopIndex, heroExitProgress } = useTourCamera({
     scrollerRef,
     tourRef,
     stageRef,
@@ -464,9 +470,6 @@ export default function Home() {
     overlayPaused: featureOverlayOpen,
   })
 
-  const mobilePanelStop =
-    mobileStopPanelStopId && activeStop?.id === mobileStopPanelStopId ? activeStop : null
-
   const heroPanelCount = 1
   const totalPanels = heroPanelCount + stops.length
   const lastTourPanelIndex = totalPanels - 1
@@ -474,6 +477,9 @@ export default function Home() {
 
   const activeStop = stops[activeIndex]
   const contentStop = stops[contentStopIndex]
+  const mobilePanelStop = mobileStopPanelStopId
+    ? stops.find((s) => s.id === mobileStopPanelStopId) ?? null
+    : null
   const activeCard = normalizeCard(activeStop?.card, DEFAULT_STOPS[activeIndex]?.card)
 
   const handleCardPositionChange = useCallback(
@@ -727,6 +733,12 @@ export default function Home() {
       )
     : sectionsBackdropStyle
 
+  const mobileTourDrawerVisible =
+    !heroActive &&
+    Boolean(activeStop) &&
+    activeSection === 'tour' &&
+    (reducedMotion || featuresBackdropProgress < 0.12)
+
   return (
     <div
       ref={scrollerRef}
@@ -797,6 +809,9 @@ export default function Home() {
               rainbowColorPreset={rainbowColorPreset}
               onRainbowColorPresetChange={setRainbowColorPreset}
               rainbowColorPresets={RAINBOW_COLOR_PRESET_LIST}
+              heroSignUpButtonVariant={heroSignUpButtonVariant}
+              onHeroSignUpButtonVariantChange={setHeroSignUpButtonVariant}
+              heroSignUpButtonVariants={HERO_SIGN_UP_BUTTON_VARIANT_LIST}
             />
             <ThemeToggleButton variant="nav" />
           </div>
@@ -832,6 +847,9 @@ export default function Home() {
           rainbowColorPreset,
           onRainbowColorPresetChange: setRainbowColorPreset,
           rainbowColorPresets: RAINBOW_COLOR_PRESET_LIST,
+          heroSignUpButtonVariant,
+          onHeroSignUpButtonVariantChange: setHeroSignUpButtonVariant,
+          heroSignUpButtonVariants: HERO_SIGN_UP_BUTTON_VARIANT_LIST,
         }}
       />
 
@@ -867,22 +885,25 @@ export default function Home() {
 
           <div
             ref={stageRef}
-            className="relative z-[1] homepage-tour-dvh aspect-[1024/831] will-change-transform"
+            className="relative z-[1] homepage-tour-dvh aspect-[1024/831] will-change-transform overflow-hidden"
           >
             <img
               src={BUILDING_IMAGE}
               alt="Marker headquarters cutaway"
               className="h-full w-full object-cover select-none"
+              fetchPriority="high"
+              draggable={false}
+            />
+            <img
+              ref={heroBlurRef}
+              src={BUILDING_IMAGE}
+              alt=""
+              aria-hidden="true"
+              className="homepage-tour-building-blur absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
+              style={{ opacity: 1 }}
               draggable={false}
             />
           </div>
-
-          <div
-            ref={heroBlurRef}
-            aria-hidden="true"
-            className="absolute inset-0 z-20 pointer-events-none"
-            style={{ opacity: 1 }}
-          />
 
           {/* Hero overlay — first screen before scroll */}
           <div
@@ -908,11 +929,12 @@ export default function Home() {
                 onGoWaitlist={() => goWaitlist('hero')}
                 onGoExplore={goExplore}
                 onHeroChange={setHero}
+                heroSignUpButtonVariant={heroSignUpButtonVariant}
               />
             </div>
 
-            {!editMode && !factoryPanMode && !mobileCameraPanMode && !isMobileTour && (
-              <div className="pointer-events-none absolute bottom-8 sm:bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center">
+            {!editMode && !factoryPanMode && !mobileCameraPanMode && (
+              <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center">
                 <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${scrollHintPillCls}`}>
                   <span>Scroll to explore</span>
                   <svg className="h-4 w-4 animate-bounce text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1018,15 +1040,20 @@ export default function Home() {
           </div>
 
           {isMobileTour ? (
-            <TourMobileCompactCard
-              stop={activeStop}
+            <TourMobileStopDrawer
+              peekStop={activeStop}
+              expandedStop={mobilePanelStop}
               theme={theme}
-              visible={!heroActive && Boolean(activeStop)}
+              scrollerRef={scrollerRef}
+              reducedMotion={reducedMotion}
+              peekVisible={mobileTourDrawerVisible}
+              isOpen={Boolean(mobilePanelStop)}
               onOpen={() => activeStop?.id && setMobileStopPanelStopId(activeStop.id)}
+              onClose={() => setMobileStopPanelStopId(null)}
             />
           ) : null}
 
-          {!heroActive && !isMobileTour && (
+          {!heroActive && !isMobileTour && heroExitProgress >= 0.5 && (
             <RightBar
               theme={theme}
               stops={stops}
@@ -1062,14 +1089,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      <TourMobileStopPanel
-        stop={mobilePanelStop}
-        theme={theme}
-        scrollerRef={scrollerRef}
-        reducedMotion={reducedMotion}
-        onClose={() => setMobileStopPanelStopId(null)}
-      />
 
       <LandingPostTourSections
         capabilitiesRef={capabilitiesRef}
