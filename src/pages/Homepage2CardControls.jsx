@@ -1,7 +1,6 @@
 export const DEFAULT_CARD = {
   x: '6%',
   y: '50%',
-  anchor: 'bottom-left',
   widthPx: 640,
   heightPx: null,
   maxWidthVw: 92,
@@ -16,18 +15,16 @@ const WIDTH_STEP = 16
 const HEIGHT_MIN = 200
 const HEIGHT_MAX = 800
 
-export const CARD_PRESETS = {
-  'top-left': { x: '6%', y: '12%', anchor: 'top-left' },
-  'top-right': { x: '94%', y: '12%', anchor: 'top-right' },
-  'bottom-left': { x: '6%', y: '88%', anchor: 'bottom-left' },
-  'bottom-right': { x: '94%', y: '88%', anchor: 'bottom-right' },
-}
+const LEGACY_REF_W = 1280
+const LEGACY_REF_H = 720
+const LEGACY_DEFAULT_H = 200
 
-const ANCHOR_LABELS = {
-  'top-left': 'Top left',
-  'top-right': 'Top right',
-  'bottom-left': 'Bottom left',
-  'bottom-right': 'Bottom right',
+/** Top-left x/y presets (640px-wide card on ~1280px stage). */
+export const CARD_PRESETS = {
+  'top-left': { x: '6%', y: '12%' },
+  'top-right': { x: '44%', y: '12%' },
+  'bottom-left': { x: '6%', y: '58%' },
+  'bottom-right': { x: '44%', y: '58%' },
 }
 
 const labelCls = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground'
@@ -44,9 +41,6 @@ function getControlTheme(variant) {
       dpadBtn: dpadBtnOverlayCls,
       center:
         'flex h-9 w-9 flex-col items-center justify-center rounded-lg border border-dashed border-white/20 bg-black/20 px-1 text-[10px] leading-tight text-white/70',
-      anchorActive: 'border-primary bg-primary/20 text-white',
-      anchorIdle:
-        'border-white/20 bg-black/30 text-white/70 hover:bg-white/10 hover:text-white',
     }
   }
 
@@ -55,9 +49,6 @@ function getControlTheme(variant) {
     dpadBtn: dpadBtnCls,
     center:
       'flex h-10 w-10 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-1 text-[10px] leading-tight text-muted-foreground',
-    anchorActive: 'border-primary bg-primary/10 text-primary',
-    anchorIdle:
-      'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
   }
 }
 
@@ -75,12 +66,54 @@ function clampPercent(value) {
   return Math.min(CARD_CLAMP_MAX, Math.max(CARD_CLAMP_MIN, Math.round(value)))
 }
 
+function legacyAnchorToTopLeft(card) {
+  const x = parsePercent(card.x)
+  const y = parsePercent(card.y)
+  const widthPx = card.widthPx ?? DEFAULT_CARD.widthPx
+  const maxWidthVw = card.maxWidthVw ?? DEFAULT_CARD.maxWidthVw
+  const width = Math.min(widthPx, (maxWidthVw / 100) * LEGACY_REF_W)
+  const height = card.heightPx ?? LEGACY_DEFAULT_H
+  const widthPct = (width / LEGACY_REF_W) * 100
+  const heightPct = (height / LEGACY_REF_H) * 100
+
+  switch (card.anchor) {
+    case 'bottom-right':
+      return {
+        x: formatPercent(clampPercent(x - widthPct)),
+        y: formatPercent(clampPercent(y - heightPct)),
+      }
+    case 'bottom-left':
+      return {
+        x: formatPercent(clampPercent(x)),
+        y: formatPercent(clampPercent(y - heightPct)),
+      }
+    case 'top-right':
+      return {
+        x: formatPercent(clampPercent(x - widthPct)),
+        y: formatPercent(clampPercent(y)),
+      }
+    case 'top-left':
+    default:
+      return {
+        x: formatPercent(clampPercent(x)),
+        y: formatPercent(clampPercent(y)),
+      }
+  }
+}
+
 export function normalizeCard(card, fallback = DEFAULT_CARD) {
   const merged = { ...DEFAULT_CARD, ...fallback, ...(card || {}) }
   if (merged.widthPx == null) merged.widthPx = DEFAULT_CARD.widthPx
   if (merged.maxWidthVw == null) merged.maxWidthVw = DEFAULT_CARD.maxWidthVw
   if (merged.heightPx === undefined) merged.heightPx = null
-  return merged
+
+  if (merged.anchor && merged.anchor !== 'top-left') {
+    const { anchor: _anchor, ...rest } = merged
+    return { ...rest, ...legacyAnchorToTopLeft(merged) }
+  }
+
+  const { anchor: _anchor, ...withoutAnchor } = merged
+  return withoutAnchor
 }
 
 export function getCardStyle(card, fallback = DEFAULT_CARD) {
@@ -95,8 +128,7 @@ export function getCardStyle(card, fallback = DEFAULT_CARD) {
 function matchesPreset(card, preset) {
   return (
     Math.abs(parsePercent(card.x) - parsePercent(preset.x)) <= 1 &&
-    Math.abs(parsePercent(card.y) - parsePercent(preset.y)) <= 1 &&
-    card.anchor === preset.anchor
+    Math.abs(parsePercent(card.y) - parsePercent(preset.y)) <= 1
   )
 }
 
@@ -113,10 +145,6 @@ export function CardPlacementDpad({ card, onChange, compact = false, variant = '
       x: formatPercent(clampPercent(parsePercent(safeCard.x) + dx)),
       y: formatPercent(clampPercent(parsePercent(safeCard.y) + dy)),
     })
-  }
-
-  const setAnchor = (anchor) => {
-    onChange({ anchor })
   }
 
   const cornerActive = (key) => matchesPreset(safeCard, CARD_PRESETS[key])
@@ -177,26 +205,6 @@ export function CardPlacementDpad({ card, onChange, compact = false, variant = '
           ↘
         </button>
       </div>
-
-      {!compact && (
-        <div>
-          <span className={theme.label}>Anchor corner</span>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {Object.keys(ANCHOR_LABELS).map((anchor) => (
-              <button
-                key={anchor}
-                type="button"
-                onClick={() => setAnchor(anchor)}
-                className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  safeCard.anchor === anchor ? theme.anchorActive : theme.anchorIdle
-                }`}
-              >
-                {ANCHOR_LABELS[anchor]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

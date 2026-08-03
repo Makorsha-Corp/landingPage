@@ -2,41 +2,33 @@ export const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 export const lerp = (a, b, t) => a + (b - a) * t
 export const smoothstep = (t) => t * t * (3 - 2 * t)
 
-export const HERO_EXIT_DURATION_MS = 650
 export const DEFAULT_HERO_FACTORY_BLUR_PX = 4
 export const MOBILE_MAX_CAM_SCALE = 1.15
 export const MOBILE_FX_CENTER_BIAS = 0.75
 export const MOBILE_FY_CENTER_BIAS = 0.75
 export const MOBILE_TX_DAMPING = 0.25
 export const MOBILE_TY_DAMPING = 0.25
-const HERO_EXIT_HOLD = 0.3
 export const HERO_TEXT_FADE_END = 0.8
 const HERO_BLUR_HOLD = 0.18
 const STORY_CARD_FADE_SPAN = 0.25
-const STORY_CARD_FADE_START = 1 - STORY_CARD_FADE_SPAN
+const STORY_CARD_FADE_START = 0
+
+export const DEFAULT_TOUR_TRANSITION_SPEED = 1
+export const TOUR_TRANSITION_SPEED_MIN = 0.25
+export const TOUR_TRANSITION_SPEED_MAX = 4
+export const BASE_TOUR_CAMERA_SMOOTH_RATE = 0.18
+export const BASE_TOUR_BLUR_SMOOTH_RATE = 0.14
+export const BASE_TOUR_HERO_EXIT_SMOOTH_RATE = 0.2
+
+export function getTourSmoothRate(baseRate, speed = DEFAULT_TOUR_TRANSITION_SPEED) {
+  return clamp(baseRate * speed, 0.01, 0.95)
+}
 
 /** Full blur on hero; gradual unblur through hero→tour exit scroll. */
 export function computeHeroBlurOpacity(displayHeroExitT, heroActive) {
   if (heroActive) return 1
   const t = clamp((displayHeroExitT - HERO_BLUR_HOLD) / (1 - HERO_BLUR_HOLD), 0, 1)
   return 1 - smoothstep(t)
-}
-
-export function heroExitEase(t) {
-  if (t <= HERO_EXIT_HOLD) return 0
-  return smoothstep((t - HERO_EXIT_HOLD) / (1 - HERO_EXIT_HOLD))
-}
-
-export function stopCardScrollOpacity(scaled, stopIndex) {
-  const delta = scaled - stopIndex
-  if (Math.abs(delta) < 1e-6) return 1
-  if (delta > 0 && delta <= STORY_CARD_FADE_SPAN) {
-    return 1 - smoothstep(delta / STORY_CARD_FADE_SPAN)
-  }
-  if (delta >= -STORY_CARD_FADE_SPAN && delta < 0) {
-    return smoothstep((delta + STORY_CARD_FADE_SPAN) / STORY_CARD_FADE_SPAN)
-  }
-  return 0
 }
 
 const BACKGROUND_PARALLAX = 0.3
@@ -83,6 +75,119 @@ function getStopCamera(stop) {
   return { fx: stop.fx, fy: stop.fy, scale: stop.scale }
 }
 
+const DEFAULT_CARD_LAYOUT = {
+  x: '6%',
+  y: '50%',
+  widthPx: 640,
+  heightPx: null,
+  maxWidthVw: 92,
+}
+
+export function parseCardPercent(value) {
+  if (typeof value === 'number') return value
+  const n = parseFloat(String(value || '0').replace('%', ''))
+  return Number.isFinite(n) ? n : 0
+}
+
+function normalizeCardForLerp(card) {
+  return { ...DEFAULT_CARD_LAYOUT, ...(card || {}) }
+}
+
+function lerpNullable(a, b, t) {
+  if (a == null && b == null) return null
+  if (a == null) return b
+  if (b == null) return a
+  return lerp(a, b, t)
+}
+
+export const DEFAULT_STAGE_WIDTH_PX = 1280
+export const DEFAULT_CARD_HEIGHT_PX = 200
+
+export function getCardWidthPx(card, stageWidthPx) {
+  const normalized = normalizeCardForLerp(card)
+  const widthPx = normalized.widthPx ?? DEFAULT_CARD_LAYOUT.widthPx
+  const maxWidthVw = normalized.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw
+  if (stageWidthPx <= 0) return widthPx
+  const maxFromVw = (maxWidthVw / 100) * stageWidthPx
+  return Math.min(widthPx, maxFromVw)
+}
+
+/** Card x/y (top-left %) → absolute top-left bbox in stage px. */
+export function cardToAbsoluteTopLeft(card, stageWidthPx, stageHeightPx) {
+  const normalized = normalizeCardForLerp(card)
+  const effectiveStageW = stageWidthPx > 0 ? stageWidthPx : DEFAULT_STAGE_WIDTH_PX
+  const effectiveStageH =
+    stageHeightPx > 0 ? stageHeightPx : effectiveStageW * (9 / 16)
+
+  return {
+    leftPx: (parseCardPercent(normalized.x) / 100) * effectiveStageW,
+    topPx: (parseCardPercent(normalized.y) / 100) * effectiveStageH,
+  }
+}
+
+export function computeInterpolatedCard(fromCard, toCard, frac, layout = {}) {
+  const { stageWidthPx = 0, stageHeightPx = 0 } = layout
+
+  const from = normalizeCardForLerp(fromCard)
+  const to = normalizeCardForLerp(toCard)
+
+  const fromAbs = cardToAbsoluteTopLeft(from, stageWidthPx, stageHeightPx)
+  const toAbs = cardToAbsoluteTopLeft(to, stageWidthPx, stageHeightPx)
+
+  return {
+    positioning: 'absolute',
+    leftPx: lerp(fromAbs.leftPx, toAbs.leftPx, frac),
+    topPx: lerp(fromAbs.topPx, toAbs.topPx, frac),
+    widthPx: Math.round(
+      lerp(getCardWidthPx(from, stageWidthPx), getCardWidthPx(to, stageWidthPx), frac),
+    ),
+    heightPx: lerpNullable(from.heightPx, to.heightPx, frac),
+    maxWidthVw: lerp(from.maxWidthVw, to.maxWidthVw, frac),
+  }
+}
+
+export function getStoryCardAbsoluteWrapperStyle(card) {
+  return {
+    left: `${card.leftPx}px`,
+    top: `${card.topPx}px`,
+    transform: 'none',
+  }
+}
+
+export function getStoryCardWrapperStyle(card) {
+  const normalized = normalizeCardForLerp(card)
+  return {
+    left: normalized.x,
+    top: normalized.y,
+    transform: 'none',
+  }
+}
+
+export function getStoryCardInnerSizeStyle(card, stageWidthPx = 0) {
+  const normalized = normalizeCardForLerp(card)
+  const widthPx = getCardWidthPx(normalized, stageWidthPx)
+  return {
+    width: `${widthPx}px`,
+    maxWidth: `${normalized.maxWidthVw}vw`,
+    ...(normalized.heightPx
+      ? { height: `${normalized.heightPx}px`, overflowY: 'auto' }
+      : {}),
+  }
+}
+
+function cardAtAbsoluteRest(stop, card, stageWidthPx, stageHeightPx) {
+  const normalized = normalizeCardForLerp(card)
+  const abs = cardToAbsoluteTopLeft(normalized, stageWidthPx, stageHeightPx)
+  return {
+    positioning: 'absolute',
+    leftPx: abs.leftPx,
+    topPx: abs.topPx,
+    widthPx: getCardWidthPx(normalized, stageWidthPx),
+    heightPx: normalized.heightPx,
+    maxWidthVw: normalized.maxWidthVw,
+  }
+}
+
 export function computeTourFrame({
   progress,
   stops,
@@ -92,6 +197,8 @@ export function computeTourFrame({
   editMode,
   isMobile = false,
   mobileCameraPanMode = false,
+  stageWidthPx = 0,
+  stageHeightPx = 0,
 }) {
   const heroPanelCount = 1
   const totalPanels = heroPanelCount + stops.length
@@ -105,9 +212,12 @@ export function computeTourFrame({
 
   const segments = stops.length - 1
   const scaled = stopProgress * segments
-  const index = clamp(Math.floor(scaled), 0, segments - 1)
-  const frac = smoothstep(scaled - index)
-  const activeIndex = clamp(Math.round(scaled), 0, stops.length - 1)
+  const segmentIndex = clamp(Math.floor(scaled), 0, segments - 1)
+  const segmentFrac = smoothstep(scaled - segmentIndex)
+  const index = segmentIndex
+  const frac = segmentFrac
+  const activeIndex =
+    segments <= 0 ? 0 : clamp(Math.round(scaled), 0, stops.length - 1)
 
   const cardWrapperOpacity =
     displayHeroExitT >= 1
@@ -116,11 +226,9 @@ export function computeTourFrame({
 
   const storyCardOpacity = heroActive
     ? 0
-    : displayHeroExitT < 1
-      ? cardWrapperOpacity
-      : reducedMotion || editMode
-        ? 1
-        : stopCardScrollOpacity(scaled, activeIndex)
+    : editMode || reducedMotion || displayHeroExitT >= 1
+      ? 1
+      : cardWrapperOpacity
 
   const from = stops[index]
   const to = stops[index + 1]
@@ -150,9 +258,39 @@ export function computeTourFrame({
   const tx = (0.5 - camFx) * 100 * camScale * txDamping
   const ty = (0.5 - camFy) * 100 * camScale * tyDamping
 
+  let interpolatedCard = null
+  if (!heroActive && !editMode) {
+    const fromCard = from?.card
+    const toCard = to?.card
+    if (reducedMotion) {
+      const restStop = stops[activeIndex] ?? from
+      interpolatedCard = cardAtAbsoluteRest(
+        restStop,
+        restStop?.card ?? fromCard,
+        stageWidthPx,
+        stageHeightPx,
+      )
+    } else if (to) {
+      interpolatedCard = computeInterpolatedCard(fromCard, toCard, frac, {
+        stageWidthPx,
+        stageHeightPx,
+      })
+    } else {
+      interpolatedCard = cardAtAbsoluteRest(
+        from,
+        fromCard,
+        stageWidthPx,
+        stageHeightPx,
+      )
+    }
+  }
+
   return {
     heroActive,
     activeIndex,
+    segmentIndex,
+    segmentFrac,
+    interpolatedCard,
     stopProgress,
     scaled,
     heroTextOpacity,

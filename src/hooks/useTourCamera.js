@@ -3,7 +3,14 @@ import {
   clamp,
   computeBackgroundTransforms,
   computeTourFrame,
+  DEFAULT_TOUR_TRANSITION_SPEED,
   exponentialSmoothing,
+  getStoryCardAbsoluteWrapperStyle,
+  getStoryCardInnerSizeStyle,
+  getTourSmoothRate,
+  BASE_TOUR_BLUR_SMOOTH_RATE,
+  BASE_TOUR_CAMERA_SMOOTH_RATE,
+  BASE_TOUR_HERO_EXIT_SMOOTH_RATE,
   smoothstep,
 } from '../lib/tourScrollMath'
 
@@ -13,12 +20,15 @@ export default function useTourCamera({
   scrollerRef,
   tourRef,
   stageRef,
+  cardBoundsRef,
   backgroundWrapperRef,
   backgroundImgRef,
   heroBlurRef,
   heroFactoryBlurPxRef,
   heroTextRef,
   storyCardInnerRef,
+  storyCardWrapperRef,
+  tourTransitionSpeedRef,
   rightBarProgressFillRef,
   rightBarRingRef,
   stops,
@@ -31,6 +41,7 @@ export default function useTourCamera({
 }) {
   const progressRef = useRef(0)
   const displayHeroExitTRef = useRef(0)
+  const heroExitTargetRef = useRef(0)
   const smoothedBlurOpacityRef = useRef(1)
   const smoothedRef = useRef({ tx: 0, ty: 0, scale: 1 })
   const dirtyRef = useRef(true)
@@ -59,6 +70,20 @@ export default function useTourCamera({
       return scrollable > 0 ? clamp(scroller.scrollTop / scrollable, 0, 1) : 0
     }
 
+    const getCardBoundsEl = () => cardBoundsRef?.current ?? stageRef.current
+
+    const getStageWidthPx = () => {
+      const measured = getCardBoundsEl()?.clientWidth ?? 0
+      if (measured > 0) return measured
+      return typeof window !== 'undefined' ? window.innerWidth : 0
+    }
+
+    const getStageHeightPx = () => {
+      const measured = getCardBoundsEl()?.clientHeight ?? 0
+      if (measured > 0) return measured
+      return typeof window !== 'undefined' ? window.innerHeight : 0
+    }
+
     const updateHeroExit = (progress) => {
       const heroPanelCount = 1
       const totalPanels = heroPanelCount + stops.length
@@ -71,18 +96,18 @@ export default function useTourCamera({
       )
 
       if (heroActiveNow || progress < 0.005) {
-        displayHeroExitTRef.current = 0
+        heroExitTargetRef.current = 0
         smoothedBlurOpacityRef.current = 1
         return
       }
 
       if (reducedMotion) {
-        displayHeroExitTRef.current = 1
+        heroExitTargetRef.current = 1
         smoothedBlurOpacityRef.current = 0
         return
       }
 
-      displayHeroExitTRef.current = scrollExitT
+      heroExitTargetRef.current = scrollExitT
     }
 
     const applyDomFrame = (frame, stageTransform, background) => {
@@ -111,6 +136,25 @@ export default function useTourCamera({
       }
       if (storyCardInnerRef.current) {
         storyCardInnerRef.current.style.opacity = String(frame.storyCardOpacity)
+      }
+      if (!editMode && frame.interpolatedCard && storyCardWrapperRef?.current) {
+        const stageWidthPx = getStageWidthPx()
+        const wrapperStyle = getStoryCardAbsoluteWrapperStyle(frame.interpolatedCard)
+        storyCardWrapperRef.current.style.left = wrapperStyle.left
+        storyCardWrapperRef.current.style.top = wrapperStyle.top
+        storyCardWrapperRef.current.style.transform = wrapperStyle.transform
+        if (storyCardInnerRef.current) {
+          const sizeStyle = getStoryCardInnerSizeStyle(frame.interpolatedCard, stageWidthPx)
+          storyCardInnerRef.current.style.width = sizeStyle.width
+          storyCardInnerRef.current.style.maxWidth = sizeStyle.maxWidth
+          if (sizeStyle.height) {
+            storyCardInnerRef.current.style.height = sizeStyle.height
+            storyCardInnerRef.current.style.overflowY = sizeStyle.overflowY
+          } else {
+            storyCardInnerRef.current.style.removeProperty('height')
+            storyCardInnerRef.current.style.removeProperty('overflow-y')
+          }
+        }
       }
       if (rightBarProgressFillRef?.current) {
         rightBarProgressFillRef.current.style.height = `${frame.stopProgress * 100}%`
@@ -144,6 +188,20 @@ export default function useTourCamera({
       const progress = progressRef.current
       updateHeroExit(progress)
 
+      const transitionSpeed = tourTransitionSpeedRef?.current ?? DEFAULT_TOUR_TRANSITION_SPEED
+      const useSmoothedHeroExit =
+        !reducedMotion && Math.abs(transitionSpeed - DEFAULT_TOUR_TRANSITION_SPEED) > 0.01
+      if (useSmoothedHeroExit) {
+        displayHeroExitTRef.current = exponentialSmoothing(
+          displayHeroExitTRef.current,
+          heroExitTargetRef.current,
+          dt,
+          getTourSmoothRate(BASE_TOUR_HERO_EXIT_SMOOTH_RATE, transitionSpeed),
+        )
+      } else {
+        displayHeroExitTRef.current = heroExitTargetRef.current
+      }
+
       const frame = computeTourFrame({
         progress,
         stops,
@@ -153,9 +211,15 @@ export default function useTourCamera({
         editMode,
         isMobile,
         mobileCameraPanMode,
+        stageWidthPx: getStageWidthPx(),
+        stageHeightPx: getStageHeightPx(),
       })
 
       const targetBlurOpacity = frame.heroBlurOpacity
+      const blurRate = getTourSmoothRate(BASE_TOUR_BLUR_SMOOTH_RATE, transitionSpeed)
+      const cameraRate = getTourSmoothRate(BASE_TOUR_CAMERA_SMOOTH_RATE, transitionSpeed)
+      const preferSmoothCamera = transitionSpeed < DEFAULT_TOUR_TRANSITION_SPEED - 0.01
+
       if (reducedMotion || frame.heroActive) {
         smoothedBlurOpacityRef.current = targetBlurOpacity
       } else {
@@ -163,7 +227,7 @@ export default function useTourCamera({
           smoothedBlurOpacityRef.current,
           targetBlurOpacity,
           dt,
-          0.14,
+          blurRate,
         )
       }
 
@@ -173,7 +237,7 @@ export default function useTourCamera({
       const targetScale = frame.camScale
 
       const leavingHero = heroActiveRef.current && !frame.heroActive
-      if (snapCameraRef.current || leavingHero) {
+      if ((snapCameraRef.current && !preferSmoothCamera) || (leavingHero && !preferSmoothCamera)) {
         smoothed.tx = targetTx
         smoothed.ty = targetTy
         smoothed.scale = targetScale
@@ -183,9 +247,9 @@ export default function useTourCamera({
         smoothed.ty = targetTy
         smoothed.scale = targetScale
       } else {
-        smoothed.tx = exponentialSmoothing(smoothed.tx, targetTx, dt)
-        smoothed.ty = exponentialSmoothing(smoothed.ty, targetTy, dt)
-        smoothed.scale = exponentialSmoothing(smoothed.scale, targetScale, dt)
+        smoothed.tx = exponentialSmoothing(smoothed.tx, targetTx, dt, cameraRate)
+        smoothed.ty = exponentialSmoothing(smoothed.ty, targetTy, dt, cameraRate)
+        smoothed.scale = exponentialSmoothing(smoothed.scale, targetScale, dt, cameraRate)
       }
 
       const stageTransform = `translate(${smoothed.tx}%, ${smoothed.ty}%) scale(${smoothed.scale})`
@@ -205,11 +269,13 @@ export default function useTourCamera({
         Math.abs(smoothed.scale - targetScale) > 0.002
 
       const blurSettling = Math.abs(smoothedBlurOpacityRef.current - targetBlurOpacity) > 0.008
+      const heroExitSettling =
+        Math.abs(displayHeroExitTRef.current - heroExitTargetRef.current) > 0.008
       const exitInProgress =
         displayHeroExitTRef.current > 0.001 && displayHeroExitTRef.current < 0.999
 
       if (
-        (dirtyRef.current || settling || blurSettling || exitInProgress) &&
+        (dirtyRef.current || settling || blurSettling || heroExitSettling || exitInProgress) &&
         !overlayPausedRef.current
       ) {
         dirtyRef.current = false
@@ -239,6 +305,8 @@ export default function useTourCamera({
       editMode,
       isMobile,
       mobileCameraPanMode,
+      stageWidthPx: getStageWidthPx(),
+      stageHeightPx: getStageHeightPx(),
     })
     smoothedRef.current = { tx: initial.tx, ty: initial.ty, scale: initial.camScale }
     smoothedBlurOpacityRef.current = initial.heroBlurOpacity
@@ -256,6 +324,7 @@ export default function useTourCamera({
   }, [
     backgroundImgRef,
     backgroundWrapperRef,
+    cardBoundsRef,
     editMode,
     heroBlurRef,
     heroFactoryBlurPxRef,
@@ -270,6 +339,8 @@ export default function useTourCamera({
     stageRef,
     stops,
     storyCardInnerRef,
+    storyCardWrapperRef,
+    tourTransitionSpeedRef,
     tourRef,
   ])
 

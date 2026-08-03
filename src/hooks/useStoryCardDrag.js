@@ -9,8 +9,8 @@ function clampPercent(value) {
 }
 
 /**
- * Drag a tour story card anchor point within boundsRef.
- * Updates card x/y as percentages (same coords as dpad / DEFAULT_STOPS).
+ * Drag story card by top-left corner within boundsRef.
+ * Updates card x/y as stage percentages.
  */
 export default function useStoryCardDrag({ boundsRef, card, onCardChange, enabled }) {
   const dragRef = useRef(null)
@@ -24,12 +24,12 @@ export default function useStoryCardDrag({ boundsRef, card, onCardChange, enable
       if (!drag?.active || !bounds) return
 
       const rect = bounds.getBoundingClientRect()
-      const anchorX = event.clientX - rect.left - drag.offsetX
-      const anchorY = event.clientY - rect.top - drag.offsetY
+      const leftX = event.clientX - rect.left - drag.offsetX
+      const topY = event.clientY - rect.top - drag.offsetY
 
       onCardChange({
-        x: formatPercent(clampPercent((anchorX / rect.width) * 100)),
-        y: formatPercent(clampPercent((anchorY / rect.height) * 100)),
+        x: formatPercent(clampPercent((leftX / rect.width) * 100)),
+        y: formatPercent(clampPercent((topY / rect.height) * 100)),
       })
     }
 
@@ -58,13 +58,13 @@ export default function useStoryCardDrag({ boundsRef, card, onCardChange, enable
     }
 
     const rect = bounds.getBoundingClientRect()
-    const anchorX = (parsePercent(card.x) / 100) * rect.width
-    const anchorY = (parsePercent(card.y) / 100) * rect.height
+    const leftX = (parsePercent(card.x) / 100) * rect.width
+    const topY = (parsePercent(card.y) / 100) * rect.height
 
     dragRef.current = {
       active: true,
-      offsetX: event.clientX - rect.left - anchorX,
-      offsetY: event.clientY - rect.top - anchorY,
+      offsetX: event.clientX - rect.left - leftX,
+      offsetY: event.clientY - rect.top - topY,
     }
   }
 

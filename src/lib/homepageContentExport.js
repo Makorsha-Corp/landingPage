@@ -98,7 +98,7 @@ function saveLastExportBaseline(snapshot) {
 
 function formatCard(card) {
   const height = card.heightPx == null ? 'null' : String(card.heightPx)
-  return `{ x: ${jsString(card.x)}, y: ${jsString(card.y)}, anchor: ${jsString(card.anchor)}, widthPx: ${card.widthPx}, heightPx: ${height}, maxWidthVw: ${card.maxWidthVw} }`
+  return `{ x: ${jsString(card.x)}, y: ${jsString(card.y)}, widthPx: ${card.widthPx}, heightPx: ${height}, maxWidthVw: ${card.maxWidthVw} }`
 }
 
 function formatStop(stop) {

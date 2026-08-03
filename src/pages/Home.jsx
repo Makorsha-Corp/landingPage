@@ -12,7 +12,7 @@ import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
 import useTourFeaturesBackdrop from '../hooks/useTourFeaturesBackdrop'
-import { DEFAULT_HERO_FACTORY_BLUR_PX, computeTourStageFadeProgress } from '../lib/tourScrollMath'
+import { DEFAULT_HERO_FACTORY_BLUR_PX, DEFAULT_TOUR_TRANSITION_SPEED, computeTourStageFadeProgress } from '../lib/tourScrollMath'
 import {
   DEFAULT_CAPABILITIES,
   cloneCapabilities,
@@ -186,7 +186,7 @@ const DEFAULT_STOPS = [
     fx: 0.5,
     fy: 0.5,
     scale: 1,
-    card: { x: '53%', y: '86%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '53%', y: '58%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.5, fy: 0.56, scale: 0.7 },
   },
   {
@@ -203,7 +203,7 @@ const DEFAULT_STOPS = [
     fx: 0.52,
     fy: 0.34,
     scale: 1.55,
-    card: { x: '94%', y: '70%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '55%', y: '50%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.48, fy: 0.24, scale: 1.55 },
   },
   {
@@ -220,7 +220,7 @@ const DEFAULT_STOPS = [
     fx: 0.33,
     fy: 0.47,
     scale: 2.2,
-    card: { x: '6%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '4%', y: '49%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.33, fy: 0.47, scale: 1.86 },
   },
   {
@@ -237,7 +237,7 @@ const DEFAULT_STOPS = [
     fx: 0.64,
     fy: 0.50,
     scale: 2.2,
-    card: { x: '10%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '51%', y: '56%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.68, fy: 0.54, scale: 1.52 },
   },
   {
@@ -254,7 +254,7 @@ const DEFAULT_STOPS = [
     fx: 0.27,
     fy: 0.76,
     scale: 2.4,
-    card: { x: '92%', y: '92%', anchor: 'bottom-right', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '4%', y: '50%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.25, fy: 0.74, scale: 1.9 },
   },
   {
@@ -271,7 +271,7 @@ const DEFAULT_STOPS = [
     fx: 0.73,
     fy: 0.78,
     scale: 2.4,
-    card: { x: '50%', y: '90%', anchor: 'bottom-left', widthPx: 640, heightPx: null, maxWidthVw: 92 },
+    card: { x: '53%', y: '56%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
     mobileCamera: { fx: 0.65, fy: 0.8, scale: 1.88 },
   },
 ]
@@ -293,13 +293,6 @@ function cloneStops(stops) {
     card: normalizeCard(s.card, DEFAULT_STOPS[i]?.card || DEFAULT_CARD),
     mobileCamera: s.mobileCamera ? { ...s.mobileCamera } : undefined,
   }))
-}
-
-const ANCHOR_TRANSLATE = {
-  'top-left': '0, 0',
-  'top-right': '-100%, 0',
-  'bottom-left': '0, -100%',
-  'bottom-right': '-100%, -100%',
 }
 
 const BAR_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -556,8 +549,10 @@ export default function Home() {
   const backgroundImgRef = useRef(null)
   const heroBlurRef = useRef(null)
   const heroFactoryBlurPxRef = useRef(DEFAULT_HERO_FACTORY_BLUR_PX)
+  const tourTransitionSpeedRef = useRef(DEFAULT_TOUR_TRANSITION_SPEED)
   const heroTextRef = useRef(null)
   const storyCardInnerRef = useRef(null)
+  const storyCardWrapperRef = useRef(null)
   const tourStageRef = useRef(null)
   const rightBarProgressFillRef = useRef(null)
   const rightBarProgressRingRef = useRef(null)
@@ -573,6 +568,7 @@ export default function Home() {
   const [heroCamera, setHeroCamera] = useState(() => ({ ...DEFAULT_HERO_CAMERA }))
   const [heroCard, setHeroCard] = useState(() => normalizeHeroCardPrefs())
   const [heroFactoryBlurPx, setHeroFactoryBlurPx] = useState(DEFAULT_HERO_FACTORY_BLUR_PX)
+  const [tourTransitionSpeed, setTourTransitionSpeed] = useState(DEFAULT_TOUR_TRANSITION_SPEED)
   const [tourBackdropOpacity, setTourBackdropOpacity] = useState(() => ({ ...DEFAULT_TOUR_BACKDROP_OPACITY }))
   const [sectionsBackdropOpacity, setSectionsBackdropOpacity] = useState(() => ({ ...DEFAULT_SECTIONS_BACKDROP_OPACITY }))
   const [sectionBackdrops, setSectionBackdrops] = useState(() => ({ ...DEFAULT_SECTION_BACKDROPS }))
@@ -612,6 +608,10 @@ export default function Home() {
   useEffect(() => {
     heroFactoryBlurPxRef.current = heroFactoryBlurPx
   }, [heroFactoryBlurPx])
+
+  useEffect(() => {
+    tourTransitionSpeedRef.current = tourTransitionSpeed
+  }, [tourTransitionSpeed])
 
   useEffect(() => {
     applyRainbowColorPreset(rainbowColorPreset)
@@ -676,12 +676,15 @@ export default function Home() {
     scrollerRef,
     tourRef,
     stageRef,
+    cardBoundsRef: tourStageRef,
     backgroundWrapperRef,
     backgroundImgRef,
     heroBlurRef,
     heroFactoryBlurPxRef,
     heroTextRef,
     storyCardInnerRef,
+    storyCardWrapperRef,
+    tourTransitionSpeedRef,
     rightBarProgressFillRef,
     rightBarRingRef: rightBarProgressRingRef,
     stops,
@@ -773,7 +776,8 @@ export default function Home() {
     if ('onscrollend' in scroller) {
       scroller.addEventListener('scrollend', finish, { once: true })
     } else {
-      window.setTimeout(finish, reducedMotion ? 0 : 600)
+      const speed = tourTransitionSpeedRef.current ?? DEFAULT_TOUR_TRANSITION_SPEED
+      window.setTimeout(finish, reducedMotion ? 0 : Math.round(600 / speed))
     }
   }
 
@@ -1030,6 +1034,8 @@ export default function Home() {
               onCycleHeroCardStyle={handleCycleHeroCardStyle}
               heroFactoryBlurPx={heroFactoryBlurPx}
               onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
+              tourTransitionSpeed={tourTransitionSpeed}
+              onTourTransitionSpeedChange={setTourTransitionSpeed}
               heroOverlayScrimStrength={heroOverlayScrimStrength}
               onHeroOverlayScrimStrengthChange={updateHeroOverlayScrimStrength}
               heroOverlayScrimStyle={heroOverlayScrimStyle}
@@ -1068,6 +1074,8 @@ export default function Home() {
           onCycleHeroCardStyle: handleCycleHeroCardStyle,
           heroFactoryBlurPx,
           onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
+          tourTransitionSpeed,
+          onTourTransitionSpeedChange: setTourTransitionSpeed,
           heroOverlayScrimStrength,
           onHeroOverlayScrimStrengthChange: updateHeroOverlayScrimStrength,
           heroOverlayScrimStyle,
@@ -1212,22 +1220,31 @@ export default function Home() {
 
           {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
+            ref={storyCardWrapperRef}
             className={`pointer-events-none absolute hidden md:block ${editMode ? 'z-40' : 'z-10'}`}
-            style={{
-              left: activeCard.x,
-              top: activeCard.y,
-              transform: `translate(${ANCHOR_TRANSLATE[activeCard.anchor]})`,
-            }}
+            style={
+              editMode
+                ? {
+                    left: activeCard.x,
+                    top: activeCard.y,
+                    transform: 'none',
+                  }
+                : undefined
+            }
           >
             <div
               ref={storyCardInnerRef}
               className={`pointer-events-auto isolate rounded-2xl border shadow-2xl ${cardCls} ${
                 editMode ? 'ring-2 ring-primary/50' : ''
               } ${editMode ? 'overflow-hidden' : 'p-6'}`}
-              style={{
-                ...getCardStyle(activeCard, DEFAULT_STOPS[activeIndex]?.card),
-                transition: 'none',
-              }}
+              style={
+                editMode
+                  ? {
+                      ...getCardStyle(activeCard, DEFAULT_STOPS[activeIndex]?.card),
+                      transition: 'none',
+                    }
+                  : { transition: 'none' }
+              }
             >
               {editMode ? (
                 <div
