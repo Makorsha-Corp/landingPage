@@ -13,7 +13,7 @@ import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
 import useTourFeaturesBackdrop from '../hooks/useTourFeaturesBackdrop'
-import { DEFAULT_HERO_FACTORY_BLUR_PX, DEFAULT_TOUR_TRANSITION_SPEED, computeTourStageFadeProgress } from '../lib/tourScrollMath'
+import { DEFAULT_HERO_FACTORY_BLUR_PX, DEFAULT_TOUR_TRANSITION_SPEED, DEFAULT_TOUR_CARD_CONTENT_SPEED, computeTourStageFadeProgress } from '../lib/tourScrollMath'
 import {
   DEFAULT_CAPABILITIES,
   cloneCapabilities,
@@ -551,6 +551,7 @@ export default function Home() {
   const heroBlurRef = useRef(null)
   const heroFactoryBlurPxRef = useRef(DEFAULT_HERO_FACTORY_BLUR_PX)
   const tourTransitionSpeedRef = useRef(DEFAULT_TOUR_TRANSITION_SPEED)
+  const tourCardContentSpeedRef = useRef(DEFAULT_TOUR_CARD_CONTENT_SPEED)
   const heroTextRef = useRef(null)
   const storyCardInnerRef = useRef(null)
   const storyCardWrapperRef = useRef(null)
@@ -572,6 +573,7 @@ export default function Home() {
   const [heroCard, setHeroCard] = useState(() => normalizeHeroCardPrefs())
   const [heroFactoryBlurPx, setHeroFactoryBlurPx] = useState(DEFAULT_HERO_FACTORY_BLUR_PX)
   const [tourTransitionSpeed, setTourTransitionSpeed] = useState(DEFAULT_TOUR_TRANSITION_SPEED)
+  const [tourCardContentSpeed, setTourCardContentSpeed] = useState(DEFAULT_TOUR_CARD_CONTENT_SPEED)
   const [tourBackdropOpacity, setTourBackdropOpacity] = useState(() => ({ ...DEFAULT_TOUR_BACKDROP_OPACITY }))
   const [sectionsBackdropOpacity, setSectionsBackdropOpacity] = useState(() => ({ ...DEFAULT_SECTIONS_BACKDROP_OPACITY }))
   const [sectionBackdrops, setSectionBackdrops] = useState(() => ({ ...DEFAULT_SECTION_BACKDROPS }))
@@ -615,6 +617,10 @@ export default function Home() {
   useEffect(() => {
     tourTransitionSpeedRef.current = tourTransitionSpeed
   }, [tourTransitionSpeed])
+
+  useEffect(() => {
+    tourCardContentSpeedRef.current = tourCardContentSpeed
+  }, [tourCardContentSpeed])
 
   useEffect(() => {
     applyRainbowColorPreset(rainbowColorPreset)
@@ -690,6 +696,7 @@ export default function Home() {
     storyCardContentShellRef,
     storyCardCopyRef,
     tourTransitionSpeedRef,
+    tourCardContentSpeedRef,
     rightBarProgressFillRef,
     rightBarRingRef: rightBarProgressRingRef,
     stops,
@@ -1042,6 +1049,8 @@ export default function Home() {
               onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
               tourTransitionSpeed={tourTransitionSpeed}
               onTourTransitionSpeedChange={setTourTransitionSpeed}
+              tourCardContentSpeed={tourCardContentSpeed}
+              onTourCardContentSpeedChange={setTourCardContentSpeed}
               heroOverlayScrimStrength={heroOverlayScrimStrength}
               onHeroOverlayScrimStrengthChange={updateHeroOverlayScrimStrength}
               heroOverlayScrimStyle={heroOverlayScrimStyle}
@@ -1082,6 +1091,8 @@ export default function Home() {
           onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
           tourTransitionSpeed,
           onTourTransitionSpeedChange: setTourTransitionSpeed,
+          tourCardContentSpeed,
+          onTourCardContentSpeedChange: setTourCardContentSpeed,
           heroOverlayScrimStrength,
           onHeroOverlayScrimStrengthChange: updateHeroOverlayScrimStrength,
           heroOverlayScrimStyle,

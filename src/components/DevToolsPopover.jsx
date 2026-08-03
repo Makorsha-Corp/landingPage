@@ -3,12 +3,15 @@ import { createPortal } from 'react-dom'
 import Button from './ui/Button'
 import NavLayoutToggle from './NavLayoutToggle'
 import useFloatingPanelDrag from '../hooks/useFloatingPanelDrag'
+import useViewportLayoutSignals from '../hooks/useViewportLayoutSignals'
 import { getBackdropOpacityLabel } from '../lib/homepageWash'
 import {
   DEFAULT_TOUR_TRANSITION_SPEED,
+  DEFAULT_TOUR_CARD_CONTENT_SPEED,
   TOUR_TRANSITION_SPEED_MAX,
   TOUR_TRANSITION_SPEED_MIN,
 } from '../lib/tourScrollMath'
+import { DESKTOP_LG_MIN_PX, TOUR_MD_MIN_PX } from '../lib/viewportBreakpoints'
 
 const activeCls =
   'border-brand-primary bg-brand-primary text-white hover:bg-brand-primary hover:text-white'
@@ -61,18 +64,18 @@ function HeroFactoryBlurSlider({ heroFactoryBlurPx, onChange }) {
   )
 }
 
-function StoryTransitionSpeedSlider({ tourTransitionSpeed, onChange }) {
+function TransitionSpeedSlider({ label, helperText, speed, defaultSpeed, onChange, ariaLabel }) {
   if (!onChange) return null
 
-  const speed = tourTransitionSpeed ?? DEFAULT_TOUR_TRANSITION_SPEED
+  const value = speed ?? defaultSpeed
   const minPercent = Math.round(TOUR_TRANSITION_SPEED_MIN * 100)
   const maxPercent = Math.round(TOUR_TRANSITION_SPEED_MAX * 100)
-  const percent = Math.round(speed * 100)
+  const percent = Math.round(value * 100)
 
   return (
     <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
       <label className="flex min-w-0 items-center gap-3 text-sm text-muted-foreground">
-        <span className="w-24 shrink-0 text-xs font-medium text-foreground">Story speed</span>
+        <span className="w-24 shrink-0 text-xs font-medium text-foreground">{label}</span>
         <input
           type="range"
           min={minPercent}
@@ -81,14 +84,44 @@ function StoryTransitionSpeedSlider({ tourTransitionSpeed, onChange }) {
           value={percent}
           onChange={(event) => onChange(Number(event.target.value) / 100)}
           className="h-2 min-w-0 flex-1 cursor-pointer accent-primary"
-          aria-label="Story transition speed"
+          aria-label={ariaLabel}
         />
         <span className="w-10 shrink-0 tabular-nums text-right text-foreground">
-          {(speed).toFixed(2).replace(/\.?0+$/, '')}×
+          {(value).toFixed(2).replace(/\.?0+$/, '')}×
         </span>
       </label>
-      <p className="pl-[6.5rem] text-[10px] leading-snug text-muted-foreground/80">
-        Camera, blur, and card
+      {helperText ? (
+        <p className="pl-[6.5rem] text-[10px] leading-snug text-muted-foreground/80">{helperText}</p>
+      ) : null}
+    </div>
+  )
+}
+
+function ViewportLayoutReadout({ isMobileTour }) {
+  const signals = useViewportLayoutSignals()
+
+  const flag = (on) => (on ? 'yes' : 'no')
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt className="font-medium text-foreground">Viewport</dt>
+        <dd className="tabular-nums">
+          {signals.innerWidth}×{signals.innerHeight}px
+        </dd>
+        <dt className="font-medium text-foreground">Tour JS</dt>
+        <dd>
+          {signals.isMobileTour ? 'mobile' : 'desktop'}
+          {isMobileTour !== signals.isMobileTour ? ' (hook mismatch)' : ''}
+        </dd>
+        <dt className="font-medium text-foreground">CSS md ({TOUR_MD_MIN_PX}+)</dt>
+        <dd>{flag(signals.isDesktopMd)}</dd>
+        <dt className="font-medium text-foreground">CSS lg ({DESKTOP_LG_MIN_PX}+)</dt>
+        <dd>{flag(signals.isDesktopLg)}</dd>
+      </dl>
+      <p className="mt-2 leading-snug text-[10px] text-muted-foreground/80">
+        Floating story card + right bar when md=yes. Pricing grid when md=yes (carousel when md=no).
+        Width-only detection — no Safari or device sniffing.
       </p>
     </div>
   )
@@ -143,6 +176,8 @@ function DevToolsFloatingPanel({
   onHeroFactoryBlurPxChange,
   tourTransitionSpeed,
   onTourTransitionSpeedChange,
+  tourCardContentSpeed,
+  onTourCardContentSpeedChange,
   heroOverlayScrimStrength,
   onHeroOverlayScrimStrengthChange,
   heroOverlayScrimStyle,
@@ -297,14 +332,36 @@ function DevToolsFloatingPanel({
             </div>
 
             <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Viewport / layout</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Live breakpoint flags — share with anyone seeing the wrong mobile or desktop layout.
+              </p>
+              <div className="mt-2">
+                <ViewportLayoutReadout isMobileTour={isMobileTour} />
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
               <p className={sectionLabelCls}>Story transitions</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Camera + hero-exit smoothing. Below 1× slows pan/zoom for debugging; above 1× speeds up.
               </p>
-              <div className="mt-2">
-                <StoryTransitionSpeedSlider
-                  tourTransitionSpeed={tourTransitionSpeed}
+              <div className="mt-2 grid gap-2">
+                <TransitionSpeedSlider
+                  label="Story speed"
+                  helperText="Camera, blur, card position"
+                  speed={tourTransitionSpeed}
+                  defaultSpeed={DEFAULT_TOUR_TRANSITION_SPEED}
                   onChange={onTourTransitionSpeedChange}
+                  ariaLabel="Story transition speed"
+                />
+                <TransitionSpeedSlider
+                  label="Card copy"
+                  helperText="Text swap and height"
+                  speed={tourCardContentSpeed}
+                  defaultSpeed={DEFAULT_TOUR_CARD_CONTENT_SPEED}
+                  onChange={onTourCardContentSpeedChange}
+                  ariaLabel="Card copy transition speed"
                 />
               </div>
             </div>

@@ -20,11 +20,11 @@ export default function Pricing({ onFaqClick, onJoinWaitlist }) {
           </p>
         </div>
 
-        <div className="lg:hidden">
+        <div className="md:hidden">
           <PricingMobileCarousel tiers={PRICING_TIERS} onJoinWaitlist={onJoinWaitlist} />
         </div>
 
-        <div className="hidden items-stretch gap-5 lg:grid lg:grid-cols-3">
+        <div className="hidden items-stretch gap-5 md:grid md:grid-cols-3">
           {PRICING_TIERS.map((tier) => (
             <PricingTierCard
               key={tier.name}

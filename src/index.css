@@ -33,6 +33,8 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
   --animate-shine: shine var(--duration) infinite linear;
   @keyframes shine {
     0% {

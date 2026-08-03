@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { MOBILE_TOUR_QUERY } from '../lib/viewportBreakpoints'
 
-export const MOBILE_TOUR_QUERY = '(max-width: 767px)'
+export { MOBILE_TOUR_QUERY } from '../lib/viewportBreakpoints'
 
 export default function useIsMobileTour() {
   const [isMobileTour, setIsMobileTour] = useState(() =>

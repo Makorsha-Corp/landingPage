@@ -7,6 +7,7 @@ import {
   computeTourFrame,
   DEFAULT_CARD_HEIGHT_PX,
   DEFAULT_TOUR_TRANSITION_SPEED,
+  DEFAULT_TOUR_CARD_CONTENT_SPEED,
   TOUR_SCROLL_LOCK_SPEED,
   exponentialSmoothing,
   getStoryCardAbsoluteWrapperStyle,
@@ -17,6 +18,7 @@ import {
   BASE_TOUR_CAMERA_SMOOTH_RATE,
   BASE_TOUR_CARD_SMOOTH_RATE,
   BASE_TOUR_CONTENT_SMOOTH_RATE,
+  BASE_TOUR_CARD_SIZE_SMOOTH_RATE,
   BASE_TOUR_HERO_EXIT_SMOOTH_RATE,
   smoothstep,
 } from '../lib/tourScrollMath'
@@ -40,6 +42,7 @@ export default function useTourCamera({
   storyCardContentShellRef,
   storyCardCopyRef,
   tourTransitionSpeedRef,
+  tourCardContentSpeedRef,
   rightBarProgressFillRef,
   rightBarRingRef,
   stops,
@@ -284,6 +287,7 @@ export default function useTourCamera({
       updateHeroExit(progress)
 
       const transitionSpeed = tourTransitionSpeedRef?.current ?? DEFAULT_TOUR_TRANSITION_SPEED
+      const cardContentSpeed = tourCardContentSpeedRef?.current ?? DEFAULT_TOUR_CARD_CONTENT_SPEED
       const useSmoothedHeroExit =
         !reducedMotion && Math.abs(transitionSpeed - TOUR_SCROLL_LOCK_SPEED) > 0.01
       if (useSmoothedHeroExit) {
@@ -324,7 +328,8 @@ export default function useTourCamera({
       const blurRate = getTourSmoothRate(BASE_TOUR_BLUR_SMOOTH_RATE, transitionSpeed)
       const cameraRate = getTourSmoothRate(BASE_TOUR_CAMERA_SMOOTH_RATE, transitionSpeed)
       const cardRate = getTourSmoothRate(BASE_TOUR_CARD_SMOOTH_RATE, transitionSpeed)
-      const contentRate = getTourSmoothRate(BASE_TOUR_CONTENT_SMOOTH_RATE, transitionSpeed)
+      const cardContentRate = getTourSmoothRate(BASE_TOUR_CONTENT_SMOOTH_RATE, cardContentSpeed)
+      const cardSizeRate = getTourSmoothRate(BASE_TOUR_CARD_SIZE_SMOOTH_RATE, cardContentSpeed)
       const preferSmoothMotion = transitionSpeed < TOUR_SCROLL_LOCK_SPEED - 0.01
 
       if (reducedMotion || frame.heroActive) {
@@ -389,7 +394,7 @@ export default function useTourCamera({
           smoothedContentPosRef.current,
           targetContentPos,
           dt,
-          contentRate,
+          cardContentRate,
         )
       }
 
@@ -409,7 +414,7 @@ export default function useTourCamera({
           smoothedCard.minHeightPx,
           targetMinHeightPx,
           dt,
-          cardRate,
+          cardSizeRate,
         )
       }
 
@@ -548,6 +553,7 @@ export default function useTourCamera({
     storyCardInnerRef,
     storyCardWrapperRef,
     tourTransitionSpeedRef,
+    tourCardContentSpeedRef,
     tourRef,
   ])
 
