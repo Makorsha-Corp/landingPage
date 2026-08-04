@@ -34,7 +34,7 @@ export default function useTourCamera({
   backgroundWrapperRef,
   backgroundImgRef,
   heroBlurRef,
-  heroFactoryBlurPxRef,
+  buildingSharpRef,
   heroTextRef,
   storyCardInnerRef,
   storyCardWrapperRef,
@@ -73,7 +73,6 @@ export default function useTourCamera({
   const overlayPausedRef = useRef(overlayPaused)
   const kickRafRef = useRef(null)
   const lastDomRef = useRef({})
-  const heroBlurFilterPxRef = useRef(-1)
 
   useEffect(() => {
     overlayPausedRef.current = overlayPaused
@@ -204,7 +203,7 @@ export default function useTourCamera({
     }
 
     const setStyleIfChanged = (el, prop, nextValue) => {
-      const key = `${el === stageRef.current ? 'stage' : el === backgroundWrapperRef.current ? 'bgWrap' : el === backgroundImgRef.current ? 'bgImg' : el === heroBlurRef.current ? 'heroBlur' : el === heroTextRef.current ? 'heroText' : el === storyCardInnerRef.current ? 'cardInner' : el === storyCardWrapperRef?.current ? 'cardWrap' : el === storyCardContentShellRef?.current ? 'cardShell' : el === storyCardCopyRef?.current ? 'cardCopy' : 'other'}:${prop}`
+      const key = `${el === stageRef.current ? 'stage' : el === backgroundWrapperRef.current ? 'bgWrap' : el === backgroundImgRef.current ? 'bgImg' : el === buildingSharpRef.current ? 'buildingSharp' : el === heroBlurRef.current ? 'heroBlur' : el === heroTextRef.current ? 'heroText' : el === storyCardInnerRef.current ? 'cardInner' : el === storyCardWrapperRef?.current ? 'cardWrap' : el === storyCardContentShellRef?.current ? 'cardShell' : el === storyCardCopyRef?.current ? 'cardCopy' : 'other'}:${prop}`
       if (lastDomRef.current[key] === nextValue) return
       lastDomRef.current[key] = nextValue
       el.style[prop] = nextValue
@@ -231,13 +230,14 @@ export default function useTourCamera({
         setStyleIfChanged(backgroundImgRef.current, 'objectFit', background.imgObjectFit)
         setStyleIfChanged(backgroundImgRef.current, 'objectPosition', background.imgObjectPosition)
       }
+      if (buildingSharpRef.current) {
+        setOpacityIfChanged(
+          buildingSharpRef.current,
+          'buildingSharp',
+          1 - smoothedBlurOpacityRef.current,
+        )
+      }
       if (heroBlurRef.current) {
-        const baseBlurPx = heroFactoryBlurPxRef?.current ?? 0
-        if (Math.abs(heroBlurFilterPxRef.current - baseBlurPx) > 0.01) {
-          heroBlurFilterPxRef.current = baseBlurPx
-          heroBlurRef.current.style.filter =
-            baseBlurPx > 0.05 ? `blur(${baseBlurPx}px)` : 'none'
-        }
         setOpacityIfChanged(heroBlurRef.current, 'heroBlur', smoothedBlurOpacityRef.current)
       }
       if (heroTextRef.current) {
@@ -548,7 +548,7 @@ export default function useTourCamera({
     cardBoundsRef,
     editMode,
     heroBlurRef,
-    heroFactoryBlurPxRef,
+    buildingSharpRef,
     heroCamera,
     heroMobileCamera,
     heroTextRef,

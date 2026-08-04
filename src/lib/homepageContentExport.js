@@ -6,7 +6,6 @@ import {
   normalizeBackdropOpacity,
 } from './homepageWash'
 import { normalizeCard } from '../pages/Homepage2CardControls'
-import { DEFAULT_HERO_FACTORY_BLUR_PX } from './tourScrollMath'
 
 const LAST_EXPORT_KEY = 'homepage2-last-export'
 
@@ -47,7 +46,7 @@ export function normalizeHomepageSnapshot({
   stops,
   hero,
   heroCamera,
-  heroFactoryBlurPx,
+  heroMobileCamera,
   capabilities,
   faq,
   tourBackdropOpacity,
@@ -68,7 +67,11 @@ export function normalizeHomepageSnapshot({
       fy: heroCamera.fy,
       scale: heroCamera.scale,
     },
-    heroFactoryBlurPx: heroFactoryBlurPx ?? DEFAULT_HERO_FACTORY_BLUR_PX,
+    heroMobileCamera: {
+      fx: heroMobileCamera.fx,
+      fy: heroMobileCamera.fy,
+      scale: heroMobileCamera.scale,
+    },
     tourBackdropOpacity: normalizeBackdropOpacity(
       tourBackdropOpacity,
       DEFAULT_TOUR_BACKDROP_OPACITY,
@@ -266,9 +269,8 @@ export function formatHomepageContentDiff(currentSnapshot, baselineSnapshot, { b
   const stopPatches = diffStops(current.stops, baseline.stops)
   const heroDiff = diffHero(current.hero, baseline.hero)
   const cameraDiff = diffHeroCamera(current.heroCamera, baseline.heroCamera)
+  const mobileCameraDiff = diffHeroCamera(current.heroMobileCamera, baseline.heroMobileCamera)
   const tourBackdropDiff = diffBackdropOpacity(current.tourBackdropOpacity, baseline.tourBackdropOpacity)
-  const heroFactoryBlurChanged =
-    current.heroFactoryBlurPx !== baseline.heroFactoryBlurPx ? current.heroFactoryBlurPx : null
   const sectionsBackdropDiff = diffBackdropOpacity(
     current.sectionsBackdropOpacity,
     baseline.sectionsBackdropOpacity,
@@ -281,8 +283,8 @@ export function formatHomepageContentDiff(currentSnapshot, baselineSnapshot, { b
     !stopPatches.length &&
     !heroDiff &&
     !cameraDiff &&
+    !mobileCameraDiff &&
     !tourBackdropDiff &&
-    !heroFactoryBlurChanged &&
     !sectionsBackdropDiff &&
     !sectionBackdropsDiff &&
     !capabilitiesDiff &&
@@ -326,10 +328,11 @@ export function formatHomepageContentDiff(currentSnapshot, baselineSnapshot, { b
     sections.push('')
   }
 
-  if (heroFactoryBlurChanged != null) {
-    sections.push(
-      `// Hero factory blur — DEFAULT_HERO_FACTORY_BLUR_PX in src/lib/tourScrollMath.js\n${heroFactoryBlurChanged},`,
-    )
+  if (mobileCameraDiff) {
+    sections.push('// --- Mobile hero camera — DEFAULT_HERO_MOBILE_CAMERA in Homepage2HeroCameraControls.jsx ---')
+    for (const field of mobileCameraDiff.fields) {
+      sections.push(`${field}: ${mobileCameraDiff.current[field]},`)
+    }
     sections.push('')
   }
 

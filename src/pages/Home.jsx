@@ -12,7 +12,7 @@ import useIsMobileTour from '../hooks/useIsMobileTour'
 import useSectionScroll from '../hooks/useSectionScroll'
 import useTourCamera from '../hooks/useTourCamera'
 import useTourFeaturesBackdrop from '../hooks/useTourFeaturesBackdrop'
-import { DEFAULT_HERO_FACTORY_BLUR_PX, DEFAULT_TOUR_TRANSITION_SPEED, DEFAULT_TOUR_CARD_CONTENT_SPEED, computeTourStageFadeProgress } from '../lib/tourScrollMath'
+import { DEFAULT_TOUR_TRANSITION_SPEED, DEFAULT_TOUR_CARD_CONTENT_SPEED, computeTourStageFadeProgress } from '../lib/tourScrollMath'
 import {
   DEFAULT_CAPABILITIES,
   cloneCapabilities,
@@ -27,6 +27,7 @@ import Homepage2HeroCameraControls, {
   DEFAULT_HERO_CAMERA,
   DEFAULT_HERO_MOBILE_CAMERA,
   normalizeHeroCamera,
+  normalizeHeroMobileCamera,
   normalizeTourCamera,
   TOUR_CAMERA_LIMITS,
 } from './Homepage2HeroCameraControls'
@@ -61,7 +62,7 @@ import {
   DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
   HERO_SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
-import { PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
+import { BLURRED_BUILDING_IMAGE, PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
@@ -146,7 +147,7 @@ function RightBarShell({ wrap, bar, gap, onStepPrev, onStepNext, children }) {
  * Focus stops. fx/fy are the focus point as a fraction (0..1) of the
  * building image; scale is how far to zoom in at that stop. These are
  * tuned by eye against the building cutaway (4572x3712, aspect 1024:831).
- * Production asset: PRIMARY_BUILDING_IMAGE (`/building-95.png`).
+ * Production assets: PRIMARY_BUILDING_IMAGE (sharp, tour) + BLURRED_BUILDING_IMAGE (hero only).
  */
 const DEFAULT_STOPS = [
   {
@@ -164,7 +165,7 @@ const DEFAULT_STOPS = [
     fy: 0.5,
     scale: 1,
     card: { x: '53%', y: '58%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
-    mobileCamera: { fx: 0.5, fy: 0.56, scale: 0.62 },
+    mobileCamera: { fx: 0.5, fy: 0.56, scale: 1.08 },
   },
   {
     id: 'reports',
@@ -181,7 +182,7 @@ const DEFAULT_STOPS = [
     fy: 0.34,
     scale: 1.55,
     card: { x: '55%', y: '50%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
-    mobileCamera: { fx: 0.48, fy: 0.24, scale: 1.55 },
+    mobileCamera: { fx: 0.48, fy: 0.26, scale: 1.77 },
   },
   {
     id: 'orders',
@@ -215,7 +216,7 @@ const DEFAULT_STOPS = [
     fy: 0.50,
     scale: 2.2,
     card: { x: '51%', y: '56%', widthPx: 640, heightPx: null, maxWidthVw: 92 },
-    mobileCamera: { fx: 0.68, fy: 0.54, scale: 1.52 },
+    mobileCamera: { fx: 0.68, fy: 0.54, scale: 1.72 },
   },
   {
     id: 'production',
@@ -316,7 +317,7 @@ export default function Home() {
   const backgroundWrapperRef = useRef(null)
   const backgroundImgRef = useRef(null)
   const heroBlurRef = useRef(null)
-  const heroFactoryBlurPxRef = useRef(DEFAULT_HERO_FACTORY_BLUR_PX)
+  const buildingSharpRef = useRef(null)
   const tourTransitionSpeedRef = useRef(DEFAULT_TOUR_TRANSITION_SPEED)
   const tourCardContentSpeedRef = useRef(DEFAULT_TOUR_CARD_CONTENT_SPEED)
   const heroTextRef = useRef(null)
@@ -334,7 +335,7 @@ export default function Home() {
   const [stops, setStops] = useState(() => cloneStops(DEFAULT_STOPS))
   const [hero, setHero] = useState(() => ({ ...DEFAULT_HERO }))
   const [heroCamera, setHeroCamera] = useState(() => ({ ...DEFAULT_HERO_CAMERA }))
-  const [heroFactoryBlurPx, setHeroFactoryBlurPx] = useState(DEFAULT_HERO_FACTORY_BLUR_PX)
+  const [heroMobileCamera, setHeroMobileCamera] = useState(() => ({ ...DEFAULT_HERO_MOBILE_CAMERA }))
   const [tourTransitionSpeed, setTourTransitionSpeed] = useState(DEFAULT_TOUR_TRANSITION_SPEED)
   const [tourCardContentSpeed, setTourCardContentSpeed] = useState(DEFAULT_TOUR_CARD_CONTENT_SPEED)
   const [tourBackdropOpacity, setTourBackdropOpacity] = useState(() => ({ ...DEFAULT_TOUR_BACKDROP_OPACITY }))
@@ -361,7 +362,7 @@ export default function Home() {
         stops: cloneStops(DEFAULT_STOPS),
         hero: { ...DEFAULT_HERO },
         heroCamera: { ...DEFAULT_HERO_CAMERA },
-        heroFactoryBlurPx: DEFAULT_HERO_FACTORY_BLUR_PX,
+        heroMobileCamera: { ...DEFAULT_HERO_MOBILE_CAMERA },
         tourBackdropOpacity: { ...DEFAULT_TOUR_BACKDROP_OPACITY },
         sectionsBackdropOpacity: { ...DEFAULT_SECTIONS_BACKDROP_OPACITY },
         sectionBackdrops: { ...DEFAULT_SECTION_BACKDROPS },
@@ -375,10 +376,6 @@ export default function Home() {
     document.documentElement.classList.add('homepage2-page')
     return () => document.documentElement.classList.remove('homepage2-page')
   }, [])
-
-  useEffect(() => {
-    heroFactoryBlurPxRef.current = heroFactoryBlurPx
-  }, [heroFactoryBlurPx])
 
   useEffect(() => {
     tourTransitionSpeedRef.current = tourTransitionSpeed
@@ -455,7 +452,7 @@ export default function Home() {
     backgroundWrapperRef,
     backgroundImgRef,
     heroBlurRef,
-    heroFactoryBlurPxRef,
+    buildingSharpRef,
     heroTextRef,
     storyCardInnerRef,
     storyCardWrapperRef,
@@ -465,7 +462,7 @@ export default function Home() {
     tourCardContentSpeedRef,
     stops,
     heroCamera,
-    heroMobileCamera: DEFAULT_HERO_MOBILE_CAMERA,
+    heroMobileCamera,
     reducedMotion,
     editMode,
     isMobile: isMobileTour,
@@ -695,13 +692,17 @@ export default function Home() {
     setHeroCamera({ ...DEFAULT_HERO_CAMERA })
   }
 
+  const resetHeroMobileCamera = () => {
+    setHeroMobileCamera({ ...DEFAULT_HERO_MOBILE_CAMERA })
+  }
+
   const handleCopyForCode = () =>
     copyHomepageContentForCode(
       {
         stops,
         hero,
         heroCamera,
-        heroFactoryBlurPx,
+        heroMobileCamera,
         tourBackdropOpacity,
         sectionsBackdropOpacity,
         sectionBackdrops,
@@ -789,8 +790,6 @@ export default function Home() {
               mobileCameraPanMode={mobileCameraPanMode}
               onToggleMobileCameraPanMode={() => setMobileCameraPanMode((value) => !value)}
               isMobileTour={isMobileTour}
-              heroFactoryBlurPx={heroFactoryBlurPx}
-              onHeroFactoryBlurPxChange={setHeroFactoryBlurPx}
               tourTransitionSpeed={tourTransitionSpeed}
               onTourTransitionSpeedChange={setTourTransitionSpeed}
               tourCardContentSpeed={tourCardContentSpeed}
@@ -827,8 +826,6 @@ export default function Home() {
           mobileCameraPanMode,
           onToggleMobileCameraPanMode: () => setMobileCameraPanMode((value) => !value),
           isMobileTour,
-          heroFactoryBlurPx,
-          onHeroFactoryBlurPxChange: setHeroFactoryBlurPx,
           tourTransitionSpeed,
           onTourTransitionSpeedChange: setTourTransitionSpeed,
           tourCardContentSpeed,
@@ -888,26 +885,23 @@ export default function Home() {
 
           <div
             ref={stageRef}
-            className={`relative z-[1] will-change-transform overflow-hidden ${
-              isMobileTour
-                ? 'homepage-tour-stage--mobile'
-                : 'homepage-tour-dvh aspect-[1024/831]'
-            }`}
+            className="homepage-tour-stage relative z-[1] will-change-transform overflow-hidden"
           >
             <img
+              ref={buildingSharpRef}
               src={BUILDING_IMAGE}
               alt="Marker headquarters cutaway"
-              className="h-full w-full object-cover select-none"
+              className="homepage-tour-building-img h-full w-full select-none"
               fetchPriority="high"
               draggable={false}
+              style={{ opacity: 0 }}
             />
             <img
               ref={heroBlurRef}
-              src={BUILDING_IMAGE}
+              src={BLURRED_BUILDING_IMAGE}
               alt=""
               aria-hidden="true"
-              className="homepage-tour-building-blur absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
-              style={{ opacity: 1 }}
+              className="homepage-tour-building-img homepage-tour-building-blur absolute inset-0 h-full w-full select-none pointer-events-none"
               draggable={false}
             />
           </div>
@@ -953,11 +947,27 @@ export default function Home() {
           </div>
 
           {factoryPanMode && heroActive && (
-            <div className="pointer-events-auto absolute bottom-6 left-4 sm:bottom-8 sm:left-6 z-50">
+            <div
+              className={`pointer-events-auto absolute z-50 ${
+                isMobileTour
+                  ? 'left-4 top-[calc(env(safe-area-inset-top,0px)+4.75rem)]'
+                  : 'bottom-6 left-4 sm:bottom-8 sm:left-6'
+              }`}
+            >
               <Homepage2HeroCameraControls
-                camera={heroCamera}
-                onChange={(nextCamera) => setHeroCamera(normalizeHeroCamera(nextCamera))}
-                onReset={resetHeroCamera}
+                title={isMobileTour ? 'Mobile hero factory' : 'Factory pan'}
+                description={
+                  isMobileTour
+                    ? 'Hero framing on mobile — wider zoom-out so isometric sides stay visible.'
+                    : 'Move the factory on the hero screen. Story stops keep their normal framing.'
+                }
+                camera={isMobileTour ? heroMobileCamera : heroCamera}
+                onChange={(nextCamera) =>
+                  isMobileTour
+                    ? setHeroMobileCamera(normalizeHeroMobileCamera(nextCamera))
+                    : setHeroCamera(normalizeHeroCamera(nextCamera))
+                }
+                onReset={isMobileTour ? resetHeroMobileCamera : resetHeroCamera}
               />
             </div>
           )}

@@ -42,27 +42,6 @@ function BackdropOpacitySlider({ label, theme, backdropOpacity, onChange }) {
   )
 }
 
-function HeroFactoryBlurSlider({ heroFactoryBlurPx, onChange }) {
-  if (!onChange) return null
-
-  return (
-    <label className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
-      <span className="w-24 shrink-0 text-xs font-medium text-foreground">Hero blur</span>
-      <input
-        type="range"
-        min={0}
-        max={32}
-        step={1}
-        value={heroFactoryBlurPx ?? 0}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="h-2 min-w-0 flex-1 cursor-pointer accent-primary"
-        aria-label="Hero factory blur"
-      />
-      <span className="w-10 shrink-0 tabular-nums text-right text-foreground">{heroFactoryBlurPx ?? 0}px</span>
-    </label>
-  )
-}
-
 function TransitionSpeedSlider({ label, helperText, speed, defaultSpeed, onChange, ariaLabel }) {
   if (!onChange) return null
 
@@ -221,8 +200,6 @@ function DevToolsFloatingPanel({
   mobileCameraPanMode,
   onToggleMobileCameraPanMode,
   isMobileTour,
-  heroFactoryBlurPx,
-  onHeroFactoryBlurPxChange,
   tourTransitionSpeed,
   onTourTransitionSpeedChange,
   tourCardContentSpeed,
@@ -359,6 +336,11 @@ function DevToolsFloatingPanel({
                   </Button>
                 </div>
               </div>
+              {isMobileTour && factoryPanMode ? (
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  D-pad on hero edits mobile factory framing. Desktop hero camera stays separate.
+                </p>
+              ) : null}
               {!isMobileTour && mobileCameraPanMode ? (
                 <p className="mt-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
                   Mobile camera is on — resize below md or use device mode to see controls on tour stops.
@@ -473,19 +455,6 @@ function DevToolsFloatingPanel({
                   ))}
                 </div>
               ) : null}
-            </div>
-
-            <div className="lg:col-span-2">
-              <p className={sectionLabelCls}>Hero factory blur</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Backdrop blur on opening screen (&ldquo;Your factory at your fingertips&rdquo;).
-              </p>
-              <div className="mt-2">
-                <HeroFactoryBlurSlider
-                  heroFactoryBlurPx={heroFactoryBlurPx}
-                  onChange={onHeroFactoryBlurPxChange}
-                />
-              </div>
             </div>
 
             <div className="lg:col-span-2">

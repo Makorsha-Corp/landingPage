@@ -230,11 +230,19 @@
   min-height: 100dvh;
 }
 
-.homepage-tour-stage--mobile {
-  width: 100%;
+/* Fit full building width in viewport — width-first, never crop isometric sides. */
+.homepage-tour-stage {
+  width: min(100%, calc(100dvh * 1024 / 831));
+  max-width: 100%;
   max-height: 100dvh;
   aspect-ratio: 1024 / 831;
   height: auto;
+  margin-inline: auto;
+}
+
+.homepage-tour-building-img {
+  object-fit: contain;
+  object-position: center;
 }
 
 .homepage-tour-panels-offset {

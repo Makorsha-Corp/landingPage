@@ -2,7 +2,6 @@ export const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 export const lerp = (a, b, t) => a + (b - a) * t
 export const smoothstep = (t) => t * t * (3 - 2 * t)
 
-export const DEFAULT_HERO_FACTORY_BLUR_PX = 4
 export const MOBILE_MAX_CAM_SCALE = 1.15
 export const MOBILE_FX_CENTER_BIAS = 0.75
 export const MOBILE_FY_CENTER_BIAS = 0.75
@@ -312,6 +311,8 @@ export function computeTourFrame({
     }
   }
 
+  const heroBlurOpacity = computeHeroBlurOpacity(displayHeroExitT, heroActive)
+
   return {
     heroActive,
     activeIndex,
@@ -322,7 +323,8 @@ export function computeTourFrame({
     scaled,
     heroTextOpacity,
     storyCardOpacity,
-    heroBlurOpacity: computeHeroBlurOpacity(displayHeroExitT, heroActive),
+    heroBlurOpacity,
+    sharpBuildingOpacity: 1 - heroBlurOpacity,
     sharpBgOpacity: heroActive
       ? 0
       : clamp((displayHeroExitT - 0.35) / 0.65, 0, 1),

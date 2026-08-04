@@ -9,8 +9,8 @@ export const DEFAULT_HERO_CAMERA = {
 /** Hero framing on mobile tour — wider zoom-out so isometric sides stay visible. */
 export const DEFAULT_HERO_MOBILE_CAMERA = {
   fx: 0.5,
-  fy: 0.56,
-  scale: 0.6,
+  fy: 0.48,
+  scale: 1,
 }
 
 export const HERO_CAMERA_LIMITS = {
@@ -40,6 +40,10 @@ const dpadBtnCls =
 
 export function normalizeHeroCamera(camera) {
   return normalizeCamera(camera, HERO_CAMERA_LIMITS, DEFAULT_HERO_CAMERA)
+}
+
+export function normalizeHeroMobileCamera(camera) {
+  return normalizeCamera(camera, HERO_CAMERA_LIMITS, DEFAULT_HERO_MOBILE_CAMERA)
 }
 
 export function normalizeCamera(camera, limits, defaults = {}) {
