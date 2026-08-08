@@ -42,10 +42,10 @@ export default function useWaitlistForm({
         throw new Error('Please complete verification and try again.')
       }
 
-      // TODO(waitlist-fields): firstName/lastName/companyName are collected but not yet
-      // persisted. Needs waitlist_signups columns + schema + migration before wiring up.
-
       await submitWaitlistSignup({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        companyName: companyName.trim(),
         email: email.trim(),
         wantsProductUpdates: wantsUpdates,
         turnstileToken: token,

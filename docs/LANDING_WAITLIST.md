@@ -11,9 +11,8 @@ Cross-repo feature:
 
 ## What it does
 
-- Collects **email** (+ optional “product updates” checkbox) for API submission.
-- UI also collects **first name, last name, company name** client-side (not persisted yet — see TODOs).
-- Stores signups in **`waitlist_signups`** (platform-level, not workspace-scoped).
+- Collects **first name, last name, company name (optional), email** (+ optional “product updates” checkbox).
+- Stores signups in **`waitlist_signups`** (platform-level, not workspace-scoped), including a **`status`** field (`PENDING` | `CONTACTED` | `ACCEPTED` | `DECLINED`) for manual follow-up tracking. Admins update it via `PATCH /api/v1/waitlist/{id}/status`.
 - Protects public form with **Cloudflare Turnstile**, honeypot, and **5 req/min** rate limit.
 - **Duplicate emails** get the same success message (no “already registered” leak).
 - **No outbound email in v1** — you email people later manually or via a future job.
@@ -101,8 +100,7 @@ WaitlistModal.jsx                   POST /api/v1/waitlist  (public)
 
 ## Known TODOs
 
-1. **`TODO(waitlist-fields)`** — Persist first name, last name, company on backend (needs columns + migration + schema).
-2. **`TODO(waitlist-source)`** — Add dedicated `fab` source literal on backend if FAB should be tracked separately from `waitlist_section`.
+1. **`TODO(waitlist-source)`** — Add dedicated `fab` source literal on backend if FAB should be tracked separately from `waitlist_section`.
 
 ---
 
@@ -143,6 +141,9 @@ POST /api/v1/waitlist
 Content-Type: application/json
 
 {
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "company_name": "Acme Textiles",
   "email": "user@factory.com",
   "wants_product_updates": true,
   "turnstile_token": "...",
@@ -154,6 +155,17 @@ Content-Type: application/json
 **Sources (backend-validated):** `waitlist_section` | `hero` | `pricing` | `nav` | `unknown`
 
 Frontend normalizes unknown values to `unknown` via whitelist in `waitlistApi.js`.
+
+### Admin — update follow-up status
+
+```
+PATCH /api/v1/waitlist/{signup_id}/status
+Content-Type: application/json
+
+{ "status": "CONTACTED" }
+```
+
+`status` is one of `PENDING` | `CONTACTED` | `ACCEPTED` | `DECLINED` (defaults to `PENDING` on signup). `GET /api/v1/waitlist` also accepts a `status` query param to filter the list. Both routes require the admin allowlist (`WAITLIST_ADMIN_EMAILS`).
 
 ---
 
