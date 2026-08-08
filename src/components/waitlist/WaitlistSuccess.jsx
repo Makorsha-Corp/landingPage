@@ -28,9 +28,8 @@ export default function WaitlistSuccess() {
         You&apos;re on the list
       </h3>
       <p className="mt-3 max-w-sm text-base text-muted-foreground">
-        We&apos;ll email you when Marker opens. Thanks for your interest.
+        We&apos;ll be in touch when Marker opens. Thanks for your interest.
       </p>
-      <p className="mt-2 text-sm text-muted-foreground/80">Check your inbox for a confirmation.</p>
     </div>
   )
 }

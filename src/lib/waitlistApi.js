@@ -22,6 +22,9 @@ function formatApiError(detail) {
 }
 
 export async function submitWaitlistSignup({
+  firstName,
+  lastName,
+  companyName,
   email,
   wantsProductUpdates,
   turnstileToken,
@@ -32,6 +35,9 @@ export async function submitWaitlistSignup({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      first_name: firstName,
+      last_name: lastName,
+      company_name: companyName || undefined,
       email,
       wants_product_updates: wantsProductUpdates,
       turnstile_token: turnstileToken,
@@ -52,6 +58,10 @@ export function getTurnstileSiteKey() {
   return import.meta.env.VITE_TURNSTILE_SITE_KEY || ''
 }
 
+// No site key configured (any environment) → Turnstile isn't set up yet, so
+// skip the widget and send a placeholder token. Backend skips verification
+// the same way whenever TURNSTILE_SECRET_KEY is unset. Remove once real
+// Cloudflare Turnstile keys are wired up.
 export function getDevBypassTurnstileToken() {
-  return import.meta.env.DEV ? 'dev-bypass' : ''
+  return getTurnstileSiteKey() ? '' : 'turnstile-disabled'
 }
