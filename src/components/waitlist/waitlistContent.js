@@ -1,11 +1,11 @@
-export const TRUST_BULLETS = [
-  'Built with a working mill, not a slide deck',
-  'No spam — waitlist and optional tips only',
-  'Early access before public launch',
-]
-
 export const WAITLIST_COPY = {
+  brandName: 'Kolom',
   eyebrow: 'Early access',
-  title: 'Join the waitlist',
+  titleLine1: 'Join the',
+  titleLine2: 'waitlist.',
   lead: "Be first to know when Marker opens. We'll email you when your spot is ready.",
+  secondaryPrompt: 'Questions?',
+  secondaryLinkLabel: 'See FAQ',
+  secondaryLinkHref: '#faq',
+  formEyebrow: 'Details',
 }

@@ -10,12 +10,15 @@ const heroFloatingTitle =
   'mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]'
 const heroBodyTextShadow = '[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]'
 
-function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand' }) {
+function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand', signUpRef }) {
   return (
     <div className="mt-8 flex flex-row items-center justify-center gap-3 sm:gap-4">
       <RainbowButton
+        ref={signUpRef}
         type="button"
-        onClick={onGoWaitlist}
+        onClick={(event) =>
+          onGoWaitlist?.(event.currentTarget.getBoundingClientRect(), event.currentTarget)
+        }
         variant={signUpVariant}
         size="lg"
         className="min-w-0 flex-1 sm:flex-none sm:w-auto"
@@ -85,6 +88,7 @@ export default function Homepage2HeroOverlay({
   onGoExplore,
   onHeroChange,
   heroSignUpButtonVariant = 'brand',
+  heroSignUpRef,
 }) {
   if (editMode && heroActive) {
     return (
@@ -108,6 +112,7 @@ export default function Homepage2HeroOverlay({
         onGoWaitlist={onGoWaitlist}
         onGoExplore={onGoExplore}
         signUpVariant={heroSignUpButtonVariant}
+        signUpRef={heroSignUpRef}
       />
     </div>
   )

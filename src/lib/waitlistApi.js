@@ -1,8 +1,15 @@
 const DEFAULT_API_URL = 'http://localhost:8000/api/v1'
 
+// TODO(waitlist-source): add `fab` to backend WaitlistSource literal when tracked separately.
+const ALLOWED_SOURCES = ['waitlist_section', 'hero', 'pricing', 'nav', 'unknown']
+
 function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_URL || DEFAULT_API_URL
   return raw.replace(/\/$/, '')
+}
+
+function normalizeSource(source) {
+  return ALLOWED_SOURCES.includes(source) ? source : 'unknown'
 }
 
 function formatApiError(detail) {
@@ -28,7 +35,7 @@ export async function submitWaitlistSignup({
       email,
       wants_product_updates: wantsProductUpdates,
       turnstile_token: turnstileToken,
-      source: source || 'waitlist_section',
+      source: normalizeSource(source),
       website: website || undefined,
     }),
   })

@@ -11,3 +11,8 @@ export function getHeroSignUpButtonVariant(variantId = DEFAULT_HERO_SIGN_UP_BUTT
     DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT
   )
 }
+
+/** Light → purple fill; dark → white fill (hero + desktop waitlist triggers). */
+export function getThemeAwareSignUpVariant(theme = 'light') {
+  return theme === 'dark' ? 'brandLight' : 'brand'
+}

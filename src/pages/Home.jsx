@@ -3,7 +3,12 @@ import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
 import ThemeToggleButton from '../components/ThemeToggleButton'
+import Button from '../components/ui/Button'
 import LandingPostTourSections from '../components/LandingPostTourSections'
+import WaitlistFab from '../components/waitlist/WaitlistFab'
+import WaitlistMobileNavSignUp from '../components/waitlist/WaitlistMobileNavSignUp'
+import WaitlistModal from '../components/waitlist/WaitlistModal'
+import { clearWaitlistMorphOrigin, getOriginChrome, markWaitlistMorphOrigin, resolveTravelBg } from '../lib/waitlistFabMorph'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
 import TourMobileStopDrawer from '../components/tour/TourMobileStopDrawer'
 import TourStoryCardBody from '../components/tour/TourStoryCardBody'
@@ -40,7 +45,6 @@ import {
   applyRainbowColorPreset,
   clearRainbowColorPresetOverrides,
   DEFAULT_RAINBOW_COLOR_PRESET,
-  getWaitlistShineColors,
   RAINBOW_COLOR_PRESET_LIST,
 } from '../lib/rainbowColorPresets'
 import {
@@ -60,9 +64,16 @@ import {
 } from '../lib/heroScrimStyles'
 import {
   DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
+  getThemeAwareSignUpVariant,
   HERO_SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
 import { BLURRED_BUILDING_IMAGE, PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
+import { SHOW_LANDING_DEV_TOOLS, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
+import {
+  DEFAULT_WAITLIST_FAB_STYLE,
+  getWaitlistFabMorphMeta,
+  WAITLIST_FAB_STYLE_LIST,
+} from '../lib/waitlistFabStyles'
 
 const DEFAULT_SECTION_BACKDROPS = {
   tour: true,
@@ -70,7 +81,6 @@ const DEFAULT_SECTION_BACKDROPS = {
   proof: true,
   pricing: true,
   faq: true,
-  waitlist: true,
 }
 
 const HOMEPAGE_BACKGROUNDS = {
@@ -273,14 +283,17 @@ function cloneStops(stops) {
   }))
 }
 
-const LANDING_SECTIONS = [
+const ALL_LANDING_SECTIONS = [
   { id: 'tour', label: 'Tour' },
   { id: 'features', label: 'Features' },
   { id: 'proof', label: 'Proof' },
   { id: 'pricing', label: 'Pricing' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'waitlist', label: 'Join waitlist' },
 ]
+
+const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter(
+  (section) => SHOW_PRICING_SECTION || section.id !== 'pricing',
+)
 
 function RightBar({ theme, stops, activeIndex, onJump, onStepPrev, onStepNext }) {
   const bar = getRightBarStyles(theme)
@@ -304,6 +317,8 @@ function RightBar({ theme, stops, activeIndex, onJump, onStepPrev, onStepNext })
   )
 }
 
+const WAITLIST_RAINBOW_META = { label: 'Sign Up', variant: 'brand', face: 'rainbow' }
+
 export default function Home() {
   const { theme } = useTheme()
   const scrollerRef = useRef(null)
@@ -312,7 +327,10 @@ export default function Home() {
   const testimonialsRef = useRef(null)
   const pricingRef = useRef(null)
   const faqRef = useRef(null)
-  const signupRef = useRef(null)
+  const waitlistFabRef = useRef(null)
+  const waitlistMobileNavRef = useRef(null)
+  const heroSignUpRef = useRef(null)
+  const waitlistReturnFocusRef = useRef(null)
   const stageRef = useRef(null)
   const backgroundWrapperRef = useRef(null)
   const backgroundImgRef = useRef(null)
@@ -344,6 +362,9 @@ export default function Home() {
   const [capabilities, setCapabilities] = useState(() => cloneCapabilities(DEFAULT_CAPABILITIES))
   const [faq, setFaq] = useState(() => cloneFaq(mergeFaqFromSaved()))
   const [waitlistSource, setWaitlistSource] = useState('waitlist_section')
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false)
+  const [waitlistOriginRect, setWaitlistOriginRect] = useState(null)
+  const [waitlistMorphMeta, setWaitlistMorphMeta] = useState(null)
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
   const [mobileStopPanelStopId, setMobileStopPanelStopId] = useState(null)
   const [rainbowColorPreset, setRainbowColorPreset] = useState(DEFAULT_RAINBOW_COLOR_PRESET)
@@ -356,6 +377,10 @@ export default function Home() {
   const [heroSignUpButtonVariant, setHeroSignUpButtonVariant] = useState(
     DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
   )
+  const [waitlistFabStyle, setWaitlistFabStyle] = useState(DEFAULT_WAITLIST_FAB_STYLE)
+  const signUpButtonVariant = editMode
+    ? heroSignUpButtonVariant
+    : getThemeAwareSignUpVariant(theme)
   const exportCodeBaseline = useMemo(
     () =>
       normalizeHomepageSnapshot({
@@ -390,11 +415,6 @@ export default function Home() {
     return () => clearRainbowColorPresetOverrides()
   }, [rainbowColorPreset])
 
-  const waitlistShineColors = useMemo(
-    () => getWaitlistShineColors(rainbowColorPreset),
-    [rainbowColorPreset],
-  )
-
   const heroOverlayScrimLayer = useMemo(
     () => getHeroOverlayScrimLayer(theme, heroOverlayScrimStyle),
     [theme, heroOverlayScrimStyle],
@@ -412,22 +432,21 @@ export default function Home() {
       tour: tourRef,
       features: capabilitiesRef,
       proof: testimonialsRef,
-      pricing: pricingRef,
+      ...(SHOW_PRICING_SECTION ? { pricing: pricingRef } : {}),
       faq: faqRef,
-      waitlist: signupRef,
     }),
     [],
   )
 
   const observedTargets = useMemo(
-    () => [
-      { id: 'tour', ref: tourRef },
-      { id: 'features', ref: capabilitiesRef },
-      { id: 'proof', ref: testimonialsRef },
-      { id: 'pricing', ref: pricingRef },
-      { id: 'faq', ref: faqRef },
-      { id: 'waitlist', ref: signupRef },
-    ],
+    () =>
+      [
+        { id: 'tour', ref: tourRef },
+        { id: 'features', ref: capabilitiesRef },
+        { id: 'proof', ref: testimonialsRef },
+        SHOW_PRICING_SECTION ? { id: 'pricing', ref: pricingRef } : null,
+        { id: 'faq', ref: faqRef },
+      ].filter(Boolean),
     [],
   )
 
@@ -469,6 +488,9 @@ export default function Home() {
     mobileCameraPanMode,
     overlayPaused: featureOverlayOpen,
   })
+
+  const waitlistFabVisible =
+    !editMode && !featureOverlayOpen && !heroActive && !isMobileTour
 
   const heroPanelCount = 1
   const totalPanels = heroPanelCount + stops.length
@@ -576,15 +598,39 @@ export default function Home() {
 
   const goFaq = () => glideTo(faqRef)
 
-  const goWaitlist = (source = 'waitlist_section') => {
+  const openWaitlist = useCallback((source = 'waitlist_section', rect = null, meta = null, triggerEl = null) => {
+    clearWaitlistMorphOrigin()
+
+    const baseMeta = meta ?? WAITLIST_RAINBOW_META
+    const originChrome = triggerEl ? getOriginChrome(triggerEl) : {}
+    const resolvedMeta = {
+      ...baseMeta,
+      borderRadius: originChrome.borderRadius ?? baseMeta.borderRadius,
+      travelBg: baseMeta.travelBg ?? resolveTravelBg(baseMeta),
+    }
+    const focusTarget =
+      triggerEl ?? waitlistFabRef.current ?? waitlistMobileNavRef.current ?? document.activeElement
+
+    if (triggerEl) {
+      markWaitlistMorphOrigin(triggerEl)
+    }
+
+    waitlistReturnFocusRef.current = focusTarget
     setWaitlistSource(source)
-    navigateToSection('waitlist')
+    setWaitlistOriginRect(rect)
+    setWaitlistMorphMeta(resolvedMeta)
+    setWaitlistModalOpen(true)
+  }, [])
+
+  const handleWaitlistModalClose = () => {
+    clearWaitlistMorphOrigin()
+    setWaitlistModalOpen(false)
+    setWaitlistOriginRect(null)
+    setWaitlistMorphMeta(null)
+    waitlistReturnFocusRef.current = null
   }
 
   const handleSectionNavigate = (sectionId) => {
-    if (sectionId === 'waitlist') {
-      setWaitlistSource('nav')
-    }
     navigateToSection(sectionId)
   }
 
@@ -743,6 +789,45 @@ export default function Home() {
     activeSection === 'tour' &&
     (reducedMotion || featuresBackdropProgress < 0.12)
 
+  const landingDevToolsProps = SHOW_LANDING_DEV_TOOLS
+    ? {
+        editMode,
+        onToggleEditMode: toggleEditMode,
+        factoryPanMode,
+        onToggleFactoryPanMode: toggleFactoryPanMode,
+        mobileCameraPanMode,
+        onToggleMobileCameraPanMode: () => setMobileCameraPanMode((value) => !value),
+        isMobileTour,
+        tourTransitionSpeed,
+        onTourTransitionSpeedChange: setTourTransitionSpeed,
+        tourCardContentSpeed,
+        onTourCardContentSpeedChange: setTourCardContentSpeed,
+        heroOverlayScrimStrength,
+        onHeroOverlayScrimStrengthChange: updateHeroOverlayScrimStrength,
+        heroOverlayScrimStyle,
+        onHeroOverlayScrimStyleChange: setHeroOverlayScrimStyle,
+        heroOverlayScrimStyles: HERO_OVERLAY_SCRIM_STYLE_LIST,
+        theme,
+        tourBackdropOpacity,
+        onTourBackdropOpacityChange: updateTourBackdropOpacity,
+        sectionsBackdropOpacity,
+        onSectionsBackdropOpacityChange: updateSectionsBackdropOpacity,
+        sectionBackdrops,
+        backdropSections: LANDING_SECTIONS,
+        onToggleSectionBackdrop: toggleSectionBackdrop,
+        onCopyForCode: handleCopyForCode,
+        rainbowColorPreset,
+        onRainbowColorPresetChange: setRainbowColorPreset,
+        rainbowColorPresets: RAINBOW_COLOR_PRESET_LIST,
+        heroSignUpButtonVariant,
+        onHeroSignUpButtonVariantChange: setHeroSignUpButtonVariant,
+        heroSignUpButtonVariants: HERO_SIGN_UP_BUTTON_VARIANT_LIST,
+        waitlistFabStyle,
+        onWaitlistFabStyleChange: setWaitlistFabStyle,
+        waitlistFabStyles: WAITLIST_FAB_STYLE_LIST,
+      }
+    : undefined
+
   return (
     <div
       ref={scrollerRef}
@@ -780,77 +865,29 @@ export default function Home() {
         sections={LANDING_SECTIONS}
         activeSection={activeSection}
         onSectionNavigate={handleSectionNavigate}
+        mobileActions={
+          <WaitlistMobileNavSignUp
+            ref={waitlistMobileNavRef}
+            visible={isMobileTour && !heroActive && !editMode && !featureOverlayOpen}
+            morphing={waitlistModalOpen}
+            variant={signUpButtonVariant}
+            onClick={(rect, triggerEl) =>
+              openWaitlist(
+                'nav',
+                rect,
+                { ...WAITLIST_RAINBOW_META, variant: signUpButtonVariant },
+                triggerEl,
+              )
+            }
+          />
+        }
         desktopActions={
           <div className="hidden items-center gap-2 sm:gap-3 md:flex">
-            <DevToolsPopover
-              editMode={editMode}
-              onToggleEditMode={toggleEditMode}
-              factoryPanMode={factoryPanMode}
-              onToggleFactoryPanMode={toggleFactoryPanMode}
-              mobileCameraPanMode={mobileCameraPanMode}
-              onToggleMobileCameraPanMode={() => setMobileCameraPanMode((value) => !value)}
-              isMobileTour={isMobileTour}
-              tourTransitionSpeed={tourTransitionSpeed}
-              onTourTransitionSpeedChange={setTourTransitionSpeed}
-              tourCardContentSpeed={tourCardContentSpeed}
-              onTourCardContentSpeedChange={setTourCardContentSpeed}
-              heroOverlayScrimStrength={heroOverlayScrimStrength}
-              onHeroOverlayScrimStrengthChange={updateHeroOverlayScrimStrength}
-              heroOverlayScrimStyle={heroOverlayScrimStyle}
-              onHeroOverlayScrimStyleChange={setHeroOverlayScrimStyle}
-              heroOverlayScrimStyles={HERO_OVERLAY_SCRIM_STYLE_LIST}
-              theme={theme}
-              tourBackdropOpacity={tourBackdropOpacity}
-              onTourBackdropOpacityChange={updateTourBackdropOpacity}
-              sectionsBackdropOpacity={sectionsBackdropOpacity}
-              onSectionsBackdropOpacityChange={updateSectionsBackdropOpacity}
-              sectionBackdrops={sectionBackdrops}
-              backdropSections={LANDING_SECTIONS}
-              onToggleSectionBackdrop={toggleSectionBackdrop}
-              onCopyForCode={handleCopyForCode}
-              rainbowColorPreset={rainbowColorPreset}
-              onRainbowColorPresetChange={setRainbowColorPreset}
-              rainbowColorPresets={RAINBOW_COLOR_PRESET_LIST}
-              heroSignUpButtonVariant={heroSignUpButtonVariant}
-              onHeroSignUpButtonVariantChange={setHeroSignUpButtonVariant}
-              heroSignUpButtonVariants={HERO_SIGN_UP_BUTTON_VARIANT_LIST}
-            />
+            {landingDevToolsProps ? <DevToolsPopover {...landingDevToolsProps} /> : null}
             <ThemeToggleButton variant="nav" />
           </div>
         }
-        devToolsProps={{
-          editMode,
-          onToggleEditMode: toggleEditMode,
-          factoryPanMode,
-          onToggleFactoryPanMode: toggleFactoryPanMode,
-          mobileCameraPanMode,
-          onToggleMobileCameraPanMode: () => setMobileCameraPanMode((value) => !value),
-          isMobileTour,
-          tourTransitionSpeed,
-          onTourTransitionSpeedChange: setTourTransitionSpeed,
-          tourCardContentSpeed,
-          onTourCardContentSpeedChange: setTourCardContentSpeed,
-          heroOverlayScrimStrength,
-          onHeroOverlayScrimStrengthChange: updateHeroOverlayScrimStrength,
-          heroOverlayScrimStyle,
-          onHeroOverlayScrimStyleChange: setHeroOverlayScrimStyle,
-          heroOverlayScrimStyles: HERO_OVERLAY_SCRIM_STYLE_LIST,
-          theme,
-          tourBackdropOpacity,
-          onTourBackdropOpacityChange: updateTourBackdropOpacity,
-          sectionsBackdropOpacity,
-          onSectionsBackdropOpacityChange: updateSectionsBackdropOpacity,
-          sectionBackdrops,
-          backdropSections: LANDING_SECTIONS,
-          onToggleSectionBackdrop: toggleSectionBackdrop,
-          onCopyForCode: handleCopyForCode,
-          rainbowColorPreset,
-          onRainbowColorPresetChange: setRainbowColorPreset,
-          rainbowColorPresets: RAINBOW_COLOR_PRESET_LIST,
-          heroSignUpButtonVariant,
-          onHeroSignUpButtonVariantChange: setHeroSignUpButtonVariant,
-          heroSignUpButtonVariants: HERO_SIGN_UP_BUTTON_VARIANT_LIST,
-        }}
+        devToolsProps={landingDevToolsProps}
       />
 
       {/* Scroll-driven building experience */}
@@ -927,10 +964,18 @@ export default function Home() {
                 hero={hero}
                 editMode={editMode}
                 heroActive={heroActive}
-                onGoWaitlist={() => goWaitlist('hero')}
+                heroSignUpRef={heroSignUpRef}
+                onGoWaitlist={(rect, triggerEl) =>
+                  openWaitlist(
+                    'hero',
+                    rect,
+                    { label: 'Sign Up', variant: signUpButtonVariant, face: 'rainbow' },
+                    triggerEl,
+                  )
+                }
                 onGoExplore={goExplore}
                 onHeroChange={setHero}
-                heroSignUpButtonVariant={heroSignUpButtonVariant}
+                heroSignUpButtonVariant={signUpButtonVariant}
               />
             </div>
 
@@ -1112,8 +1157,6 @@ export default function Home() {
         testimonialsRef={testimonialsRef}
         pricingRef={pricingRef}
         faqRef={faqRef}
-        signupRef={signupRef}
-        waitlistSource={waitlistSource}
         displayCapabilities={capabilities}
         reducedMotion={reducedMotion}
         editMode={editMode}
@@ -1126,8 +1169,37 @@ export default function Home() {
         displayFaq={faq}
         onFaqChange={handleFaqChange}
         onFaqClick={goFaq}
-        onJoinWaitlist={(source) => goWaitlist(source)}
-        waitlistShineColors={waitlistShineColors}
+        onJoinWaitlist={(source, rect, meta, triggerEl) =>
+          openWaitlist(source, rect, meta, triggerEl)
+        }
+      />
+
+      <WaitlistFab
+        ref={waitlistFabRef}
+        visible={waitlistFabVisible}
+        morphing={waitlistModalOpen}
+        enterFromHero
+        fabStyle={waitlistFabStyle}
+        variant={signUpButtonVariant}
+        heroSignUpRef={heroSignUpRef}
+        onClick={(rect, triggerEl) =>
+          openWaitlist(
+            'waitlist_section',
+            rect,
+            { ...getWaitlistFabMorphMeta(waitlistFabStyle), variant: signUpButtonVariant },
+            triggerEl,
+          )
+        }
+      />
+
+      <WaitlistModal
+        open={waitlistModalOpen}
+        originRect={waitlistOriginRect}
+        morphMeta={waitlistMorphMeta}
+        source={waitlistSource}
+        onClose={handleWaitlistModalClose}
+        scrollerRef={scrollerRef}
+        returnFocusRef={waitlistReturnFocusRef}
       />
       </div>
     </div>

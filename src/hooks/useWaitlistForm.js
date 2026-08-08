@@ -4,15 +4,18 @@ import {
   getTurnstileSiteKey,
   submitWaitlistSignup,
 } from '../lib/waitlistApi'
-import WaitlistForm from './waitlist/WaitlistForm'
-import WaitlistSuccess from './waitlist/WaitlistSuccess'
-import PurpleSplitLayout from './waitlist/PurpleSplitLayout'
 
-export default function SignUpSection({ source = 'waitlist_section', shineColors }) {
+export default function useWaitlistForm({
+  source = 'waitlist_section',
+  formIdPrefix = 'waitlist',
+} = {}) {
   const turnstileSiteKey = getTurnstileSiteKey()
   const turnstileRef = useRef(null)
   const honeypotRef = useRef(null)
 
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [email, setEmail] = useState('')
   const [wantsUpdates, setWantsUpdates] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState(getDevBypassTurnstileToken())
@@ -21,6 +24,8 @@ export default function SignUpSection({ source = 'waitlist_section', shineColors
 
   const canSubmit =
     status !== 'submitting' &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
     email.trim().length > 0 &&
     (turnstileToken || !turnstileSiteKey)
 
@@ -36,6 +41,9 @@ export default function SignUpSection({ source = 'waitlist_section', shineColors
       if (!token) {
         throw new Error('Please complete verification and try again.')
       }
+
+      // TODO(waitlist-fields): firstName/lastName/companyName are collected but not yet
+      // persisted. Needs waitlist_signups columns + schema + migration before wiring up.
 
       await submitWaitlistSignup({
         email: email.trim(),
@@ -58,6 +66,12 @@ export default function SignUpSection({ source = 'waitlist_section', shineColors
   const isSuccess = status === 'success'
 
   const formProps = {
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    companyName,
+    setCompanyName,
     email,
     setEmail,
     wantsUpdates,
@@ -70,18 +84,8 @@ export default function SignUpSection({ source = 'waitlist_section', shineColors
     canSubmit,
     status,
     handleSubmit,
+    idPrefix: formIdPrefix,
   }
 
-  return (
-    <section className="relative flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-      <div className="mx-auto w-full max-w-4xl">
-        <PurpleSplitLayout
-          isSuccess={isSuccess}
-          shineColors={shineColors}
-          renderForm={() => <WaitlistForm {...formProps} />}
-          renderSuccess={() => <WaitlistSuccess />}
-        />
-      </div>
-    </section>
-  )
+  return { formProps, isSuccess }
 }

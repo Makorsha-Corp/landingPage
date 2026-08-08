@@ -213,7 +213,21 @@ export default function PricingTierCard({
           as={tier.name === 'Enterprise' ? 'a' : 'button'}
           href={tier.name === 'Enterprise' ? '#contact' : undefined}
           type={tier.name === 'Enterprise' ? undefined : 'button'}
-          onClick={tier.name === 'Enterprise' ? undefined : () => onJoinWaitlist?.('pricing')}
+          onClick={
+            tier.name === 'Enterprise'
+              ? undefined
+              : (event) =>
+                  onJoinWaitlist?.(
+                    'pricing',
+                    event.currentTarget.getBoundingClientRect(),
+                    {
+                      label: tier.cta,
+                      variant: styles.buttonVariant(tier),
+                      face: 'button',
+                    },
+                    event.currentTarget,
+                  )
+          }
           variant={styles.buttonVariant(tier)}
           size="sm"
           className="mt-4 w-full sm:mt-5"

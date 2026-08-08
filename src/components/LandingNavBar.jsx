@@ -10,6 +10,7 @@ export default function LandingNavBar({
   sections,
   activeSection,
   onSectionNavigate,
+  mobileActions,
   desktopActions,
   devToolsProps,
 }) {
@@ -18,7 +19,7 @@ export default function LandingNavBar({
       <div className="relative flex h-14 items-center gap-2 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandLogo variant="soft" />
-          <span className={navTitleClass}>Marker</span>
+          <span className={navTitleClass}>Kolom</span>
         </Link>
 
         <LandingSectionNav
@@ -33,7 +34,8 @@ export default function LandingNavBar({
           onNavigate={onSectionNavigate}
         />
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 overflow-visible sm:gap-3">
+        <div className="ml-auto flex shrink-0 translate-x-0.5 items-center gap-1.5 overflow-visible max-md:-mr-0.5 sm:gap-3 md:translate-x-0">
+          {mobileActions ? <div className="flex items-center md:hidden">{mobileActions}</div> : null}
           {desktopActions}
           {devToolsProps ? <LandingMobileThemeDevMenu devToolsProps={devToolsProps} /> : null}
         </div>

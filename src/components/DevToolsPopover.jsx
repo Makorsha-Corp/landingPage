@@ -223,6 +223,9 @@ function DevToolsFloatingPanel({
   heroSignUpButtonVariant,
   onHeroSignUpButtonVariantChange,
   heroSignUpButtonVariants = [],
+  waitlistFabStyle,
+  onWaitlistFabStyleChange,
+  waitlistFabStyles = [],
 }) {
   const boundsRef = useRef(null)
   const panelRef = useRef(null)
@@ -401,6 +404,30 @@ function DevToolsFloatingPanel({
                       size="default"
                       className={`${menuBtnCls} !h-10 !px-3 !text-sm ${heroSignUpButtonVariant === id ? activeCls : ''}`}
                       aria-pressed={heroSignUpButtonVariant === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Waitlist FAB style</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Bottom-right CTA after hero — compare layouts before picking a default.
+              </p>
+              {onWaitlistFabStyleChange && waitlistFabStyles.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {waitlistFabStyles.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      onClick={() => onWaitlistFabStyleChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${waitlistFabStyle === id ? activeCls : ''}`}
+                      aria-pressed={waitlistFabStyle === id}
                     >
                       {label}
                     </Button>

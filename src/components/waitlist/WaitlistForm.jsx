@@ -1,9 +1,15 @@
 import { Turnstile } from '@marsidev/react-turnstile'
-import Button from '../ui/Button'
 import WaitlistCheckbox from './WaitlistCheckbox'
-import { loginInput } from '../../lib/loginSurfaceStyles'
+import WaitlistSubmitButton from './WaitlistSubmitButton'
+import { waitlistInput } from '../../lib/loginSurfaceStyles'
 
 export default function WaitlistForm({
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
+  companyName,
+  setCompanyName,
   email,
   setEmail,
   wantsUpdates,
@@ -16,38 +22,83 @@ export default function WaitlistForm({
   canSubmit,
   status,
   handleSubmit,
+  idPrefix = 'waitlist',
 }) {
+  const firstNameId = `${idPrefix}-first-name`
+  const lastNameId = `${idPrefix}-last-name`
+  const companyId = `${idPrefix}-company`
+  const emailId = `${idPrefix}-email`
+  const updatesId = `${idPrefix}-updates`
+  const websiteId = `${idPrefix}-website`
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="min-w-0 flex-1">
-          <label className="sr-only" htmlFor="waitlist-email">
-            Email address
+      <div>
+        <label className="sr-only" htmlFor={firstNameId}>
+          First name
+        </label>
+        <input
+          id={firstNameId}
+          type="text"
+          autoComplete="given-name"
+          required
+          value={firstName}
+          onChange={(event) => setFirstName(event.target.value)}
+          placeholder="First name"
+          className={waitlistInput}
+        />
+      </div>
+
+      <div>
+        <label className="sr-only" htmlFor={lastNameId}>
+          Last name
+        </label>
+        <input
+          id={lastNameId}
+          type="text"
+          autoComplete="family-name"
+          required
+          value={lastName}
+          onChange={(event) => setLastName(event.target.value)}
+          placeholder="Last name"
+          className={waitlistInput}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="sr-only" htmlFor={emailId}>
+            Work email
           </label>
           <input
-            id="waitlist-email"
+            id={emailId}
             type="email"
             autoComplete="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="yourname@factory.com"
-            className={loginInput}
+            placeholder="Work email"
+            className={waitlistInput}
           />
         </div>
-        <Button
-          type="submit"
-          variant="marketing"
-          size="lg"
-          className="h-11 w-full shrink-0 sm:w-auto"
-          disabled={!canSubmit}
-        >
-          {status === 'submitting' ? 'Joining…' : 'Join waitlist'}
-        </Button>
+        <div>
+          <label className="sr-only" htmlFor={companyId}>
+            Company name
+          </label>
+          <input
+            id={companyId}
+            type="text"
+            autoComplete="organization"
+            value={companyName}
+            onChange={(event) => setCompanyName(event.target.value)}
+            placeholder="Company name"
+            className={waitlistInput}
+          />
+        </div>
       </div>
 
       <WaitlistCheckbox
-        id="waitlist-updates"
+        id={updatesId}
         checked={wantsUpdates}
         onChange={(event) => setWantsUpdates(event.target.checked)}
       >
@@ -55,10 +106,10 @@ export default function WaitlistForm({
       </WaitlistCheckbox>
 
       <div className="hidden" aria-hidden="true">
-        <label htmlFor="waitlist-website">Website</label>
+        <label htmlFor={websiteId}>Website</label>
         <input
           ref={honeypotRef}
-          id="waitlist-website"
+          id={websiteId}
           type="text"
           name="website"
           tabIndex={-1}
@@ -84,6 +135,8 @@ export default function WaitlistForm({
           {errorMessage}
         </p>
       ) : null}
+
+      <WaitlistSubmitButton disabled={!canSubmit} isSubmitting={status === 'submitting'} />
 
       <p className="text-xs text-muted-foreground">
         We&apos;ll only use your email for Marker waitlist and optional updates.{' '}

@@ -11,34 +11,51 @@ Cross-repo feature:
 
 ## What it does
 
-- Collects **email only** (+ optional “product updates” checkbox).
+- Collects **email** (+ optional “product updates” checkbox) for API submission.
+- UI also collects **first name, last name, company name** client-side (not persisted yet — see TODOs).
 - Stores signups in **`waitlist_signups`** (platform-level, not workspace-scoped).
 - Protects public form with **Cloudflare Turnstile**, honeypot, and **5 req/min** rate limit.
 - **Duplicate emails** get the same success message (no “already registered” leak).
 - **No outbound email in v1** — you email people later manually or via a future job.
 
-### UX placement
+### UX placement (modal-only)
+
+There is **no inline `#waitlist` deck panel**. All CTAs open the same morphing modal.
 
 | Entry point | Behavior |
 |-------------|----------|
-| New deck panel **after FAQ** | Full sign-up form (`#waitlist`) |
-| Top nav **Join waitlist** | Glides to sign-up section; source = `nav` |
-| Hero **Purchase** | Glides to sign-up; source = `hero` |
-| Pricing **Start free trial** (Starter/Pro) | Glides to sign-up; source = `pricing` |
+| **Mobile nav** compact **Sign Up** (`md:hidden`) | Hidden on hero (hero CTA only); after scroll past hero, pops in at navbar slot (450ms scale expand in place, no hero→nav FLIP); section selector nudged left, CTA nudged right; morphs from nav button; source = `nav`. No bottom-right FAB on mobile. |
+| Fixed bottom-right **Sign Up** FAB (desktop, after hero) | Hidden on hero and on mobile; single-beat FLIP travel (560ms move + scale) from hero button; morphs into modal; source = `waitlist_section`. Default style: rainbow pill (`pill_rainbow`). Dev tools can preview `fab_icon`, `glass_chip`, `mini_banner`. |
+| Hero **Sign Up** | Opens modal from hero button rect; morph face matches hero label; source = `hero` |
+| Pricing **Start free trial** (Starter/Pro) | Opens modal from tier CTA rect; morph face matches tier CTA label; source = `pricing` |
 | Pricing **Contact sales** (Enterprise) | Still `#contact` (placeholder) |
 | Tour right-bar **down** on last stop | Glides to **Capabilities** (unchanged) |
 
----
+### Morph animation
 
-## Architecture
+CTAs pass `getBoundingClientRect()` plus trigger element. `openWaitlist` reads computed `borderRadius` from the trigger so the morph shell **starts at the exact button box** (not a scaled-down modal). FAB triggers use **`getSettledTriggerRect`** so hero FLIP scale on the wrap is stripped before measure; hero travel does **not** re-run after modal close (`freezeTravel` preserves travel completion). Pill-shaped triggers (`rounded-full` FAB) are clamped to a **12px rounded-rect** origin so expand never reads as an oval loader; `border-radius` eases faster (~40% of expand) than size/position. The shell animates `left`, `top`, `width`, `height`, and `border-radius` to the centered modal rect; dialog content mounts at ~70% of the expand. **`FabMorphFace` label shows on open travel only** (initial collapsed beat), not during close collapse.
+
+### Panel slide reveal
+
+After the shell reaches full size (`phase === 'open'`), the dialog runs a second beat:
+
+1. **Covered** — purple brand panel fills the entire modal (form hidden behind); **center-aligned** column (dashboard-style Marker mark, Kolom, eyebrow, headline — no lead yet).
+2. **Reveal** — column **transform-slides left** (420ms, synced with panel swipe); text snaps to left-aligned; lead + FAQ link stagger in after (0ms, 60ms). **Mobile:** 35/65 vertical stack; brand stays **top-left** (no center→left column shift); headline-only header (lead/FAQ hidden in strip); scrollable form. **Desktop (`md+`):** 47/53 side-by-side columns with full centered-cover choreography.
+
+**Timing unchanged:** morph expand 480ms, collapse 420ms, panel reveal 420ms ([`waitlistFabMorph.js`](src/lib/waitlistFabMorph.js)). Brand choreography differs from earlier iterations (no logo-only FLIP; eyebrow/headline visible on cover without stagger).
+3. **Close** — copy clears and purple re-covers instantly (no logo reverse travel), then the shell morphs back to the trigger button.
+
+Timing: `useWaitlistPanelReveal` + `PANEL_REVEAL_DURATION_MS` (420ms). Skipped when `prefers-reduced-motion: reduce`.
+
+---
 
 ```
 Landing (Vercel)                    Backend (Railway)
 ─────────────────                   ─────────────────
-SignUpSection.jsx                   POST /api/v1/waitlist  (public)
-  └─ Turnstile widget        ───►     └─ verify Turnstile
-  └─ waitlistApi.js                   └─ insert waitlist_signups
-                                      GET /api/v1/waitlist   (admin allowlist)
+WaitlistModal.jsx                   POST /api/v1/waitlist  (public)
+  └─ WaitlistDialogLayout    ───►     └─ verify Turnstile
+  └─ Turnstile widget                 └─ insert waitlist_signups
+  └─ waitlistApi.js (source whitelist) GET /api/v1/waitlist   (admin allowlist)
 ```
 
 ---
@@ -64,12 +81,28 @@ SignUpSection.jsx                   POST /api/v1/waitlist  (public)
 
 | File | Role |
 |------|------|
-| `src/components/SignUpSection.jsx` | Form UI |
-| `src/lib/waitlistApi.js` | `fetch` client |
-| `src/components/LandingPostTourSections.jsx` | Deck panel after FAQ |
-| `src/pages/Home.jsx` | Nav, refs, CTA wiring, `waitlistSource` state |
-| `src/components/Pricing.jsx` | Trial buttons → waitlist |
+| `src/components/waitlist/WaitlistFab.jsx` | Fixed bottom-right FAB (post-hero); FLIP + shrink from hero |
+| `src/components/waitlist/WaitlistFabFace.jsx` | FAB visual variants (pill, icon, glass, banner) |
+| `src/lib/waitlistFabStyles.js` | FAB style registry + morph meta |
+| `src/components/waitlist/WaitlistModal.jsx` | Portal modal with FLIP morph + dialog layout |
+| `src/components/waitlist/WaitlistDialogLayout.jsx` | Two-column modal shell (brand left, form right) |
+| `src/components/waitlist/WaitlistForm.jsx` | Field stack + Turnstile |
+| `src/components/waitlist/WaitlistSubmitButton.jsx` | Full-width pill submit CTA |
+| `src/components/waitlist/FabMorphFace.jsx` | Label overlay on open travel only (matches origin size) |
+| `src/hooks/useWaitlistForm.js` | Form state + submit logic |
+| `src/hooks/useWaitlistPanelReveal.js` | Purple cover → slide reveal; reverse on close |
+| `src/lib/waitlistFabMorph.js` | Rect morph frames (origin → modal), origin chrome helpers |
+| `src/lib/waitlistApi.js` | `fetch` client + source whitelist |
+| `src/pages/Home.jsx` | FAB, modal, CTA wiring, `waitlistSource` + `waitlistFabStyle` state |
+| `src/components/Pricing.jsx` | Trial buttons → modal |
 | `.env.example` | Frontend env template |
+
+---
+
+## Known TODOs
+
+1. **`TODO(waitlist-fields)`** — Persist first name, last name, company on backend (needs columns + migration + schema).
+2. **`TODO(waitlist-source)`** — Add dedicated `fab` source literal on backend if FAB should be tracked separately from `waitlist_section`.
 
 ---
 
@@ -86,187 +119,62 @@ alembic upgrade head
 
 Confirms table `waitlist_signups` exists. Migration merges two Alembic heads (`064_waitlist_signups`).
 
-### 2. Backend environment (Railway / `.env`)
+### 2. Environment variables
 
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `TURNSTILE_SECRET_KEY` | **Prod yes** | From Cloudflare Turnstile |
-| `WAITLIST_ADMIN_EMAILS` | For admin API | Comma-separated, e.g. `you@marker.io,cofounder@marker.io` |
-| `WAITLIST_IP_HASH_SALT` | Optional | Extra salt for hashed IP; defaults to `SECRET_KEY` |
-| `BACKEND_CORS_ORIGINS` | **Yes for landing** | Must include landing origin(s) |
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `VITE_API_URL` | Landing `.env` / Vercel | Backend base, e.g. `https://backend-production-847f.up.railway.app/api/v1` |
+| `VITE_TURNSTILE_SITE_KEY` | Landing | Cloudflare Turnstile site key (public widget) |
+| `TURNSTILE_SECRET_KEY` | Backend Railway | Turnstile server verification |
+| `WAITLIST_ADMIN_EMAILS` | Backend | Comma-separated admin emails for GET list |
+| `WAITLIST_IP_HASH_SALT` | Backend optional | Extra salt for hashed IP |
+| `BACKEND_CORS_ORIGINS` | Backend | Must include landing origin |
 
-Example CORS (adjust to your landing URL):
-
-```env
-BACKEND_CORS_ORIGINS=["http://localhost:5173","http://localhost:4173","https://your-landing.vercel.app"]
-```
-
-See `backend/.env.example`.
-
-### 3. Landing environment (Vercel / `.env.local`)
-
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `VITE_API_URL` | **Yes** | e.g. `https://backend-production-847f.up.railway.app/api/v1` |
-| `VITE_TURNSTILE_SITE_KEY` | **Prod yes** | Public site key (pair with secret above) |
-
-See `landingPage/.env.example`.
-
-### 4. Cloudflare Turnstile
-
-1. Cloudflare dashboard → Turnstile → Add site.
-2. Domains: production landing URL + `localhost` for dev.
-3. Copy **site key** → landing `VITE_TURNSTILE_SITE_KEY`.
-4. Copy **secret key** → backend `TURNSTILE_SECRET_KEY`.
-
-### 5. Dev without Turnstile keys
-
-If `TURNSTILE_SECRET_KEY` is **empty** and `ENVIRONMENT=development`:
-
-- Backend **skips** Turnstile verification.
-- Frontend sends token `dev-bypass` when no site key is set.
-
-**Do not rely on this in production** — set both keys before go-live.
+Dev bypass: when `import.meta.env.DEV` is true and Turnstile site key is unset, frontend sends `dev-bypass` token (backend must allow in dev).
 
 ---
 
-## API reference
+## API
 
 ### Public — join waitlist
 
-```http
+```
 POST /api/v1/waitlist
 Content-Type: application/json
 
 {
   "email": "user@factory.com",
-  "wants_product_updates": false,
-  "turnstile_token": "<token from widget>",
-  "source": "waitlist_section",
-  "website": null
+  "wants_product_updates": true,
+  "turnstile_token": "...",
+  "source": "hero",
+  "website": ""
 }
 ```
 
-**Sources:** `waitlist_section` | `hero` | `pricing` | `nav` | `unknown`
+**Sources (backend-validated):** `waitlist_section` | `hero` | `pricing` | `nav` | `unknown`
 
-**Honeypot:** if `website` is non-empty, returns success without saving.
-
-**Response (always 200 on success/duplicate):**
-
-```json
-{
-  "ok": true,
-  "message": "You're on the list — we'll be in touch."
-}
-```
-
-**Rate limit:** 5 requests/minute per IP.
-
-### Admin — list signups
-
-```http
-GET /api/v1/waitlist?skip=0&limit=100&search=&wants_product_updates=
-Authorization: Bearer <JWT>
-```
-
-- Caller must be logged-in ERP user whose **email** is in `WAITLIST_ADMIN_EMAILS`.
-- Not limited to workspace owners globally — **platform allowlist only**.
-
-Example:
-
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "https://backend-production-847f.up.railway.app/api/v1/waitlist?limit=50"
-```
+Frontend normalizes unknown values to `unknown` via whitelist in `waitlistApi.js`.
 
 ---
 
-## Database schema
+## Manual smoke
 
-**Table:** `waitlist_signups`
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | int | PK |
-| `email` | string(320) | Unique, lowercased on insert |
-| `wants_product_updates` | bool | Default false |
-| `source` | string(64) | Nullable — analytics |
-| `ip_hash` | string(64) | Nullable — SHA-256(IP + salt) |
-| `created_at` | timestamptz | Server default now |
-
----
-
-## Manual QA checklist
-
-- [ ] Submit from **Join waitlist** section → row in DB, success UI
-- [ ] Submit **same email again** → success UI, no duplicate row
-- [ ] **Hero Purchase** → scrolls to form; submit with source `hero` in DB
-- [ ] **Pricing Start free trial** → source `pricing`
-- [ ] **Nav Join waitlist** → source `nav`
-- [ ] Checkbox on/off saved as `wants_product_updates`
-- [ ] Turnstile failure shows error, widget resets
-- [ ] Admin GET works for allowlisted email; **403** for others
-- [ ] CORS: form works from localhost and deployed landing URL
-
----
-
-## Out of scope (v1) — future work
-
-Track these if you come back to “finish” the feature:
-
-- [ ] **Send confirmation / welcome email** (Resend, SMTP, etc.)
-- [ ] **Mailchimp / newsletter sync** cron
-- [ ] **In-app ERP admin UI** for waitlist (today: API + curl/SQL)
-- [ ] **Edit-mode / DevTools** copy editing for waitlist (like FAQ)
-- [ ] **Privacy policy** real URL (form links to `#faq` placeholder)
-- [ ] **Enterprise “Contact sales”** — `#contact` target does not exist yet
-- [ ] **CSV export** endpoint (JSON list is enough for now)
-- [ ] **Double opt-in** email flow (optional checkbox only, no confirm email)
-
----
-
-## Troubleshooting
-
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| CORS error in browser | Landing origin not in `BACKEND_CORS_ORIGINS` | Add Vercel URL to Railway env |
-| “Verification failed” | Turnstile keys mismatch or wrong domain | Re-check site/secret pair and Turnstile hostnames |
-| Form submits but 503 | `TURNSTILE_SECRET_KEY` missing in prod | Set secret on Railway |
-| Admin GET 403 | Email not in `WAITLIST_ADMIN_EMAILS` | Add your login email to env |
-| Admin GET 503 | Allowlist env empty | Set `WAITLIST_ADMIN_EMAILS` |
-| 500 on submit | Migration not applied | `alembic upgrade head` |
-| Turnstile widget blank | Missing `VITE_TURNSTILE_SITE_KEY` on Vercel | Set env + redeploy landing |
+1. Scroll past hero → bottom-right FAB FLIP-travels then shrinks; click → modal opens crisp (no stretched text).
+2. Submit with valid email → **200**, row in DB.
+3. Hero / pricing / bottom-right FAB CTAs each open modal with correct label on morph face and correct `source`.
+4. Scroll past FAQ — no waitlist deck panel.
+5. Short viewport (~800px height) — form scrolls inside modal; submit + Turnstile reachable.
+6. `prefers-reduced-motion: reduce` → instant modal, no travel.
 
 ---
 
 ## Tests
 
-**Backend:**
-
 ```bash
 cd backend
 python -m pytest tests/test_waitlist.py -q
+
+cd landingPage
+npm run build
+npm run lint
 ```
-
----
-
-## Design decisions (from planning)
-
-- **Backend storage** over Mailchimp/Vercel-only — you own data; admin API fits ERP stack.
-- **Silent duplicate success** — privacy / no email enumeration.
-- **Platform admin allowlist** — not every workspace `owner` (marketing data).
-- **Section after FAQ** — full deck panel; Pricing section kept on page.
-- **Hero + Pricing CTAs** redirect to waitlist instead of login2.
-
-Original plan: `.cursor/plans/landing_waitlist_signup_479cf5d5.plan.md` (do not edit plan file; this doc is the living ops note).
-
----
-
-## Quick deploy reminder
-
-1. `alembic upgrade head` on Railway DB  
-2. Set backend: `TURNSTILE_SECRET_KEY`, `WAITLIST_ADMIN_EMAILS`, `BACKEND_CORS_ORIGINS`  
-3. Set landing on Vercel: `VITE_API_URL`, `VITE_TURNSTILE_SITE_KEY`  
-4. Smoke-test one signup + one admin list call  
-
-Last updated: 2026-07-29 (implementation session).

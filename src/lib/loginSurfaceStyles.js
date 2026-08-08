@@ -26,3 +26,6 @@ export const sectionHeaderWrap = 'mx-auto max-w-2xl text-center'
 
 export const loginInput =
   'h-11 w-full rounded-xl border border-border bg-input px-4 text-base text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40'
+
+export const waitlistInput =
+  'h-12 w-full rounded-xl border-0 bg-muted/60 px-4 text-base text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40'

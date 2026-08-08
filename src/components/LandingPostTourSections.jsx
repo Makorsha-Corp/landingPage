@@ -3,9 +3,9 @@ import Capabilities from './Capabilities'
 import Testimonials from './Testimonials'
 import Pricing from './Pricing'
 import FAQ from './FAQ'
-import SignUpSection from './SignUpSection'
 import LoginZonePanel from './LoginZonePanel'
 import LoginZoneBackground from './LoginZoneBackground'
+import { SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
 
 const CAMPUS_PANEL_CLASS = 'deck-panel'
 
@@ -14,8 +14,6 @@ function LandingPostTourSections({
   testimonialsRef,
   pricingRef,
   faqRef,
-  signupRef,
-  waitlistSource,
   displayCapabilities,
   reducedMotion,
   editMode,
@@ -29,13 +27,11 @@ function LandingPostTourSections({
   onFaqChange,
   onFaqClick,
   onJoinWaitlist,
-  waitlistShineColors,
 }) {
   const featuresCampusBackdrop = Boolean(sectionBackdrops.features)
   const proofCampusBackdrop = Boolean(sectionBackdrops.proof)
   const pricingCampusBackdrop = Boolean(sectionBackdrops.pricing)
   const faqCampusBackdrop = Boolean(sectionBackdrops.faq)
-  const waitlistCampusBackdrop = Boolean(sectionBackdrops.waitlist)
 
   return (
     <>
@@ -70,16 +66,18 @@ function LandingPostTourSections({
         <Testimonials />
       </LoginZonePanel>
 
-      <LoginZonePanel
-        panelRef={pricingRef}
-        flow
-        theme={theme}
-        reducedMotion={reducedMotion}
-        showGradientBackdrop={!pricingCampusBackdrop}
-        backdropStyle={sectionsBackdropStyle}
-      >
-        <Pricing onFaqClick={onFaqClick} onJoinWaitlist={onJoinWaitlist} />
-      </LoginZonePanel>
+      {SHOW_PRICING_SECTION ? (
+        <LoginZonePanel
+          panelRef={pricingRef}
+          flow
+          theme={theme}
+          reducedMotion={reducedMotion}
+          showGradientBackdrop={!pricingCampusBackdrop}
+          backdropStyle={sectionsBackdropStyle}
+        >
+          <Pricing onFaqClick={onFaqClick} onJoinWaitlist={onJoinWaitlist} />
+        </LoginZonePanel>
+      ) : null}
 
       <LoginZonePanel
         panelRef={faqRef}
@@ -94,17 +92,6 @@ function LandingPostTourSections({
           editMode={editMode}
           onFaqChange={onFaqChange}
         />
-      </LoginZonePanel>
-
-      <LoginZonePanel
-        panelRef={signupRef}
-        id="waitlist"
-        theme={theme}
-        reducedMotion={reducedMotion}
-        showGradientBackdrop={!waitlistCampusBackdrop}
-        backdropStyle={sectionsBackdropStyle}
-      >
-        <SignUpSection source={waitlistSource} shineColors={waitlistShineColors} />
       </LoginZonePanel>
     </>
   )

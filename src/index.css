@@ -385,6 +385,219 @@
   animation: float 3s ease-in-out infinite;
 }
 
+@keyframes waitlist-fab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-waitlist-fab-enter {
+  animation: waitlist-fab-enter 0.45s ease both;
+}
+
+@keyframes waitlist-nav-signup-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-waitlist-nav-signup-enter {
+  animation: waitlist-nav-signup-enter 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.waitlist-morph-shell {
+  will-change: left, top, width, height, border-radius;
+}
+
+.waitlist-morph-content {
+  will-change: opacity, filter, transform;
+}
+
+[data-waitlist-morph-origin].waitlist-morph-origin-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+.waitlist-brand-panel {
+  transition:
+    width 420ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.waitlist-brand-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  max-width: 24rem;
+  will-change: transform;
+}
+
+.waitlist-brand-column--centered {
+  align-items: center;
+  text-align: center;
+  width: auto;
+  max-width: 24rem;
+}
+
+.waitlist-brand-column--left {
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  max-width: 24rem;
+}
+
+.waitlist-brand-panel--covered {
+  width: 100%;
+  height: 100%;
+}
+
+.waitlist-brand-panel--revealed {
+  width: 100%;
+  height: 35%;
+  overflow: hidden;
+}
+
+.waitlist-form-panel {
+  transition:
+    opacity 420ms cubic-bezier(0.32, 0.72, 0, 1),
+    top 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.waitlist-form-panel--covered {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.waitlist-form-panel--revealed {
+  opacity: 1;
+  pointer-events: auto;
+  top: 35%;
+  bottom: 0;
+  height: auto;
+}
+
+@media (min-width: 768px) {
+  .waitlist-brand-panel--revealed {
+    width: 47%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .waitlist-form-panel {
+    transition: opacity 420ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .waitlist-form-panel--revealed {
+    left: 47%;
+    top: 0;
+    bottom: auto;
+    height: auto;
+  }
+}
+
+.waitlist-brand-item {
+  opacity: 0;
+  transform: translate3d(1.5rem, 0, 0);
+  transition:
+    opacity 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.waitlist-brand-item--hidden {
+  display: none;
+}
+
+.waitlist-brand-column--in .waitlist-brand-item:not(.waitlist-brand-item--hidden) {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 420ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.waitlist-brand-column--in .waitlist-brand-item-delay-0 {
+  transition-delay: 0ms;
+}
+
+.waitlist-brand-column--in .waitlist-brand-item-delay-1 {
+  transition-delay: 60ms;
+}
+
+@media (max-width: 767px) {
+  .waitlist-brand-column {
+    width: 100%;
+    max-width: none;
+  }
+
+  .waitlist-brand-item {
+    transform: none;
+  }
+
+  .waitlist-brand-column--in .waitlist-brand-item:not(.waitlist-brand-item--hidden) {
+    opacity: 1;
+    transform: none;
+    transition: opacity 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-waitlist-fab-enter {
+    animation: fade-in 0.2s ease both;
+  }
+
+  .animate-waitlist-nav-signup-enter {
+    animation: none;
+  }
+
+  .waitlist-morph-shell,
+  .waitlist-morph-content {
+    will-change: auto;
+  }
+
+  [data-waitlist-morph-origin].waitlist-morph-origin-hidden {
+    transition: none;
+  }
+
+  .waitlist-brand-panel,
+  .waitlist-form-panel,
+  .waitlist-brand-column {
+    transition: none;
+  }
+
+  @media (min-width: 768px) {
+    .waitlist-brand-panel--revealed {
+      width: 47%;
+      height: 100%;
+    }
+
+    .waitlist-form-panel--revealed {
+      left: 47%;
+      top: 0;
+      bottom: auto;
+      opacity: 1;
+    }
+  }
+
+  .waitlist-brand-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }

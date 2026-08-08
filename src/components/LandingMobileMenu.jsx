@@ -128,7 +128,7 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
   if (!isMobileTour) return null
 
   return (
-    <div className="relative flex min-w-0 flex-1 justify-center md:hidden">
+    <div className="relative flex min-w-0 flex-1 justify-center -translate-x-2 md:hidden md:translate-x-0">
       <button
         ref={buttonRef}
         type="button"

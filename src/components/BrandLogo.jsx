@@ -8,14 +8,26 @@ const iconSizes = {
   md: 'h-6 w-6',
 }
 
-export default function BrandLogo({ size = 'sm', variant = 'soft', className = '' }) {
+const innerSizes = {
+  sm: 'h-5 w-5',
+  md: 'h-6 w-6',
+}
+
+export default function BrandLogo({
+  size = 'sm',
+  variant = 'soft',
+  tone = 'default',
+  className = '',
+}) {
   if (variant === 'nav') {
+    const outerCls =
+      tone === 'onPrimary'
+        ? `flex shrink-0 items-center justify-center rounded-lg bg-white ${sizes[size]}`
+        : `flex shrink-0 items-center justify-center rounded-lg bg-white dark:bg-brand-primary/20 ${sizes[size]}`
+
     return (
-      <div
-        className={`flex shrink-0 items-center justify-center rounded-lg bg-white dark:bg-brand-primary/20 ${sizes[size]} ${className}`}
-        aria-hidden="true"
-      >
-        <div className={`rounded bg-brand-primary ${size === 'md' ? 'h-6 w-6' : 'h-5 w-5'}`} />
+      <div className={`${outerCls} ${className}`} aria-hidden="true">
+        <div className={`rounded bg-brand-primary ${innerSizes[size]}`} />
       </div>
     )
   }
