@@ -463,7 +463,7 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
-  const { activeIndex, heroActive, contentStopIndex, heroExitProgress } = useTourCamera({
+  const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced } = useTourCamera({
     scrollerRef,
     tourRef,
     stageRef,
@@ -928,7 +928,7 @@ export default function Home() {
               ref={buildingSharpRef}
               src={BUILDING_IMAGE}
               alt="Marker headquarters cutaway"
-              className="homepage-tour-building-img h-full w-full select-none"
+              className="homepage-tour-building-img homepage-tour-building-sharp h-full w-full select-none"
               fetchPriority="high"
               draggable={false}
               style={{ opacity: 0 }}
@@ -947,7 +947,7 @@ export default function Home() {
           <div
             ref={heroTextRef}
             className={`absolute inset-0 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-0 ${
-              heroActive ? '' : 'pointer-events-none'
+              heroActive ? '' : 'pointer-events-none homepage-hero-overlay--inactive'
             } ${editMode && heroActive ? 'z-40 pointer-events-auto' : 'z-30'}`}
             style={{ opacity: 1 }}
           >
@@ -1115,7 +1115,7 @@ export default function Home() {
             />
           ) : null}
 
-          {!heroActive && !isMobileTour && heroExitProgress >= 0.5 && (
+          {!heroActive && !isMobileTour && heroExitAdvanced && (
             <RightBar
               theme={theme}
               stops={stops}
@@ -1181,7 +1181,6 @@ export default function Home() {
         enterFromHero
         fabStyle={waitlistFabStyle}
         variant={signUpButtonVariant}
-        heroSignUpRef={heroSignUpRef}
         onClick={(rect, triggerEl) =>
           openWaitlist(
             'waitlist_section',

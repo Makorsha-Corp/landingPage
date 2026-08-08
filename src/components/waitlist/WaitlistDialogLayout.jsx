@@ -94,7 +94,7 @@ export default function WaitlistDialogLayout({
       <div
         className={cn(
           'waitlist-form-panel absolute inset-0 flex min-h-0 flex-col overflow-y-auto bg-card px-4 py-5 sm:px-8 sm:py-10',
-          showRevealed && 'justify-start md:justify-center',
+          showRevealed && (isMobile ? 'justify-start' : 'justify-center'),
           showRevealed ? 'waitlist-form-panel--revealed' : 'waitlist-form-panel--covered',
         )}
       >

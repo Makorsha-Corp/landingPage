@@ -25,7 +25,7 @@ There is **no inline `#waitlist` deck panel**. All CTAs open the same morphing m
 | Entry point | Behavior |
 |-------------|----------|
 | **Mobile nav** compact **Sign Up** (`md:hidden`) | Hidden on hero (hero CTA only); after scroll past hero, pops in at navbar slot (450ms scale expand in place, no hero→nav FLIP); section selector nudged left, CTA nudged right; morphs from nav button; source = `nav`. No bottom-right FAB on mobile. |
-| Fixed bottom-right **Sign Up** FAB (desktop, after hero) | Hidden on hero and on mobile; single-beat FLIP travel (560ms move + scale) from hero button; morphs into modal; source = `waitlist_section`. Default style: rainbow pill (`pill_rainbow`). Dev tools can preview `fab_icon`, `glass_chip`, `mini_banner`. |
+| Fixed bottom-right **Sign Up** FAB (desktop, after hero) | Hidden on hero and on mobile; fades in at bottom-right after scroll (450ms slide-up, no hero→FAB travel); morphs into modal; source = `waitlist_section`. Default style: rainbow pill (`pill_rainbow`). Dev tools can preview `fab_icon`, `glass_chip`, `mini_banner`. |
 | Hero **Sign Up** | Opens modal from hero button rect; morph face matches hero label; source = `hero` |
 | Pricing **Start free trial** (Starter/Pro) | Opens modal from tier CTA rect; morph face matches tier CTA label; source = `pricing` |
 | Pricing **Contact sales** (Enterprise) | Still `#contact` (placeholder) |
@@ -33,7 +33,7 @@ There is **no inline `#waitlist` deck panel**. All CTAs open the same morphing m
 
 ### Morph animation
 
-CTAs pass `getBoundingClientRect()` plus trigger element. `openWaitlist` reads computed `borderRadius` from the trigger so the morph shell **starts at the exact button box** (not a scaled-down modal). FAB triggers use **`getSettledTriggerRect`** so hero FLIP scale on the wrap is stripped before measure; hero travel does **not** re-run after modal close (`freezeTravel` preserves travel completion). Pill-shaped triggers (`rounded-full` FAB) are clamped to a **12px rounded-rect** origin so expand never reads as an oval loader; `border-radius` eases faster (~40% of expand) than size/position. The shell animates `left`, `top`, `width`, `height`, and `border-radius` to the centered modal rect; dialog content mounts at ~70% of the expand. **`FabMorphFace` label shows on open travel only** (initial collapsed beat), not during close collapse.
+CTAs pass `getBoundingClientRect()` plus trigger element. `openWaitlist` reads computed `borderRadius` from the trigger so the morph shell **starts at the exact button box** (not a scaled-down modal). FAB enter animation does **not** re-run after modal close (`freezeTravel` preserves completion). Pill-shaped triggers (`rounded-full` FAB) are clamped to a **12px rounded-rect** origin so expand never reads as an oval loader; `border-radius` eases faster (~40% of expand) than size/position. The shell animates `left`, `top`, `width`, `height`, and `border-radius` to the centered modal rect; dialog content mounts at ~70% of the expand. **`FabMorphFace` label shows on open travel only** (initial collapsed beat), not during close collapse.
 
 ### Panel slide reveal
 
@@ -81,9 +81,10 @@ WaitlistModal.jsx                   POST /api/v1/waitlist  (public)
 
 | File | Role |
 |------|------|
-| `src/components/waitlist/WaitlistFab.jsx` | Fixed bottom-right FAB (post-hero); FLIP + shrink from hero |
+| `src/components/waitlist/WaitlistFab.jsx` | Fixed bottom-right FAB (post-hero); fade-in enter |
 | `src/components/waitlist/WaitlistFabFace.jsx` | FAB visual variants (pill, icon, glass, banner) |
 | `src/lib/waitlistFabStyles.js` | FAB style registry + morph meta |
+| `src/hooks/useWaitlistFabFadeEnter.js` | One-shot fade-in when FAB appears after hero |
 | `src/components/waitlist/WaitlistModal.jsx` | Portal modal with FLIP morph + dialog layout |
 | `src/components/waitlist/WaitlistDialogLayout.jsx` | Two-column modal shell (brand left, form right) |
 | `src/components/waitlist/WaitlistForm.jsx` | Field stack + Turnstile |
@@ -159,7 +160,7 @@ Frontend normalizes unknown values to `unknown` via whitelist in `waitlistApi.js
 
 ## Manual smoke
 
-1. Scroll past hero → bottom-right FAB FLIP-travels then shrinks; click → modal opens crisp (no stretched text).
+1. Scroll past hero → bottom-right FAB fades in; click → modal opens crisp (no stretched text).
 2. Submit with valid email → **200**, row in DB.
 3. Hero / pricing / bottom-right FAB CTAs each open modal with correct label on morph face and correct `source`.
 4. Scroll past FAQ — no waitlist deck panel.

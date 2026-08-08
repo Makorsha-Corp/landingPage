@@ -219,6 +219,15 @@
   will-change: opacity;
 }
 
+.homepage-tour-building-sharp {
+  will-change: opacity;
+}
+
+.homepage-hero-overlay--inactive .animate-rainbow,
+.homepage-hero-overlay--inactive .animate-rainbow::before {
+  animation-play-state: paused;
+}
+
 .homepage2-scroller::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -503,7 +512,8 @@
   .waitlist-form-panel--revealed {
     left: 47%;
     top: 0;
-    bottom: auto;
+    right: 0;
+    bottom: 0;
     height: auto;
   }
 }
@@ -586,7 +596,8 @@
     .waitlist-form-panel--revealed {
       left: 47%;
       top: 0;
-      bottom: auto;
+      right: 0;
+      bottom: 0;
       opacity: 1;
     }
   }
