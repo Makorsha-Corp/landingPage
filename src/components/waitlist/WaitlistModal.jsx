@@ -46,11 +46,13 @@ export default function WaitlistModal({
   morphMeta = DEFAULT_MORPH_META,
   source = 'waitlist_section',
   onClose,
+  onFaqClick,
   scrollerRef,
   returnFocusRef,
 }) {
   const { reducedMotion } = useLandingMotion()
   const closeButtonRef = useRef(null)
+  const pendingAfterCloseRef = useRef(null)
   const returnFocusStoredRef = useRef(null)
   const resolvedMorphMeta = { ...DEFAULT_MORPH_META, ...morphMeta }
   const travelBg = resolveTravelBg(resolvedMorphMeta)
@@ -63,6 +65,12 @@ export default function WaitlistModal({
   const finishClose = useCallback(() => {
     scrollerRef?.current?.style.removeProperty('overflow')
     onClose?.()
+    const pending = pendingAfterCloseRef.current
+    pendingAfterCloseRef.current = null
+    if (pending) {
+      requestAnimationFrame(() => pending())
+      return
+    }
     const trigger = getReturnFocusElement()
     if (trigger && typeof trigger.focus === 'function') {
       requestAnimationFrame(() => trigger.focus())
@@ -108,6 +116,16 @@ export default function WaitlistModal({
 
     startClose()
   }, [isCovering, useMorph, revealed, reducedMotion, startCover, startClose])
+
+  const handleFaqClick = useCallback(
+    (event) => {
+      event.preventDefault()
+      if (!onFaqClick) return
+      pendingAfterCloseRef.current = onFaqClick
+      requestClose()
+    },
+    [onFaqClick, requestClose],
+  )
 
   useEffect(() => {
     if (!isVisible) return undefined
@@ -161,6 +179,7 @@ export default function WaitlistModal({
       titleId="waitlist-dialog-title"
       isSuccess={isSuccess}
       onClose={requestClose}
+      onFaqClick={handleFaqClick}
       closeButtonRef={closeButtonRef}
       revealed={panelRevealed}
       reducedMotion={reducedMotion || !useMorph}

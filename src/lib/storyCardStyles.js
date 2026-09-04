@@ -13,10 +13,10 @@ export function getStoryCardStyles(theme) {
   }
 }
 
-/** Clickable feature/capability cards — elevated at rest; hover lift at any width; press glow on touch. */
+/** Clickable feature/capability cards — elevated at rest; subtle hover tint; press glow on touch. */
 export function getStoryCardInteractiveClasses(theme) {
   const shared =
-    'cursor-pointer transition-[box-shadow,transform,border-color,ring-color] duration-300 ease-out ' +
+    'cursor-pointer transition-[box-shadow,border-color,ring-color] duration-300 ease-out ' +
     'active:scale-[0.98] active:duration-150 ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
 
@@ -24,9 +24,9 @@ export function getStoryCardInteractiveClasses(theme) {
     return (
       `${shared} ` +
       'shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-white/10 ' +
-      'hover:-translate-y-1 hover:border-primary/50 hover:ring-primary/35 ' +
+      'hover:border-primary/50 hover:ring-primary/35 ' +
       'hover:shadow-[0_28px_56px_-16px_rgba(149,104,184,0.48)] ' +
-      'active:translate-y-0 active:border-primary/45 active:ring-primary/30 ' +
+      'active:border-primary/45 active:ring-primary/30 ' +
       'active:shadow-[0_24px_48px_-14px_rgba(149,104,184,0.42)]'
     )
   }
@@ -34,9 +34,9 @@ export function getStoryCardInteractiveClasses(theme) {
   return (
     `${shared} ` +
     'shadow-[0_12px_32px_-16px_rgba(0,0,0,0.14)] ' +
-    'hover:-translate-y-1 hover:border-primary/45 hover:ring-primary/30 ' +
+    'hover:border-primary/45 hover:ring-primary/30 ' +
     'hover:shadow-[0_28px_56px_-16px_rgba(149,104,184,0.32)] ' +
-    'active:translate-y-0 active:border-primary/40 active:ring-primary/25 ' +
+    'active:border-primary/40 active:ring-primary/25 ' +
     'active:shadow-[0_24px_48px_-14px_rgba(149,104,184,0.28)]'
   )
 }

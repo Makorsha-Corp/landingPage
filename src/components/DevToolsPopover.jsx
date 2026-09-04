@@ -220,9 +220,11 @@ function DevToolsFloatingPanel({
   rainbowColorPreset,
   onRainbowColorPresetChange,
   rainbowColorPresets = [],
-  heroSignUpButtonVariant,
-  onHeroSignUpButtonVariantChange,
-  heroSignUpButtonVariants = [],
+  lightSignUpVariant,
+  onLightSignUpVariantChange,
+  darkSignUpVariant,
+  onDarkSignUpVariantChange,
+  signUpButtonVariants = [],
   waitlistFabStyle,
   onWaitlistFabStyleChange,
   waitlistFabStyles = [],
@@ -389,21 +391,45 @@ function DevToolsFloatingPanel({
             </div>
 
             <div className="lg:col-span-2">
-              <p className={sectionLabelCls}>Sign Up button</p>
+              <p className={sectionLabelCls}>Sign Up — light mode</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Hero CTA style — rainbow border uses preset above.
+                Hero + nav CTA when theme is light. Rainbow border uses preset above.
               </p>
-              {onHeroSignUpButtonVariantChange && heroSignUpButtonVariants.length > 0 ? (
+              {onLightSignUpVariantChange && signUpButtonVariants.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {heroSignUpButtonVariants.map(({ id, label }) => (
+                  {signUpButtonVariants.map(({ id, label }) => (
                     <Button
-                      key={id}
+                      key={`light-${id}`}
                       type="button"
-                      onClick={() => onHeroSignUpButtonVariantChange(id)}
+                      onClick={() => onLightSignUpVariantChange(id)}
                       variant="navGhost"
                       size="default"
-                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${heroSignUpButtonVariant === id ? activeCls : ''}`}
-                      aria-pressed={heroSignUpButtonVariant === id}
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${lightSignUpVariant === id ? activeCls : ''}`}
+                      aria-pressed={lightSignUpVariant === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Sign Up — dark mode</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Hero + nav CTA when theme is dark. Toggle theme above to preview on the page.
+              </p>
+              {onDarkSignUpVariantChange && signUpButtonVariants.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {signUpButtonVariants.map(({ id, label }) => (
+                    <Button
+                      key={`dark-${id}`}
+                      type="button"
+                      onClick={() => onDarkSignUpVariantChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${darkSignUpVariant === id ? activeCls : ''}`}
+                      aria-pressed={darkSignUpVariant === id}
                     >
                       {label}
                     </Button>

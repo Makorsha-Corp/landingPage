@@ -63,9 +63,10 @@ import {
   normalizeHeroOverlayScrimStrength,
 } from '../lib/heroScrimStyles'
 import {
-  DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
-  getThemeAwareSignUpVariant,
-  HERO_SIGN_UP_BUTTON_VARIANT_LIST,
+  DEFAULT_DARK_SIGN_UP_VARIANT,
+  DEFAULT_LIGHT_SIGN_UP_VARIANT,
+  getSignUpVariantForTheme,
+  SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
 import { BLURRED_BUILDING_IMAGE, PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
 import { SHOW_LANDING_DEV_TOOLS, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
@@ -374,13 +375,10 @@ export default function Home() {
   const [heroOverlayScrimStyle, setHeroOverlayScrimStyle] = useState(
     DEFAULT_HERO_OVERLAY_SCRIM_STYLE,
   )
-  const [heroSignUpButtonVariant, setHeroSignUpButtonVariant] = useState(
-    DEFAULT_HERO_SIGN_UP_BUTTON_VARIANT,
-  )
+  const [lightSignUpVariant, setLightSignUpVariant] = useState(DEFAULT_LIGHT_SIGN_UP_VARIANT)
+  const [darkSignUpVariant, setDarkSignUpVariant] = useState(DEFAULT_DARK_SIGN_UP_VARIANT)
   const [waitlistFabStyle, setWaitlistFabStyle] = useState(DEFAULT_WAITLIST_FAB_STYLE)
-  const signUpButtonVariant = editMode
-    ? heroSignUpButtonVariant
-    : getThemeAwareSignUpVariant(theme)
+  const signUpButtonVariant = getSignUpVariantForTheme(theme, lightSignUpVariant, darkSignUpVariant)
   const exportCodeBaseline = useMemo(
     () =>
       normalizeHomepageSnapshot({
@@ -819,9 +817,11 @@ export default function Home() {
         rainbowColorPreset,
         onRainbowColorPresetChange: setRainbowColorPreset,
         rainbowColorPresets: RAINBOW_COLOR_PRESET_LIST,
-        heroSignUpButtonVariant,
-        onHeroSignUpButtonVariantChange: setHeroSignUpButtonVariant,
-        heroSignUpButtonVariants: HERO_SIGN_UP_BUTTON_VARIANT_LIST,
+        lightSignUpVariant,
+        onLightSignUpVariantChange: setLightSignUpVariant,
+        darkSignUpVariant,
+        onDarkSignUpVariantChange: setDarkSignUpVariant,
+        signUpButtonVariants: SIGN_UP_BUTTON_VARIANT_LIST,
         waitlistFabStyle,
         onWaitlistFabStyleChange: setWaitlistFabStyle,
         waitlistFabStyles: WAITLIST_FAB_STYLE_LIST,
@@ -1197,6 +1197,7 @@ export default function Home() {
         morphMeta={waitlistMorphMeta}
         source={waitlistSource}
         onClose={handleWaitlistModalClose}
+        onFaqClick={goFaq}
         scrollerRef={scrollerRef}
         returnFocusRef={waitlistReturnFocusRef}
       />

@@ -68,6 +68,7 @@ export default function WaitlistDialogLayout({
   renderSuccess,
   isSuccess,
   onClose,
+  onFaqClick,
   closeButtonRef,
   revealed = true,
   reducedMotion = false,
@@ -162,6 +163,7 @@ export default function WaitlistDialogLayout({
             {WAITLIST_COPY.secondaryPrompt}{' '}
             <a
               href={WAITLIST_COPY.secondaryLinkHref}
+              onClick={onFaqClick}
               className="font-medium text-white underline underline-offset-4 hover:text-white/90"
             >
               {WAITLIST_COPY.secondaryLinkLabel}
