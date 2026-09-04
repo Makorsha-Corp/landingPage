@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import BrandLogo from '../BrandLogo'
 import { cn } from '@/lib/utils'
 import useIsMobileTour from '../../hooks/useIsMobileTour'
@@ -73,8 +73,10 @@ export default function WaitlistDialogLayout({
   revealed = true,
   reducedMotion = false,
 }) {
+  const rootRef = useRef(null)
   const brandPanelRef = useRef(null)
   const brandColumnRef = useRef(null)
+  const [brandHeightPx, setBrandHeightPx] = useState(null)
   const isMobile = useIsMobileTour()
 
   const showRevealed = reducedMotion || revealed
@@ -90,8 +92,40 @@ export default function WaitlistDialogLayout({
     columnRef: brandColumnRef,
   })
 
+  useLayoutEffect(() => {
+    if (!isMobile || !showRevealed) {
+      return undefined
+    }
+
+    const panelEl = brandPanelRef.current
+    const columnEl = brandColumnRef.current
+    const rootEl = rootRef.current
+    if (!panelEl || !columnEl || !rootEl) return undefined
+
+    const measure = () => {
+      const styles = getComputedStyle(panelEl)
+      const padTop = parseFloat(styles.paddingTop) || 0
+      const padBottom = parseFloat(styles.paddingBottom) || 0
+      const measured = columnEl.offsetHeight + padTop + padBottom
+      const panelH = rootEl.offsetHeight
+      const capped = Math.min(measured, panelH * 0.42)
+      setBrandHeightPx(Math.ceil(capped))
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(columnEl)
+    observer.observe(rootEl)
+
+    measure()
+
+    return () => observer.disconnect()
+  }, [isMobile, showRevealed, titleId])
+
+  const wrapperStyle =
+    isMobile && brandHeightPx != null ? { '--waitlist-brand-h': `${brandHeightPx}px` } : undefined
+
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
+    <div ref={rootRef} className="relative h-full min-h-0 overflow-hidden" style={wrapperStyle}>
       <div
         className={cn(
           'waitlist-form-panel absolute inset-0 flex min-h-0 flex-col overflow-y-auto bg-card px-4 py-5 sm:px-8 sm:py-10',
