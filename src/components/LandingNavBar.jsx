@@ -19,7 +19,7 @@ export default function LandingNavBar({
     <NavbarShell>
       <div className="relative flex h-14 items-center gap-2 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
-          <BrandLogo variant="soft" />
+          <BrandLogo surface="light" />
           <span className={navTitleClass}>{BRAND_NAME}</span>
         </Link>
 

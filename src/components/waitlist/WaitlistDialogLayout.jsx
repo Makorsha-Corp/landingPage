@@ -176,7 +176,7 @@ export default function WaitlistDialogLayout({
           )}
           style={useDesktopChoreography ? columnStyle : undefined}
         >
-          <BrandLogo size="md" variant="nav" tone="onPrimary" />
+          <BrandLogo size="md" surface="dark" />
           <BrandName className="mt-1 sm:mt-2" />
           <BrandEyebrow />
           <BrandHeadline titleId={titleId} />

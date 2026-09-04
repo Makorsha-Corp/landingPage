@@ -228,6 +228,9 @@ function DevToolsFloatingPanel({
   waitlistFabStyle,
   onWaitlistFabStyleChange,
   waitlistFabStyles = [],
+  brandLogoLightVariant,
+  onBrandLogoLightVariantChange,
+  brandLogoLightVariants = [],
   perfHudEnabled = false,
   onTogglePerfHud,
   showPerfHudToggle = false,
@@ -445,6 +448,30 @@ function DevToolsFloatingPanel({
                       size="default"
                       className={`${menuBtnCls} !h-10 !px-3 !text-sm ${darkSignUpVariant === id ? activeCls : ''}`}
                       aria-pressed={darkSignUpVariant === id}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              <p className={sectionLabelCls}>Brand logo — light surfaces</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Nav + footer pen mark. Waitlist brand panel stays white-on-purple.
+              </p>
+              {onBrandLogoLightVariantChange && brandLogoLightVariants.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {brandLogoLightVariants.map(({ id, label }) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      onClick={() => onBrandLogoLightVariantChange(id)}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-3 !text-sm ${brandLogoLightVariant === id ? activeCls : ''}`}
+                      aria-pressed={brandLogoLightVariant === id}
                     >
                       {label}
                     </Button>

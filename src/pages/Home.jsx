@@ -78,6 +78,11 @@ import {
   SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
 import {
+  BRAND_LOGO_LIGHT_VARIANT_LIST,
+  DEFAULT_BRAND_LOGO_LIGHT_VARIANT,
+} from '../lib/brandLogoVariants'
+import { BrandLogoVariantProvider } from '../context/BrandLogoVariantContext'
+import {
   BUILDING_BLUR_SRC,
   BUILDING_BLUR_SRCSET,
   BUILDING_BLUR_RESPONSIVE_SIZES,
@@ -389,6 +394,7 @@ export default function Home() {
   const [lightSignUpVariant, setLightSignUpVariant] = useState(DEFAULT_LIGHT_SIGN_UP_VARIANT)
   const [darkSignUpVariant, setDarkSignUpVariant] = useState(DEFAULT_DARK_SIGN_UP_VARIANT)
   const [waitlistFabStyle, setWaitlistFabStyle] = useState(DEFAULT_WAITLIST_FAB_STYLE)
+  const [brandLogoLightVariant, setBrandLogoLightVariant] = useState(DEFAULT_BRAND_LOGO_LIGHT_VARIANT)
   const [perfHudEnabled, setPerfHudEnabled] = useState(() => {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).has('perf')
@@ -954,6 +960,9 @@ export default function Home() {
         waitlistFabStyle,
         onWaitlistFabStyleChange: setWaitlistFabStyle,
         waitlistFabStyles: WAITLIST_FAB_STYLE_LIST,
+        brandLogoLightVariant,
+        onBrandLogoLightVariantChange: setBrandLogoLightVariant,
+        brandLogoLightVariants: BRAND_LOGO_LIGHT_VARIANT_LIST,
         perfHudEnabled,
         onTogglePerfHud: () => setPerfHudEnabled((value) => !value),
         showPerfHudToggle: SHOW_PERF_HUD,
@@ -961,6 +970,7 @@ export default function Home() {
     : undefined
 
   return (
+    <BrandLogoVariantProvider value={brandLogoLightVariant}>
     <div
       ref={scrollerRef}
       className="homepage2-scroller relative h-full min-h-0 overflow-y-auto snap-y snap-mandatory bg-transparent text-foreground"
@@ -1376,5 +1386,6 @@ export default function Home() {
       />
       </div>
     </div>
+    </BrandLogoVariantProvider>
   )
 }
