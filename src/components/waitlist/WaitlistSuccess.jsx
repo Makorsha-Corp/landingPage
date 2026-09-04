@@ -1,4 +1,5 @@
 import { iconTileLg } from '../../lib/loginSurfaceStyles'
+import { BRAND_NAME } from '../../lib/brand.js'
 
 function CheckGlyph({ className = 'h-7 w-7' }) {
   return (
@@ -28,7 +29,7 @@ export default function WaitlistSuccess() {
         You&apos;re on the list
       </h3>
       <p className="mt-3 max-w-sm text-base text-muted-foreground">
-        We&apos;ll be in touch when Marker opens. Thanks for your interest.
+        We&apos;ll be in touch when {BRAND_NAME} opens. Thanks for your interest.
       </p>
     </div>
   )

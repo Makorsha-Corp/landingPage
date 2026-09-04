@@ -2,9 +2,10 @@ import { useState } from 'react'
 import SectionEyebrow from './SectionEyebrow'
 import FaqSettings from './FaqSettings'
 import useInView from '../hooks/useInView'
+import { useTheme } from '../context/ThemeContext'
 import { isPublishableFaq } from '../lib/faqContent'
+import { getStoryCardInteractiveClasses, getStoryCardStyles } from '../lib/storyCardStyles'
 import {
-  marketingCard,
   sectionHeaderWrap,
   sectionLead,
   sectionTitle,
@@ -18,21 +19,46 @@ function FaqAccordionItem({
   reducedMotion,
   editMode,
   onItemChange,
+  theme,
 }) {
   const panelId = `faq-panel-${item.id}`
   const buttonId = `faq-button-${item.id}`
   const isOpen = openIndex === index
+  const isDark = theme === 'dark'
+  const { card: cardCls } = getStoryCardStyles(theme)
   const [ref, inView] = useInView({ enabled: !reducedMotion })
   const reveal = reducedMotion || inView
+
+  const questionCls = isDark ? 'pr-4 font-semibold text-white' : 'pr-4 font-semibold text-foreground'
+  const answerCls = isDark ? 'leading-relaxed text-white/75' : 'leading-relaxed text-muted-foreground'
+  const chevronCls = isDark ? 'text-white/60 group-hover:text-primary' : 'text-muted-foreground group-hover:text-primary'
+
+  const shellCls = editMode
+    ? `relative overflow-hidden rounded-2xl border p-0 ${cardCls} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-2 ring-primary/50`
+    : `group relative overflow-hidden rounded-2xl border p-0 text-left ${cardCls} ${getStoryCardInteractiveClasses(theme)}`
 
   return (
     <div
       ref={ref}
-      className={`overflow-hidden transition-all ${marketingCard} ${
-        isOpen ? 'shadow-md ring-1 ring-border/60' : ''
-      } ${editMode ? 'ring-2 ring-primary/50' : ''} ${
-        reveal ? 'animate-fade-up' : 'opacity-0'
-      }`}
+      role={editMode ? undefined : 'button'}
+      tabIndex={editMode ? undefined : 0}
+      id={editMode ? undefined : buttonId}
+      aria-expanded={editMode ? undefined : isOpen}
+      aria-controls={editMode ? undefined : panelId}
+      onClick={editMode ? undefined : () => onToggle(index)}
+      onKeyDown={
+        editMode
+          ? undefined
+          : (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onToggle(index)
+              }
+            }
+      }
+      className={`${shellCls} ${
+        isOpen && !editMode ? (isDark ? 'ring-primary/40' : 'ring-primary/25') : ''
+      } ${reveal ? 'animate-fade-up' : 'opacity-0'}`}
       style={reveal && !reducedMotion ? { animationDelay: `${index * 80}ms` } : undefined}
     >
       {editMode ? (
@@ -45,17 +71,10 @@ function FaqAccordionItem({
         </div>
       ) : (
         <>
-          <button
-            id={buttonId}
-            type="button"
-            onClick={() => onToggle(index)}
-            aria-expanded={isOpen}
-            aria-controls={panelId}
-            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <span className="pr-4 font-semibold text-foreground">{item.question}</span>
+          <div className="flex w-full items-center justify-between px-5 py-4 text-left">
+            <span className={questionCls}>{item.question}</span>
             <svg
-              className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 ${
+              className={`h-5 w-5 shrink-0 transition-[color,transform] duration-300 ${chevronCls} ${
                 isOpen ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -66,7 +85,7 @@ function FaqAccordionItem({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
-          </button>
+          </div>
           <div
             id={panelId}
             role="region"
@@ -75,7 +94,7 @@ function FaqAccordionItem({
               isOpen ? 'max-h-64' : 'max-h-0'
             }`}
           >
-            <div className="px-5 pb-4 leading-relaxed text-muted-foreground">{item.answer}</div>
+            <div className={`px-5 pb-4 ${answerCls}`}>{item.answer}</div>
           </div>
         </>
       )}
@@ -89,6 +108,7 @@ export default function FAQ({
   editMode = false,
   onFaqChange,
 }) {
+  const { theme } = useTheme()
   const [openIndex, setOpenIndex] = useState(null)
   const visibleItems = editMode ? faq.items : faq.items.filter(isPublishableFaq)
 
@@ -126,6 +146,7 @@ export default function FAQ({
                   )
                   onFaqChange?.({ items: nextItems })
                 }}
+                theme={theme}
               />
             )
           })}

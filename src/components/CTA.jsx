@@ -1,4 +1,5 @@
 import Button from './ui/Button'
+import { BRAND_NAME } from '../lib/brand.js'
 
 export default function CTA() {
   return (
@@ -24,7 +25,7 @@ export default function CTA() {
               Ready to streamline your operations?
             </h2>
             <p className="mt-4 text-lg text-white/80">
-              Join hundreds of manufacturers who've simplified their workflows with Marker.
+              Join hundreds of manufacturers who've simplified their workflows with {BRAND_NAME}.
               Start your free 14-day trial today — no credit card required.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">

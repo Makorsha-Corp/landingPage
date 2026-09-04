@@ -1,22 +1,21 @@
+import { BRAND_NAME } from './brand.js'
+
 export const DEFAULT_FAQ = {
   items: [
     {
       id: 'built-for',
       question: 'What kind of business is this built for?',
-      answer:
-        'Marker is built for textile mills and small-to-mid manufacturers: businesses that buy materials, run them through machines, and ship finished goods. If you are tracking that across spreadsheets today, that is exactly who we built it for.',
+      answer: `${BRAND_NAME} is built for textile mills and small-to-mid manufacturers: businesses that buy materials, run them through machines, and ship finished goods. If you are tracking that across spreadsheets today, that is exactly who we built it for.`,
     },
     {
       id: 'vs-erp',
       question: 'How is this different from a general ERP?',
-      answer:
-        'General ERPs make you describe your factory in accounting terms. Marker starts from the factory itself — machines, batches, formulas, and stock that lives in a specific place. Setup takes days, not a six-month implementation.',
+      answer: `General ERPs make you describe your factory in accounting terms. ${BRAND_NAME} starts from the factory itself — machines, batches, formulas, and stock that lives in a specific place. Setup takes days, not a six-month implementation.`,
     },
     {
       id: 'beta-trust',
       question: 'You are in beta. Should I trust this with my inventory?',
-      answer:
-        'Fair question. Marker runs day to day in a working cotton mill, so it is not untested — but it is early, and we would rather tell you that now than have you discover it later. Start with one part of your operation, keep your existing records alongside it, and expand when it has earned that.',
+      answer: `Fair question. ${BRAND_NAME} runs day to day in a working cotton mill, so it is not untested — but it is early, and we would rather tell you that now than have you discover it later. Start with one part of your operation, keep your existing records alongside it, and expand when it has earned that.`,
     },
     {
       id: 'data-import',
@@ -27,8 +26,7 @@ export const DEFAULT_FAQ = {
     {
       id: 'data-export',
       question: 'What happens to my data if I leave?',
-      answer:
-        'It is yours. Export anything you have put into Marker, at any time, in a standard format. No exit fee and no hostage-taking — if the product stops being worth it, you should be able to walk.',
+      answer: `It is yours. Export anything you have put into ${BRAND_NAME}, at any time, in a standard format. No exit fee and no hostage-taking — if the product stops being worth it, you should be able to walk.`,
     },
     {
       id: 'multi-factory',

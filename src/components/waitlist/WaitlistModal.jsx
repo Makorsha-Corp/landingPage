@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import useWaitlistForm from '../../hooks/useWaitlistForm'
 import useWaitlistFabMorph from '../../hooks/useWaitlistFabMorph'
 import useWaitlistPanelReveal from '../../hooks/useWaitlistPanelReveal'
-import useReducedMotion from '../../hooks/useReducedMotion'
+import useLandingMotion from '../../hooks/useLandingMotion'
 import {
   getMorphShellStyle,
   getWaitlistModalTargetRect,
@@ -49,7 +49,7 @@ export default function WaitlistModal({
   scrollerRef,
   returnFocusRef,
 }) {
-  const reducedMotion = useReducedMotion()
+  const { reducedMotion } = useLandingMotion()
   const closeButtonRef = useRef(null)
   const returnFocusStoredRef = useRef(null)
   const resolvedMorphMeta = { ...DEFAULT_MORPH_META, ...morphMeta }

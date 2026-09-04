@@ -1,8 +1,13 @@
 import { useState } from 'react'
+import { ArrowRight } from 'lucide-react'
 import CapabilitiesSettings from './CapabilitiesSettings'
 import FeatureCardDialog from './FeatureCardDialog'
 import useInView from '../hooks/useInView'
-import { getStoryCardStyles } from '../lib/storyCardStyles'
+import {
+  getStoryCardArrowPillClasses,
+  getStoryCardInteractiveClasses,
+  getStoryCardStyles,
+} from '../lib/storyCardStyles'
 
 const CAPABILITY_CARD_CLASS = 'flex h-[219px] flex-col text-left'
 const CAPABILITY_CARD_EDIT_CLASS = 'flex min-h-[219px] flex-col'
@@ -26,7 +31,7 @@ function CapabilityIcon({ path }) {
 function CapabilityCardContent({ card, titleCls, descCls }) {
   return (
     <>
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white group-active:bg-primary group-active:text-white">
         <CapabilityIcon path={card.icon} />
       </div>
       <h3 className={`text-base font-semibold ${titleCls}`}>{card.title}</h3>
@@ -53,7 +58,7 @@ function CapabilityCard({
   const sharedCls = `group relative rounded-2xl border p-5 ${editMode ? CAPABILITY_CARD_EDIT_CLASS : CAPABILITY_CARD_CLASS} ${cardCls} ${
     editMode ? 'ring-2 ring-primary/50' : ''
   } ${showCard ? 'animate-fade-up' : 'opacity-0'} ${
-    !editMode ? 'cursor-pointer transition-shadow hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50' : ''
+    !editMode ? getStoryCardInteractiveClasses(theme) : ''
   }`
 
   const style = showCard && !reducedMotion ? { animationDelay: `${Math.min(index, 5) * 40}ms` } : undefined
@@ -83,6 +88,11 @@ function CapabilityCard({
       onClick={() => onOpen(card)}
     >
       {badge}
+      {!card.badge ? (
+        <span className={getStoryCardArrowPillClasses(theme)} aria-hidden="true">
+          <ArrowRight className="h-4 w-4" strokeWidth={2} />
+        </span>
+      ) : null}
       <CapabilityCardContent card={card} titleCls={titleCls} descCls={descCls} />
     </button>
   )

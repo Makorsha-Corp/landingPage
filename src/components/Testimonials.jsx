@@ -1,11 +1,12 @@
 import SectionEyebrow from './SectionEyebrow'
+import { useTheme } from '../context/ThemeContext'
+import { getStoryCardStaticClasses } from '../lib/storyCardStyles'
 import {
-  iconTileLg,
-  marketingCardInteractive,
   sectionHeaderWrap,
   sectionLead,
   sectionTitle,
 } from '../lib/loginSurfaceStyles'
+import { BRAND_NAME } from '../lib/brand.js'
 
 const DEFAULT_TESTIMONIALS = [
   {
@@ -18,61 +19,60 @@ const DEFAULT_TESTIMONIALS = [
   },
 ]
 
+const ORIGIN_LEAD = `${BRAND_NAME} was designed on the floor of a cotton mill, not in a product meeting. Every workflow on this page exists because somebody needed it to get through their day.`
+
+function QuotePanel({ testimonial, theme, isDark }) {
+  const quoteCls = isDark
+    ? 'border-l-[3px] border-primary/50 pl-5 text-lg leading-relaxed text-white/90 sm:text-xl'
+    : 'border-l-[3px] border-primary/40 pl-5 text-lg leading-relaxed text-foreground sm:text-xl'
+  const authorCls = isDark ? 'font-semibold text-white' : 'font-semibold text-foreground'
+  const roleCls = isDark ? 'text-sm text-white/65' : 'text-sm text-muted-foreground'
+  const avatarCls =
+    'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary'
+
+  const attribution = `${testimonial.role}, ${testimonial.company}`
+
+  return (
+    <figure className={getStoryCardStaticClasses(theme)}>
+      <blockquote className={quoteCls}>&ldquo;{testimonial.quote}&rdquo;</blockquote>
+      <figcaption className="mt-6 flex items-center gap-4">
+        <div className={avatarCls} aria-hidden="true">
+          {testimonial.avatar}
+        </div>
+        <div>
+          <p className={authorCls}>{testimonial.author}</p>
+          <p className={roleCls}>{attribution}</p>
+        </div>
+      </figcaption>
+    </figure>
+  )
+}
+
 export default function Testimonials({ testimonials = DEFAULT_TESTIMONIALS }) {
-  const count = testimonials.length
-  const gridCols =
-    count === 1
-      ? 'grid-cols-1 max-w-3xl mx-auto'
-      : count === 2
-        ? 'grid-cols-1 md:grid-cols-2'
-        : 'grid-cols-1 md:grid-cols-3'
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  const headlineCls = isDark ? `${sectionTitle} text-white` : sectionTitle
+  const leadCls = isDark ? `${sectionLead} text-white/75` : sectionLead
 
   return (
     <section className="flex h-full min-h-0 w-full flex-1 flex-col justify-center py-20">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center px-4 sm:px-6 lg:px-8">
-        <div className={`mb-10 ${sectionHeaderWrap}`}>
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col justify-center px-4 sm:px-6 lg:px-8">
+        <div className={`mb-8 sm:mb-10 ${sectionHeaderWrap}`}>
           <SectionEyebrow>Proof</SectionEyebrow>
-          <h2 className={`mt-3 ${sectionTitle}`}>Built inside a working mill</h2>
-          <p className={`mt-3 ${sectionLead}`}>
-            Marker was designed on the floor of a cotton mill, not in a product meeting. Every
-            workflow on this page exists because somebody needed it to get through their day.
-          </p>
+          <h2 className={`mt-3 ${headlineCls}`}>Built inside a working mill</h2>
+          <p className={`mt-3 ${leadCls}`}>{ORIGIN_LEAD}</p>
         </div>
 
-        <div className={`grid gap-6 ${gridCols}`}>
+        <div className="grid grid-cols-1 gap-6">
           {testimonials.map((testimonial) => (
-            <div key={testimonial.author} className={`relative sm:p-6 ${marketingCardInteractive}`}>
-              <svg
-                className="absolute right-5 top-5 h-8 w-8 text-primary/20"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-              </svg>
-
-              <blockquote className="mb-6 text-lg leading-relaxed text-foreground sm:text-xl">
-                &ldquo;{testimonial.quote}&rdquo;
-              </blockquote>
-
-              <div className="flex items-center gap-4">
-                <div className={iconTileLg}>{testimonial.avatar}</div>
-                <div>
-                  <p className="font-semibold text-foreground">{testimonial.author}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.role}, {testimonial.company}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <QuotePanel
+              key={testimonial.author}
+              testimonial={testimonial}
+              theme={theme}
+              isDark={isDark}
+            />
           ))}
-        </div>
-
-        <div className="mt-10 border-t border-border/80 pt-8">
-          <p className="mb-6 text-center text-sm text-muted-foreground">In production at</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-            <div className="text-lg font-semibold text-muted-foreground">Akbar Cotton Mill</div>
-          </div>
         </div>
       </div>
     </section>

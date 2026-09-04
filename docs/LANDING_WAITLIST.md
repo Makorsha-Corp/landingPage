@@ -38,13 +38,13 @@ CTAs pass `getBoundingClientRect()` plus trigger element. `openWaitlist` reads c
 
 After the shell reaches full size (`phase === 'open'`), the dialog runs a second beat:
 
-1. **Covered** — purple brand panel fills the entire modal (form hidden behind); **center-aligned** column (dashboard-style Marker mark, Kolom, eyebrow, headline — no lead yet).
+1. **Covered** — purple brand panel fills the entire modal (form hidden behind); **center-aligned** column (dashboard-style Kolom logo, brand name, eyebrow, headline — no lead yet).
 2. **Reveal** — column **transform-slides left** (420ms, synced with panel swipe); text snaps to left-aligned; lead + FAQ link stagger in after (0ms, 60ms). **Mobile:** 35/65 vertical stack; brand stays **top-left** (no center→left column shift); headline-only header (lead/FAQ hidden in strip); scrollable form. **Desktop (`md+`):** 47/53 side-by-side columns with full centered-cover choreography.
 
 **Timing unchanged:** morph expand 480ms, collapse 420ms, panel reveal 420ms ([`waitlistFabMorph.js`](src/lib/waitlistFabMorph.js)). Brand choreography differs from earlier iterations (no logo-only FLIP; eyebrow/headline visible on cover without stagger).
 3. **Close** — copy clears and purple re-covers instantly (no logo reverse travel), then the shell morphs back to the trigger button.
 
-Timing: `useWaitlistPanelReveal` + `PANEL_REVEAL_DURATION_MS` (420ms). Skipped when `prefers-reduced-motion: reduce`.
+Timing: `useWaitlistPanelReveal` + `PANEL_REVEAL_DURATION_MS` (420ms). Waitlist morph/reveal uses `useLandingMotion()` (same as scroll tour — ignores OS `prefers-reduced-motion`, e.g. Windows “Show animations” off).
 
 ---
 
@@ -80,7 +80,7 @@ WaitlistModal.jsx                   POST /api/v1/waitlist  (public)
 
 | File | Role |
 |------|------|
-| `src/components/waitlist/WaitlistFab.jsx` | Fixed bottom-right FAB (post-hero); fade-in enter |
+| `src/components/waitlist/WaitlistFab.jsx` | Post-hero Sign Up trigger (`placement="inline"` in navbar, or fixed bottom-right); fade-in enter |
 | `src/components/waitlist/WaitlistFabFace.jsx` | FAB visual variants (pill, icon, glass, banner) |
 | `src/lib/waitlistFabStyles.js` | FAB style registry + morph meta |
 | `src/hooks/useWaitlistFabFadeEnter.js` | One-shot fade-in when FAB appears after hero |
@@ -125,7 +125,7 @@ Confirms table `waitlist_signups` exists. Migration merges two Alembic heads (`0
 | `VITE_API_URL` | Landing `.env` / Vercel | Backend base, e.g. `https://backend-production-847f.up.railway.app/api/v1` |
 | `VITE_TURNSTILE_SITE_KEY` | Landing | Cloudflare Turnstile site key (public widget) |
 | `TURNSTILE_SECRET_KEY` | Backend Railway | Turnstile server verification |
-| `WAITLIST_ADMIN_EMAILS` | Backend | Comma-separated admin emails for GET list |
+| `WAITLIST_ADMIN_EMAILS` | Backend | Optional legacy allowlist; **`profiles.is_platform_admin`** also grants list access |
 | `WAITLIST_IP_HASH_SALT` | Backend optional | Extra salt for hashed IP |
 | `BACKEND_CORS_ORIGINS` | Backend | Must include landing origin |
 
@@ -166,7 +166,7 @@ Content-Type: application/json
 { "status": "CONTACTED" }
 ```
 
-`status` is one of `PENDING` | `CONTACTED` | `ACCEPTED` | `DECLINED` (defaults to `PENDING` on signup). `GET /api/v1/waitlist` also accepts a `status` query param to filter the list. Both routes require the admin allowlist (`WAITLIST_ADMIN_EMAILS`).
+`status` is one of `PENDING` | `CONTACTED` | `ACCEPTED` | `DECLINED` (defaults to `PENDING` on signup). `GET /api/v1/waitlist` also accepts a `status` query param to filter the list. Admin routes require **`is_platform_admin`** on the logged-in profile or (legacy) an email on `WAITLIST_ADMIN_EMAILS`. See backend `docs/PLATFORM_ADMIN.md`.
 
 ---
 
@@ -177,7 +177,7 @@ Content-Type: application/json
 3. Hero / pricing / bottom-right FAB CTAs each open modal with correct label on morph face and correct `source`.
 4. Scroll past FAQ — no waitlist deck panel.
 5. Short viewport (~800px height) — form scrolls inside modal; submit + Turnstile reachable.
-6. `prefers-reduced-motion: reduce` → instant modal, no travel.
+6. Windows “Show animations” off / `prefers-reduced-motion: reduce` — waitlist morph + panel reveal still run (matches scroll tour).
 
 ---
 

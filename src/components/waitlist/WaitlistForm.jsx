@@ -2,6 +2,7 @@ import { Turnstile } from '@marsidev/react-turnstile'
 import WaitlistCheckbox from './WaitlistCheckbox'
 import WaitlistSubmitButton from './WaitlistSubmitButton'
 import { waitlistInput } from '../../lib/loginSurfaceStyles'
+import { BRAND_NAME } from '../../lib/brand.js'
 
 export default function WaitlistForm({
   firstName,
@@ -139,7 +140,7 @@ export default function WaitlistForm({
       <WaitlistSubmitButton disabled={!canSubmit} isSubmitting={status === 'submitting'} />
 
       <p className="text-xs text-muted-foreground">
-        We&apos;ll only use your email for Marker waitlist and optional updates.{' '}
+        We&apos;ll only use your email for {BRAND_NAME} waitlist and optional updates.{' '}
         <a href="#faq" className="text-primary hover:underline">
           Privacy
         </a>

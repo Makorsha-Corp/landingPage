@@ -338,12 +338,6 @@
   animation: sheet-slide-up 0.3s ease-out both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-sheet-slide-up {
-    animation: none;
-  }
-}
-
 @keyframes pricing-tier-from-right {
   from {
     opacity: 0;
@@ -372,13 +366,6 @@
 
 .animate-pricing-tier-from-left {
   animation: pricing-tier-from-left 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-pricing-tier-from-right,
-  .animate-pricing-tier-from-left {
-    animation: fade-in 0.2s ease both;
-  }
 }
 
 .homepage2-page .animate-pricing-tier-from-right {
@@ -560,52 +547,6 @@
     opacity: 1;
     transform: none;
     transition: opacity 180ms ease-out;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-waitlist-fab-enter {
-    animation: fade-in 0.2s ease both;
-  }
-
-  .animate-waitlist-nav-signup-enter {
-    animation: none;
-  }
-
-  .waitlist-morph-shell,
-  .waitlist-morph-content {
-    will-change: auto;
-  }
-
-  [data-waitlist-morph-origin].waitlist-morph-origin-hidden {
-    transition: none;
-  }
-
-  .waitlist-brand-panel,
-  .waitlist-form-panel,
-  .waitlist-brand-column {
-    transition: none;
-  }
-
-  @media (min-width: 768px) {
-    .waitlist-brand-panel--revealed {
-      width: 47%;
-      height: 100%;
-    }
-
-    .waitlist-form-panel--revealed {
-      left: 47%;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      opacity: 1;
-    }
-  }
-
-  .waitlist-brand-item {
-    opacity: 1;
-    transform: none;
-    transition: none;
   }
 }
 

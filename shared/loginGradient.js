@@ -1,6 +1,6 @@
 /**
  * Login page Lavender (default) gradient — static linear mode.
- * Synced from repo-root shared/ (see shared/README.md).
+ * Shared by landingPage; LoginPage can import later.
  */
 
 const LAVENDER_LINEAR = {
@@ -13,16 +13,12 @@ const LAVENDER_LINEAR = {
 export const LAVENDER_RADIAL =
   'radial-gradient(ellipse 320% 280% at var(--login-grad-x, 72%) var(--login-grad-y, 65%), hsl(var(--primary) / 0.32) 0%, hsl(var(--background)) 46%, hsl(var(--background)) 100%)'
 
-export const LAVENDER_RADIAL_HERO_LIGHT =
-  'radial-gradient(ellipse 320% 280% at var(--login-grad-x, 72%) var(--login-grad-y, 65%), hsl(var(--primary) / 0.14) 0%, hsl(var(--background)) 38%, hsl(var(--background)) 100%)'
-
 /** @param {'light' | 'dark' | string} theme */
 export function getLoginGradientStyle(theme) {
   const bg = theme === 'dark' ? LAVENDER_LINEAR.dark : LAVENDER_LINEAR.light
   return { background: bg }
 }
 
-export function getLoginRadialGradientStyle(variant = 'default') {
-  if (variant === 'hero-light') return { background: LAVENDER_RADIAL_HERO_LIGHT }
+export function getLoginRadialGradientStyle() {
   return { background: LAVENDER_RADIAL }
 }

@@ -1,3 +1,5 @@
+import { BRAND_DOMAIN } from '../../lib/brand.js'
+
 export default function DemoPreview() {
   const mockOrders = [
     { id: 'PO-2026-042', supplier: 'Cotton Traders Ltd.', status: 'In Transit', amount: '$12,450.00', statusColor: 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400' },
@@ -19,7 +21,7 @@ export default function DemoPreview() {
             </div>
             <div className="flex-1 mx-4">
               <div className="mx-auto max-w-md rounded-md bg-muted px-4 py-1.5 text-xs text-muted-foreground text-center">
-                app.marker.io/dashboard
+                app.{BRAND_DOMAIN}/dashboard
               </div>
             </div>
           </div>

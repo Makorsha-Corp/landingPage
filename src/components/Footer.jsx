@@ -1,4 +1,5 @@
 import BrandLogo from './BrandLogo'
+import { BRAND_NAME, supportEmail } from '../lib/brand.js'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -14,7 +15,7 @@ export default function Footer() {
       { label: 'About', href: '#' },
       { label: 'Blog', href: '#' },
       { label: 'Careers', href: '#' },
-      { label: 'Contact', href: 'mailto:support@marker.io' },
+      { label: 'Contact', href: `mailto:${supportEmail()}` },
     ],
     Legal: [
       { label: 'Privacy Policy', href: '#' },
@@ -31,7 +32,7 @@ export default function Footer() {
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <BrandLogo />
-              <span className="text-xl font-bold text-foreground">Marker</span>
+              <span className="text-xl font-bold text-foreground">{BRAND_NAME}</span>
             </div>
             <p className="text-muted-foreground max-w-xs mb-6">
               Simple ERP for textile mills and manufacturers. Manage orders, inventory, and production in one place.

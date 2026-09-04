@@ -5,6 +5,7 @@ import LandingSectionNav from './LandingSectionNav'
 import LandingMobileMenu from './LandingMobileMenu'
 import LandingMobileThemeDevMenu from './LandingMobileThemeDevMenu'
 import NavbarShell from './NavbarShell'
+import { BRAND_NAME } from '../lib/brand.js'
 
 export default function LandingNavBar({
   sections,
@@ -19,7 +20,7 @@ export default function LandingNavBar({
       <div className="relative flex h-14 items-center gap-2 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandLogo variant="soft" />
-          <span className={navTitleClass}>Kolom</span>
+          <span className={navTitleClass}>{BRAND_NAME}</span>
         </Link>
 
         <LandingSectionNav

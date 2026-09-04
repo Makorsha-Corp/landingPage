@@ -884,6 +884,23 @@ export default function Home() {
         desktopActions={
           <div className="hidden items-center gap-2 sm:gap-3 md:flex">
             {landingDevToolsProps ? <DevToolsPopover {...landingDevToolsProps} /> : null}
+            <WaitlistFab
+              ref={waitlistFabRef}
+              placement="inline"
+              visible={waitlistFabVisible}
+              morphing={waitlistModalOpen}
+              enterFromHero
+              fabStyle={waitlistFabStyle}
+              variant={signUpButtonVariant}
+              onClick={(rect, triggerEl) =>
+                openWaitlist(
+                  'waitlist_section',
+                  rect,
+                  { ...getWaitlistFabMorphMeta(waitlistFabStyle), variant: signUpButtonVariant },
+                  triggerEl,
+                )
+              }
+            />
             <ThemeToggleButton variant="nav" />
           </div>
         }
@@ -927,7 +944,7 @@ export default function Home() {
             <img
               ref={buildingSharpRef}
               src={BUILDING_IMAGE}
-              alt="Marker headquarters cutaway"
+              alt="Kolom headquarters cutaway"
               className="homepage-tour-building-img homepage-tour-building-sharp h-full w-full select-none"
               fetchPriority="high"
               draggable={false}
@@ -1171,23 +1188,6 @@ export default function Home() {
         onFaqClick={goFaq}
         onJoinWaitlist={(source, rect, meta, triggerEl) =>
           openWaitlist(source, rect, meta, triggerEl)
-        }
-      />
-
-      <WaitlistFab
-        ref={waitlistFabRef}
-        visible={waitlistFabVisible}
-        morphing={waitlistModalOpen}
-        enterFromHero
-        fabStyle={waitlistFabStyle}
-        variant={signUpButtonVariant}
-        onClick={(rect, triggerEl) =>
-          openWaitlist(
-            'waitlist_section',
-            rect,
-            { ...getWaitlistFabMorphMeta(waitlistFabStyle), variant: signUpButtonVariant },
-            triggerEl,
-          )
         }
       />
 

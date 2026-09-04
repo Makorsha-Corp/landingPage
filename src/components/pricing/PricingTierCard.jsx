@@ -13,7 +13,7 @@ const TIER_CARD_SHELL =
   'relative flex min-h-[inherit] flex-col rounded-3xl p-5 shadow-2xl ring-1'
 
 const TIER_CARD_HOVER_BASE =
-  'motion-reduce:transition-none lg:transition-[box-shadow,ring-color,border-color] lg:duration-300 lg:ease-out lg:hover:shadow-[0_28px_56px_-16px_rgba(0,0,0,0.22)]'
+  'lg:transition-[box-shadow,ring-color,border-color] lg:duration-300 lg:ease-out lg:hover:shadow-[0_28px_56px_-16px_rgba(0,0,0,0.22)]'
 
 const TIER_CARD_HOVER_HERO = `${TIER_CARD_HOVER_BASE} lg:hover:ring-primary/50`
 

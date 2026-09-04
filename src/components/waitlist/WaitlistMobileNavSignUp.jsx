@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import { RainbowButton } from '@/components/ui/rainbow-button'
 import { cn } from '@/lib/utils'
-import useReducedMotion from '../../hooks/useReducedMotion'
+import useLandingMotion from '../../hooks/useLandingMotion'
 
 const WaitlistMobileNavSignUp = forwardRef(function WaitlistMobileNavSignUp(
   {
@@ -13,7 +13,7 @@ const WaitlistMobileNavSignUp = forwardRef(function WaitlistMobileNavSignUp(
   },
   ref,
 ) {
-  const reducedMotion = useReducedMotion()
+  const { reducedMotion } = useLandingMotion()
 
   if (!visible) return null
 
