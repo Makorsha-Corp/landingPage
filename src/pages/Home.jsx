@@ -85,7 +85,6 @@ import {
   BUILDING_SHARP_SRC,
   BUILDING_SHARP_SRCSET,
   HOMEPAGE_BACKGROUNDS,
-  HOMEPAGE_BACKGROUND_SRCSETS,
   HOMEPAGE_BLUR_BACKGROUNDS,
   HOMEPAGE_BLUR_BACKGROUND_SRCSETS,
   HOMEPAGE_RESPONSIVE_SIZES,
@@ -805,6 +804,7 @@ export default function Home() {
       activeIndex,
       activeSection,
       mobileTourDrawerVisible,
+      mobileTourDrawerExpanded: Boolean(mobileStopPanelStopId),
       featuresBackdropProgress,
     }),
     [
@@ -814,6 +814,7 @@ export default function Home() {
       activeIndex,
       activeSection,
       mobileTourDrawerVisible,
+      mobileStopPanelStopId,
       featuresBackdropProgress,
     ],
   )
@@ -862,6 +863,24 @@ export default function Home() {
         const clampedDest = maxDest != null ? Math.min(dest, maxDest) : dest
         await scrollScrollerTo(scroller, Math.max(0, clampedDest), { reducedMotion })
       })
+
+      if (isMobileTour && panelIndex >= 1) {
+        const stop = stops[panelIndex - 1]
+        if (stop?.points?.length) {
+          steps.push({
+            action: async () => {
+              setMobileStopPanelStopId(stop.id)
+            },
+            label: `tour · stop ${panelIndex - 1} · drawer expanded`,
+          })
+          steps.push({
+            action: async () => {
+              setMobileStopPanelStopId(null)
+            },
+            recordMarker: false,
+          })
+        }
+      }
     }
 
     for (const id of POST_TOUR_SECTION_IDS) {
@@ -891,6 +910,8 @@ export default function Home() {
     getTourPanelScrollTop,
     getLastTourPanelScrollTop,
     lastTourPanelIndex,
+    isMobileTour,
+    stops,
     sectionRefMap,
     reducedMotion,
   ])
@@ -1041,8 +1062,6 @@ export default function Home() {
             <img
               ref={backgroundImgRef}
               src={HOMEPAGE_BACKGROUNDS[theme]}
-              srcSet={HOMEPAGE_BACKGROUND_SRCSETS[theme]}
-              sizes={HOMEPAGE_RESPONSIVE_SIZES}
               alt=""
               aria-hidden="true"
               decoding="async"
@@ -1067,6 +1086,8 @@ export default function Home() {
               src={BUILDING_SHARP_SRC}
               srcSet={BUILDING_SHARP_SRCSET}
               sizes={BUILDING_RESPONSIVE_SIZES}
+              width={1024}
+              height={831}
               alt="Kolom headquarters cutaway"
               className="homepage-tour-building-img homepage-tour-building-sharp h-full w-full select-none"
               fetchPriority="high"
@@ -1078,6 +1099,8 @@ export default function Home() {
               src={BUILDING_BLUR_SRC}
               srcSet={BUILDING_BLUR_SRCSET}
               sizes={BUILDING_BLUR_RESPONSIVE_SIZES}
+              width={1024}
+              height={831}
               alt=""
               aria-hidden="true"
               decoding="async"
@@ -1336,6 +1359,7 @@ export default function Home() {
         heroExitAdvanced={heroExitAdvanced}
         activeIndex={activeIndex}
         mobileTourDrawerVisible={mobileTourDrawerVisible}
+        mobileTourDrawerExpanded={Boolean(mobileStopPanelStopId)}
         featuresBackdropProgress={featuresBackdropProgress}
         tourMetricsRef={tourMetricsRef}
       />
@@ -1347,6 +1371,7 @@ export default function Home() {
         heroExitAdvanced={heroExitAdvanced}
         activeIndex={activeIndex}
         mobileTourDrawerVisible={mobileTourDrawerVisible}
+        mobileTourDrawerExpanded={Boolean(mobileStopPanelStopId)}
         featuresBackdropProgress={featuresBackdropProgress}
       />
       </div>

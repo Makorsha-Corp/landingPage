@@ -11,8 +11,8 @@ const WIDTHS = [828, 1400, 2048]
 const SOURCES = [
   { file: 'building-full.png', quality: 88, smartSubsample: false },
   { file: 'building-95-blurred.png', quality: 75 },
-  { file: 'homepage-background.png', quality: 88 },
-  { file: 'homepage-background-dark.png', quality: 88 },
+  { file: 'homepage-background.png', quality: 92 },
+  { file: 'homepage-background-dark.png', quality: 92 },
   { file: 'homepage-background-blur.png', quality: 75 },
   { file: 'homepage-background-blur-dark.png', quality: 75 },
 ]

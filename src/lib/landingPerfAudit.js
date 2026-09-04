@@ -40,10 +40,28 @@ export function scrollScrollerTo(scroller, destTop, { reducedMotion = false } = 
   })
 }
 
+function normalizeAuditStep(step) {
+  if (typeof step === 'function') {
+    return { action: step, label: null, recordMarker: true }
+  }
+  return {
+    action: step.action,
+    label: step.label ?? null,
+    recordMarker: step.recordMarker !== false,
+  }
+}
+
+function defaultMarkerLabel(tour = {}) {
+  if (tour.activeSection === 'tour') {
+    return `tour · hero ${tour.heroActive ? 'on' : 'off'} · stop ${tour.activeIndex ?? 0}`
+  }
+  return `section · ${tour.activeSection ?? 'unknown'}`
+}
+
 /**
  * Auto-scroll landing page checkpoints while recording frame metrics.
  * @param {object} options
- * @param {() => Promise<void>[]} options.steps — ordered scroll actions
+ * @param {(function|{ action: function, label?: string, recordMarker?: boolean })[]} options.steps
  * @param {() => object} options.getTourContext — tour snapshot for markers/report
  * @param {boolean} [options.reducedMotion]
  */
@@ -52,16 +70,16 @@ export async function runLandingPerfAudit({ steps = [], getTourContext, reducedM
   collector.start()
 
   try {
-    for (const step of steps) {
-      await step()
+    for (const rawStep of steps) {
+      const { action, label, recordMarker } = normalizeAuditStep(rawStep)
+      await action()
       await wait(reducedMotion ? 120 : SETTLE_AFTER_SCROLL_MS)
+
+      if (!recordMarker) continue
+
       const live = collector.getLiveMetrics()
       const tour = getTourContext?.() ?? {}
-      const label =
-        tour.activeSection === 'tour'
-          ? `tour · hero ${tour.heroActive ? 'on' : 'off'} · stop ${tour.activeIndex ?? 0}`
-          : `section · ${tour.activeSection ?? 'unknown'}`
-      collector.recordPhaseMarker(label, live)
+      collector.recordPhaseMarker(label ?? defaultMarkerLabel(tour), live)
     }
 
     await wait(reducedMotion ? 80 : 400)

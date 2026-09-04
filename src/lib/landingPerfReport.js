@@ -58,8 +58,11 @@ export function collectDeviceContext() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     networkType: connection?.effectiveType ?? null,
     downlinkMbps: connection?.downlink ?? null,
+    saveData: connection?.saveData ?? null,
+    connectionType: connection?.type ?? null,
     hardwareConcurrency: navigator.hardwareConcurrency ?? null,
     deviceMemoryGb: navigator.deviceMemory ?? null,
+    maxTouchPoints: navigator.maxTouchPoints ?? null,
     pageUrl: window.location.pathname + window.location.search,
     buildMode: import.meta.env.PROD ? 'prod' : 'dev',
   }
@@ -77,12 +80,24 @@ function formatDeviceLine(device) {
 function formatNetworkLine(device) {
   const network = device.networkType ?? 'n/a'
   const downlink = device.downlinkMbps != null ? `${device.downlinkMbps}Mbps` : 'n/a'
-  return `${network} · ${device.language} · ${device.timezone} · ${downlink}`
+  const saveData =
+    device.saveData == null ? 'saveData n/a' : device.saveData ? 'saveData on' : 'saveData off'
+  const connType = device.connectionType ? ` · ${device.connectionType}` : ''
+  return `${network}${connType} · ${device.language} · ${device.timezone} · ${downlink} · ${saveData}`
+}
+
+function formatHardwareLine(device) {
+  const cores = device.hardwareConcurrency ?? 'n/a'
+  const memory = device.deviceMemoryGb != null ? `${device.deviceMemoryGb}GB` : 'n/a'
+  const touch = device.maxTouchPoints ?? 'n/a'
+  return `${cores} cores · ${memory} RAM · ${touch} touch points`
 }
 
 function formatTourLine(tour = {}) {
   const hero = tour.heroActive ? 'on' : 'off'
-  const drawer = tour.mobileTourDrawerVisible ? 'on' : 'off'
+  let drawer = 'off'
+  if (tour.mobileTourDrawerExpanded) drawer = 'expanded'
+  else if (tour.mobileTourDrawerVisible) drawer = 'peek'
   const mobile = tour.isMobileTour ? 'mobile tour' : 'desktop tour'
   return `${mobile} · ${tour.theme ?? 'unknown'} · hero ${hero} · stop ${tour.activeIndex ?? 0} · drawer ${drawer} · wash ${(tour.featuresBackdropProgress ?? 0).toFixed(2)} · section ${tour.activeSection ?? 'n/a'}`
 }
@@ -145,6 +160,7 @@ export function formatLandingFeedbackReport({
     '──────────────────────',
     `Device: ${formatDeviceLine(resolvedDevice)}`,
     `Network: ${formatNetworkLine(resolvedDevice)}`,
+    `Hardware: ${formatHardwareLine(resolvedDevice)}`,
     `Page: ${resolvedDevice.pageUrl} · ${resolvedDevice.buildMode}`,
     '',
     `Tour: ${formatTourLine(tour)}`,

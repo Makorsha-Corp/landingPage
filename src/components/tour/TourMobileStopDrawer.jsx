@@ -7,11 +7,13 @@ const SWIPE_OPEN_PX = 48
 const SWIPE_DISMISS_PX = 80
 const SHEET_DURATION_MS = 380
 const SHEET_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)'
-const PEEK_FALLBACK_PX = 156
+const PEEK_FALLBACK_PX = 80
 const EXPANDED_VH = 0.85
-const PEEK_MAX_VH = 0.55
+const PEEK_MAX_VH = 0.15
 const BODY_TOP_PX = 12
 const CONTENT_END_GAP_PX = 16
+const CONTENT_FADE_IN_DELAY_MS = 50
+const CONTENT_FADE_OUT_MS = 150
 
 export default function TourMobileStopDrawer({
   peekStop,
@@ -35,9 +37,12 @@ export default function TourMobileStopDrawer({
   const [expandedHeightPx, setExpandedHeightPx] = useState(PEEK_FALLBACK_PX)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [dragRevealPoints, setDragRevealPoints] = useState(false)
+  const [dragRevealContent, setDragRevealContent] = useState(false)
   const [lastExpandedStop, setLastExpandedStop] = useState(null)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [contentVisible, setContentVisible] = useState(isOpen && reducedMotion)
+  const [contentFadingOut, setContentFadingOut] = useState(false)
+  const [heightExpanded, setHeightExpanded] = useState(isOpen)
 
   if (expandedStop != null && expandedStop !== lastExpandedStop) {
     setLastExpandedStop(expandedStop)
@@ -48,7 +53,18 @@ export default function TourMobileStopDrawer({
     setDragOffset(0)
     setIsDragging(false)
     if (!isOpen) {
-      setDragRevealPoints(false)
+      setDragRevealContent(false)
+      if (reducedMotion) {
+        setContentVisible(false)
+        setContentFadingOut(false)
+        setHeightExpanded(false)
+      } else {
+        setContentFadingOut(true)
+      }
+    } else {
+      setContentFadingOut(false)
+      setHeightExpanded(true)
+      setContentVisible(reducedMotion)
     }
   }
 
@@ -59,15 +75,19 @@ export default function TourMobileStopDrawer({
     typeof window !== 'undefined' ? window.innerHeight * PEEK_MAX_VH : 420,
   )
 
-  const revealPoints = isOpen || dragRevealPoints
   const displayStop = peekStop ?? expandedStop ?? lastExpandedStop
-  const showDrawer = Boolean(displayStop) && (peekVisible || isOpen || revealPoints)
+  const showDrawer = Boolean(displayStop) && (peekVisible || isOpen || dragRevealContent)
 
   const hasPoints = Boolean(displayStop?.points?.length)
-  const canExpand = hasPoints
+  const canExpand = Boolean(displayStop?.desc || displayStop?.desc2 || hasPoints)
 
   const collapsingByDrag = isOpen && isDragging && dragOffset > 24
-  const showPoints = canExpand && ((isOpen && !collapsingByDrag) || (revealPoints && !isOpen))
+  const showBodyContent =
+    canExpand &&
+    ((contentVisible && !collapsingByDrag) ||
+      (dragRevealContent && isDragging && !isOpen && !contentFadingOut))
+
+  const bodyShown = showBodyContent && !contentFadingOut
 
   const readBottomInsetPx = useCallback(() => {
     if (typeof document === 'undefined') return CONTENT_END_GAP_PX
@@ -83,12 +103,8 @@ export default function TourMobileStopDrawer({
 
   const measurePeekHeight = useCallback(() => {
     const headerH = headerRef.current?.offsetHeight ?? 0
-    const contentH = contentMeasureRef.current?.scrollHeight ?? 0
     const bottomInset = readBottomInsetPx()
-    return Math.min(
-      Math.max(headerH + BODY_TOP_PX + contentH + bottomInset, PEEK_FALLBACK_PX),
-      peekCapPx,
-    )
+    return Math.min(Math.max(headerH + bottomInset, PEEK_FALLBACK_PX), peekCapPx)
   }, [peekCapPx, readBottomInsetPx])
 
   const measureExpandedHeight = useCallback(() => {
@@ -98,29 +114,43 @@ export default function TourMobileStopDrawer({
     return Math.min(headerH + BODY_TOP_PX + contentH + bottomInset + 4, expandedCapPx)
   }, [expandedCapPx, readBottomInsetPx])
 
+  useEffect(() => {
+    if (!isOpen || reducedMotion) return undefined
+    const timer = window.setTimeout(() => setContentVisible(true), CONTENT_FADE_IN_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [isOpen, reducedMotion])
+
+  useEffect(() => {
+    if (isOpen || reducedMotion || !contentFadingOut) return undefined
+    const timer = window.setTimeout(() => {
+      setContentVisible(false)
+      setContentFadingOut(false)
+      setHeightExpanded(false)
+    }, CONTENT_FADE_OUT_MS)
+    return () => window.clearTimeout(timer)
+  }, [isOpen, reducedMotion, contentFadingOut])
+
   useLayoutEffect(() => {
     if (!showDrawer) return undefined
 
     const headerEl = headerRef.current
     const contentEl = contentMeasureRef.current
-    if (!headerEl || !contentEl) return undefined
+    if (!headerEl) return undefined
 
     const applyHeights = () => {
       const peek = measurePeekHeight()
       setPeekHeightPx(peek)
 
-      if (canExpand) {
-        if (showPoints && !isDragging) {
-          setExpandedHeightPx(Math.max(measureExpandedHeight(), peek))
-        } else {
-          setExpandedHeightPx(peek)
-        }
+      if (canExpand && contentEl) {
+        setExpandedHeightPx(Math.max(measureExpandedHeight(), peek))
+      } else {
+        setExpandedHeightPx(peek)
       }
     }
 
     const observer = new ResizeObserver(applyHeights)
     observer.observe(headerEl)
-    observer.observe(contentEl)
+    if (contentEl) observer.observe(contentEl)
 
     const frame = requestAnimationFrame(applyHeights)
 
@@ -130,10 +160,7 @@ export default function TourMobileStopDrawer({
     }
   }, [
     showDrawer,
-    showPoints,
-    isOpen,
     isDragging,
-    revealPoints,
     canExpand,
     displayStop?.id,
     measurePeekHeight,
@@ -153,8 +180,8 @@ export default function TourMobileStopDrawer({
       return Math.min(expanded, peek + Math.max(0, -dragOffset))
     }
 
-    return isOpen ? expanded : peek
-  }, [isOpen, isDragging, dragOffset, peekHeightPx, expandedHeightPx, canExpand])
+    return heightExpanded ? expanded : peek
+  }, [isOpen, isDragging, dragOffset, peekHeightPx, expandedHeightPx, canExpand, heightExpanded])
 
   const releaseScrollLock = useCallback(() => {
     scrollerRef?.current?.style.removeProperty('overflow')
@@ -189,7 +216,7 @@ export default function TourMobileStopDrawer({
 
     if (!isOpen) {
       const draggedHeight = peekHeightPx + Math.max(0, -dy)
-      setDragRevealPoints(draggedHeight > peekHeightPx + 20)
+      setDragRevealContent(draggedHeight > peekHeightPx + 20)
     }
   }
 
@@ -201,7 +228,7 @@ export default function TourMobileStopDrawer({
 
     if (!start || start.id !== event.pointerId) {
       setDragOffset(0)
-      if (!isOpen) setDragRevealPoints(false)
+      if (!isOpen) setDragRevealContent(false)
       return
     }
 
@@ -211,7 +238,7 @@ export default function TourMobileStopDrawer({
       if (-dy >= SWIPE_OPEN_PX || Math.abs(dy) < 10) {
         onOpen?.()
       } else {
-        setDragRevealPoints(false)
+        setDragRevealContent(false)
       }
     } else if (dy >= SWIPE_DISMISS_PX) {
       handleClose()
@@ -228,7 +255,7 @@ export default function TourMobileStopDrawer({
     pointerStartRef.current = null
     setIsDragging(false)
     setDragOffset(0)
-    if (!isOpen) setDragRevealPoints(false)
+    if (!isOpen) setDragRevealContent(false)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -261,8 +288,20 @@ export default function TourMobileStopDrawer({
   const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
   const sheetHeightPx = getSheetHeight()
   const expanded = Math.max(expandedHeightPx, peekHeightPx)
-  const needsScroll = isOpen && expanded >= expandedCapPx - 1
-  const peekNeedsScroll = !isOpen && peekHeightPx >= peekCapPx - 1
+  const needsScroll = heightExpanded && expanded >= expandedCapPx - 1
+  const chevronExpanded = isOpen || heightExpanded
+
+  const bodyOpacityClass = (() => {
+    if (reducedMotion) return bodyShown ? 'opacity-100' : 'opacity-0'
+    if (contentFadingOut) return 'opacity-0 transition-opacity duration-150 ease-in'
+    if (bodyShown) return 'opacity-100 transition-opacity duration-300 ease-out'
+    return 'opacity-0 transition-opacity duration-300 ease-out'
+  })()
+
+  const bodyOpacityStyle =
+    reducedMotion || contentFadingOut
+      ? undefined
+      : { transitionDelay: bodyShown ? '80ms' : '0ms' }
 
   return createPortal(
     <div className="md:hidden">
@@ -296,52 +335,81 @@ export default function TourMobileStopDrawer({
       >
         <header
           ref={headerRef}
-          className={`shrink-0 touch-none px-4 pt-1 ${isOpen ? 'pb-2' : 'pb-0'}`}
+          className="shrink-0 touch-none px-4 pb-2 pt-1"
           onPointerDown={isOpen && canExpand ? handlePointerDown : undefined}
           onPointerMove={isOpen && canExpand ? handlePointerMove : undefined}
           onPointerUp={isOpen && canExpand ? handlePointerUp : undefined}
           onPointerCancel={isOpen && canExpand ? handlePointerCancel : undefined}
         >
           <DrawerGrabHandle />
-          <h2 id="tour-stop-drawer-title" className={`text-lg font-bold tracking-tight ${titleCls}`}>
-            {displayStop.title}
-          </h2>
+          <div className="flex items-center gap-3">
+            {canExpand ? (
+              <svg
+                aria-hidden
+                className={`h-4 w-4 shrink-0 transition-transform duration-200 ease-out ${descCls} ${
+                  chevronExpanded ? '' : 'rotate-180'
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            ) : (
+              <span className="w-4 shrink-0" aria-hidden />
+            )}
+            <h2
+              id="tour-stop-drawer-title"
+              className={`min-w-0 flex-1 text-left text-lg font-bold tracking-tight ${titleCls}`}
+            >
+              {displayStop.title}
+            </h2>
+          </div>
         </header>
 
-        <div
-          ref={bodyRef}
-          className={`min-h-0 flex-1 px-4 pt-3 ${
-            needsScroll || peekNeedsScroll
-              ? 'overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]'
-              : 'overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]'
-          }`}
-        >
-          <div ref={contentMeasureRef} className="pb-4">
-            <p className={`text-sm leading-relaxed sm:text-base ${descCls}`}>{displayStop.desc}</p>
-            {displayStop.desc2 ? (
-              <p className={`mt-4 text-sm leading-relaxed sm:text-base ${descCls}`}>{displayStop.desc2}</p>
-            ) : null}
+        {canExpand ? (
+          <div
+            ref={bodyRef}
+            className={`min-h-0 flex-1 px-4 pt-3 ${
+              needsScroll
+                ? 'overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]'
+                : 'overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]'
+            }`}
+          >
+            <div
+              ref={contentMeasureRef}
+              className={`pb-4 ${bodyOpacityClass}`}
+              style={bodyOpacityStyle}
+            >
+              <p className={`text-sm leading-relaxed sm:text-base ${descCls}`}>{displayStop.desc}</p>
+              {displayStop.desc2 ? (
+                <p className={`mt-4 text-sm leading-relaxed sm:text-base ${descCls}`}>
+                  {displayStop.desc2}
+                </p>
+              ) : null}
 
-            {showPoints ? (
-              <ul className="mt-6 space-y-3">
-                {displayStop.points.map((point) => (
-                  <li key={point} className={`flex items-start gap-2.5 text-sm ${descCls}`}>
-                    <svg
-                      className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+              {hasPoints ? (
+                <ul className="mt-6 space-y-3">
+                  {displayStop.points.map((point) => (
+                    <li key={point} className={`flex items-start gap-2.5 text-sm ${descCls}`}>
+                      <svg
+                        className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>,
     document.body,

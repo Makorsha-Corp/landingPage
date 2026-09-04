@@ -32,6 +32,7 @@ export default function LandingPerfHud({
   heroExitAdvanced = false,
   activeIndex = 0,
   mobileTourDrawerVisible = false,
+  mobileTourDrawerExpanded = false,
   featuresBackdropProgress = 0,
 }) {
   const { stats, resetLongTasks, resetSession, getSnapshot } = useLandingPerf()
@@ -101,7 +102,8 @@ export default function LandingPerfHud({
         {heroExitAdvanced ? 'Y' : 'N'}
       </div>
       <div>
-        stop {activeIndex} · drawer {mobileTourDrawerVisible ? 'on' : 'off'} · wash{' '}
+        stop {activeIndex} · drawer{' '}
+        {mobileTourDrawerExpanded ? 'expanded' : mobileTourDrawerVisible ? 'peek' : 'off'} · wash{' '}
         {featuresBackdropProgress.toFixed(2)}
       </div>
 

@@ -11,6 +11,7 @@ export default function LandingPerfTourSync({
   heroExitAdvanced,
   activeIndex,
   mobileTourDrawerVisible,
+  mobileTourDrawerExpanded = false,
   featuresBackdropProgress,
   tourMetricsRef,
 }) {
@@ -19,6 +20,7 @@ export default function LandingPerfTourSync({
     heroActive,
     activeIndex,
     mobileTourDrawerVisible,
+    mobileTourDrawerExpanded,
     washAbove: featuresBackdropProgress >= WASH_THRESHOLD,
   })
 
@@ -31,6 +33,7 @@ export default function LandingPerfTourSync({
       heroExitAdvanced,
       activeIndex,
       mobileTourDrawerVisible,
+      mobileTourDrawerExpanded,
       featuresBackdropProgress,
       displayHeroExitT: tourMetricsRef?.current?.displayHeroExitT ?? 0,
     })
@@ -42,6 +45,7 @@ export default function LandingPerfTourSync({
     heroExitAdvanced,
     activeIndex,
     mobileTourDrawerVisible,
+    mobileTourDrawerExpanded,
     featuresBackdropProgress,
     tourMetricsRef,
     setTourContext,
@@ -65,7 +69,10 @@ export default function LandingPerfTourSync({
       recordPhaseMarker(`stop ${activeIndex}`, markerContext)
     }
     if (prev.mobileTourDrawerVisible !== mobileTourDrawerVisible) {
-      recordPhaseMarker(mobileTourDrawerVisible ? 'drawer on' : 'drawer off', markerContext)
+      recordPhaseMarker(mobileTourDrawerVisible ? 'drawer peek' : 'drawer off', markerContext)
+    }
+    if (prev.mobileTourDrawerExpanded !== mobileTourDrawerExpanded) {
+      recordPhaseMarker(mobileTourDrawerExpanded ? 'drawer expanded' : 'drawer collapsed', markerContext)
     }
 
     const washAbove = featuresBackdropProgress >= WASH_THRESHOLD
@@ -77,6 +84,7 @@ export default function LandingPerfTourSync({
       heroActive,
       activeIndex,
       mobileTourDrawerVisible,
+      mobileTourDrawerExpanded,
       washAbove,
     }
   }, [
@@ -84,6 +92,7 @@ export default function LandingPerfTourSync({
     heroActive,
     activeIndex,
     mobileTourDrawerVisible,
+    mobileTourDrawerExpanded,
     featuresBackdropProgress,
     recordPhaseMarker,
     stats.fps,

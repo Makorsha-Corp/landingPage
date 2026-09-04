@@ -15,22 +15,22 @@ const WaitlistMobileNavSignUp = forwardRef(function WaitlistMobileNavSignUp(
 ) {
   const { reducedMotion } = useLandingMotion()
 
-  if (!visible) return null
-
   const handleClick = (event) => {
     const node = ref?.current ?? event.currentTarget
     const rect = node?.getBoundingClientRect?.() ?? null
     onClick?.(rect, node)
   }
 
+  if (!visible && !morphing) return null
+
   return (
     <div
       data-waitlist-fab-wrap=""
       className={cn(
         'relative shrink-0 origin-center transition-opacity duration-300 ease-out',
-        !reducedMotion && 'animate-waitlist-nav-signup-enter',
+        !reducedMotion && visible && 'animate-waitlist-nav-signup-enter',
         morphing && 'pointer-events-none opacity-0',
-        !morphing && 'opacity-100',
+        !morphing && visible && 'opacity-100',
         className,
       )}
       aria-hidden={morphing ? true : undefined}

@@ -258,6 +258,23 @@
   margin-top: -100dvh;
 }
 
+/* Mobile: svh avoids URL-bar dvh resize CLS; desktop keeps dvh fill. */
+@media (max-width: 47.99rem) {
+  .homepage-tour-dvh {
+    height: 100svh;
+    min-height: 100svh;
+  }
+
+  .homepage-tour-stage {
+    width: min(100%, calc(100svh * 1024 / 831));
+    max-height: 100svh;
+  }
+
+  .homepage-tour-panels-offset {
+    margin-top: -100svh;
+  }
+}
+
 .deck-panel {
   display: flex;
   flex-direction: column;
@@ -297,17 +314,26 @@
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(24px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes float {
@@ -321,6 +347,10 @@
 
 .animate-fade-in {
   animation: fade-in 0.4s ease both;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 300ms ease-out forwards;
 }
 
 @keyframes sheet-slide-up {
