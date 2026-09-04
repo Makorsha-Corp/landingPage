@@ -76,6 +76,7 @@ export default function useTourCamera({
   const overlayPausedRef = useRef(overlayPaused)
   const kickRafRef = useRef(null)
   const lastDomRef = useRef({})
+  const tourMetricsRef = useRef({ displayHeroExitT: 0 })
 
   useEffect(() => {
     overlayPausedRef.current = overlayPaused
@@ -375,6 +376,7 @@ export default function useTourCamera({
           heroExitRate,
         )
       }
+      tourMetricsRef.current.displayHeroExitT = displayHeroExitTRef.current
 
       const frame = computeTourFrame({
         progress,
@@ -623,5 +625,5 @@ export default function useTourCamera({
     tourRef,
   ])
 
-  return { activeIndex, heroActive, contentStopIndex, heroExitAdvanced }
+  return { activeIndex, heroActive, contentStopIndex, heroExitAdvanced, tourMetricsRef }
 }

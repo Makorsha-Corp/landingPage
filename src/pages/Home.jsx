@@ -2,6 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
+import LandingPerfHud from '../components/LandingPerfHud'
+import LandingPerfTourSync from '../components/LandingPerfTourSync'
+import ShareFeedbackButton from '../components/ShareFeedbackButton'
+import { useLandingPerfHudToggle } from '../context/LandingPerfContext'
+import { runLandingPerfAudit, scrollScrollerTo } from '../lib/landingPerfAudit'
+import {
+  collectDeviceContext,
+  formatLandingFeedbackReport,
+  readVitalsSnapshot,
+} from '../lib/landingPerfReport'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import Button from '../components/ui/Button'
 import LandingPostTourSections from '../components/LandingPostTourSections'
@@ -68,8 +78,20 @@ import {
   getSignUpVariantForTheme,
   SIGN_UP_BUTTON_VARIANT_LIST,
 } from '../lib/heroSignUpButtonVariants'
-import { BLURRED_BUILDING_IMAGE, PRIMARY_BUILDING_IMAGE } from '../lib/buildingAsset'
-import { SHOW_LANDING_DEV_TOOLS, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
+import {
+  BUILDING_BLUR_SRC,
+  BUILDING_BLUR_SRCSET,
+  BUILDING_BLUR_RESPONSIVE_SIZES,
+  BUILDING_RESPONSIVE_SIZES,
+  BUILDING_SHARP_SRC,
+  BUILDING_SHARP_SRCSET,
+  HOMEPAGE_BACKGROUNDS,
+  HOMEPAGE_BACKGROUND_SRCSETS,
+  HOMEPAGE_BLUR_BACKGROUNDS,
+  HOMEPAGE_BLUR_BACKGROUND_SRCSETS,
+  HOMEPAGE_RESPONSIVE_SIZES,
+} from '../lib/homepageImages'
+import { SHOW_LANDING_DEV_TOOLS, SHOW_PERF_HUD, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
 import {
   DEFAULT_WAITLIST_FAB_STYLE,
   getWaitlistFabMorphMeta,
@@ -83,18 +105,6 @@ const DEFAULT_SECTION_BACKDROPS = {
   pricing: true,
   faq: true,
 }
-
-const HOMEPAGE_BACKGROUNDS = {
-  light: '/homepage-background.png',
-  dark: '/homepage-background-dark.png',
-}
-
-const HOMEPAGE_BLUR_BACKGROUNDS = {
-  light: '/homepage-background-blur.png',
-  dark: '/homepage-background-blur-dark.png',
-}
-
-const BUILDING_IMAGE = PRIMARY_BUILDING_IMAGE
 
 function getScrollHintPillStyles(theme) {
   if (theme === 'dark') {
@@ -378,6 +388,10 @@ export default function Home() {
   const [lightSignUpVariant, setLightSignUpVariant] = useState(DEFAULT_LIGHT_SIGN_UP_VARIANT)
   const [darkSignUpVariant, setDarkSignUpVariant] = useState(DEFAULT_DARK_SIGN_UP_VARIANT)
   const [waitlistFabStyle, setWaitlistFabStyle] = useState(DEFAULT_WAITLIST_FAB_STYLE)
+  const [perfHudEnabled, setPerfHudEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).has('perf')
+  })
   const signUpButtonVariant = getSignUpVariantForTheme(theme, lightSignUpVariant, darkSignUpVariant)
   const exportCodeBaseline = useMemo(
     () =>
@@ -461,7 +475,7 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
-  const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced } = useTourCamera({
+  const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced, tourMetricsRef } = useTourCamera({
     scrollerRef,
     tourRef,
     stageRef,
@@ -787,6 +801,104 @@ export default function Home() {
     activeSection === 'tour' &&
     (reducedMotion || featuresBackdropProgress < 0.12)
 
+  const perfMonitorEnabled = SHOW_PERF_HUD && perfHudEnabled
+  useLandingPerfHudToggle(perfMonitorEnabled)
+
+  const feedbackTourContext = useMemo(
+    () => ({
+      theme,
+      isMobileTour,
+      heroActive,
+      activeIndex,
+      activeSection,
+      mobileTourDrawerVisible,
+      featuresBackdropProgress,
+    }),
+    [
+      theme,
+      isMobileTour,
+      heroActive,
+      activeIndex,
+      activeSection,
+      mobileTourDrawerVisible,
+      featuresBackdropProgress,
+    ],
+  )
+
+  const feedbackTourContextRef = useRef(feedbackTourContext)
+  feedbackTourContextRef.current = feedbackTourContext
+
+  const getSectionScrollTop = useCallback(
+    (targetRef) => {
+      const scroller = scrollerRef.current
+      const target = targetRef?.current
+      if (!scroller || !target) return null
+      return (
+        scroller.scrollTop +
+        target.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top
+      )
+    },
+    [],
+  )
+
+  const collectFeedbackReport = useCallback(async () => {
+    const scroller = scrollerRef.current
+    const getTourContext = () => feedbackTourContextRef.current
+
+    if (!scroller) {
+      return formatLandingFeedbackReport({
+        device: collectDeviceContext(),
+        tour: getTourContext(),
+        vitals: readVitalsSnapshot(),
+        burst: null,
+        perfSession: null,
+      })
+    }
+
+    const steps = []
+
+    for (let panelIndex = 0; panelIndex <= lastTourPanelIndex; panelIndex += 1) {
+      steps.push(async () => {
+        const dest = getTourPanelScrollTop(panelIndex)
+        if (dest == null) return
+        const maxDest = getLastTourPanelScrollTop()
+        const clampedDest = maxDest != null ? Math.min(dest, maxDest) : dest
+        await scrollScrollerTo(scroller, Math.max(0, clampedDest), { reducedMotion })
+      })
+    }
+
+    for (const { id, ref } of observedTargets) {
+      if (id === 'tour') continue
+      steps.push(async () => {
+        const dest = getSectionScrollTop(ref)
+        if (dest == null) return
+        await scrollScrollerTo(scroller, dest, { reducedMotion })
+      })
+    }
+
+    const { snapshot, burst } = await runLandingPerfAudit({
+      steps,
+      getTourContext,
+      reducedMotion,
+    })
+
+    return formatLandingFeedbackReport({
+      device: collectDeviceContext(),
+      tour: getTourContext(),
+      vitals: readVitalsSnapshot(),
+      burst,
+      perfSession: snapshot,
+    })
+  }, [
+    getSectionScrollTop,
+    getTourPanelScrollTop,
+    getLastTourPanelScrollTop,
+    lastTourPanelIndex,
+    observedTargets,
+    reducedMotion,
+  ])
+
   const landingDevToolsProps = SHOW_LANDING_DEV_TOOLS
     ? {
         editMode,
@@ -825,6 +937,9 @@ export default function Home() {
         waitlistFabStyle,
         onWaitlistFabStyleChange: setWaitlistFabStyle,
         waitlistFabStyles: WAITLIST_FAB_STYLE_LIST,
+        perfHudEnabled,
+        onTogglePerfHud: () => setPerfHudEnabled((value) => !value),
+        showPerfHudToggle: SHOW_PERF_HUD,
       }
     : undefined
 
@@ -841,7 +956,10 @@ export default function Home() {
       >
         <img
           src={HOMEPAGE_BLUR_BACKGROUNDS[theme]}
+          srcSet={HOMEPAGE_BLUR_BACKGROUND_SRCSETS[theme]}
+          sizes={HOMEPAGE_RESPONSIVE_SIZES}
           alt=""
+          decoding="async"
           className="homepage-bg-photo transition-opacity duration-500"
         />
         {showCampusBackdrop && sectionsBackdropT > 0 ? (
@@ -866,24 +984,28 @@ export default function Home() {
         activeSection={activeSection}
         onSectionNavigate={handleSectionNavigate}
         mobileActions={
-          <WaitlistMobileNavSignUp
-            ref={waitlistMobileNavRef}
-            visible={isMobileTour && !heroActive && !editMode && !featureOverlayOpen}
-            morphing={waitlistModalOpen}
-            variant={signUpButtonVariant}
-            onClick={(rect, triggerEl) =>
-              openWaitlist(
-                'nav',
-                rect,
-                { ...WAITLIST_RAINBOW_META, variant: signUpButtonVariant },
-                triggerEl,
-              )
-            }
-          />
+          <div className="flex items-center gap-1.5">
+            <ShareFeedbackButton collectReport={collectFeedbackReport} />
+            <WaitlistMobileNavSignUp
+              ref={waitlistMobileNavRef}
+              visible={isMobileTour && !heroActive && !editMode && !featureOverlayOpen}
+              morphing={waitlistModalOpen}
+              variant={signUpButtonVariant}
+              onClick={(rect, triggerEl) =>
+                openWaitlist(
+                  'nav',
+                  rect,
+                  { ...WAITLIST_RAINBOW_META, variant: signUpButtonVariant },
+                  triggerEl,
+                )
+              }
+            />
+          </div>
         }
         desktopActions={
           <div className="hidden items-center gap-2 sm:gap-3 md:flex">
             {landingDevToolsProps ? <DevToolsPopover {...landingDevToolsProps} /> : null}
+            <ShareFeedbackButton collectReport={collectFeedbackReport} />
             <WaitlistFab
               ref={waitlistFabRef}
               placement="inline"
@@ -923,8 +1045,11 @@ export default function Home() {
             <img
               ref={backgroundImgRef}
               src={HOMEPAGE_BACKGROUNDS[theme]}
+              srcSet={HOMEPAGE_BACKGROUND_SRCSETS[theme]}
+              sizes={HOMEPAGE_RESPONSIVE_SIZES}
               alt=""
               aria-hidden="true"
+              decoding="async"
               className="homepage-tour-bg-photo select-none"
               style={{ opacity: 0 }}
               draggable={false}
@@ -943,7 +1068,9 @@ export default function Home() {
           >
             <img
               ref={buildingSharpRef}
-              src={BUILDING_IMAGE}
+              src={BUILDING_SHARP_SRC}
+              srcSet={BUILDING_SHARP_SRCSET}
+              sizes={BUILDING_RESPONSIVE_SIZES}
               alt="Kolom headquarters cutaway"
               className="homepage-tour-building-img homepage-tour-building-sharp h-full w-full select-none"
               fetchPriority="high"
@@ -952,9 +1079,12 @@ export default function Home() {
             />
             <img
               ref={heroBlurRef}
-              src={BLURRED_BUILDING_IMAGE}
+              src={BUILDING_BLUR_SRC}
+              srcSet={BUILDING_BLUR_SRCSET}
+              sizes={BUILDING_BLUR_RESPONSIVE_SIZES}
               alt=""
               aria-hidden="true"
+              decoding="async"
               className="homepage-tour-building-img homepage-tour-building-blur absolute inset-0 h-full w-full select-none pointer-events-none"
               draggable={false}
             />
@@ -1200,6 +1330,28 @@ export default function Home() {
         onFaqClick={goFaq}
         scrollerRef={scrollerRef}
         returnFocusRef={waitlistReturnFocusRef}
+      />
+
+      <LandingPerfTourSync
+        theme={theme}
+        isMobileTour={isMobileTour}
+        activeSection={activeSection}
+        heroActive={heroActive}
+        heroExitAdvanced={heroExitAdvanced}
+        activeIndex={activeIndex}
+        mobileTourDrawerVisible={mobileTourDrawerVisible}
+        featuresBackdropProgress={featuresBackdropProgress}
+        tourMetricsRef={tourMetricsRef}
+      />
+
+      <LandingPerfHud
+        enabled={perfMonitorEnabled}
+        tourMetricsRef={tourMetricsRef}
+        heroActive={heroActive}
+        heroExitAdvanced={heroExitAdvanced}
+        activeIndex={activeIndex}
+        mobileTourDrawerVisible={mobileTourDrawerVisible}
+        featuresBackdropProgress={featuresBackdropProgress}
       />
       </div>
     </div>

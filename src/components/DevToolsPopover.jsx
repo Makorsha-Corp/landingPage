@@ -228,6 +228,9 @@ function DevToolsFloatingPanel({
   waitlistFabStyle,
   onWaitlistFabStyleChange,
   waitlistFabStyles = [],
+  perfHudEnabled = false,
+  onTogglePerfHud,
+  showPerfHudToggle = false,
 }) {
   const boundsRef = useRef(null)
   const panelRef = useRef(null)
@@ -327,6 +330,18 @@ function DevToolsFloatingPanel({
                   >
                     Factory pan
                   </Button>
+                  {showPerfHudToggle && onTogglePerfHud ? (
+                    <Button
+                      type="button"
+                      onClick={onTogglePerfHud}
+                      variant="navGhost"
+                      size="default"
+                      className={`${menuBtnCls} !h-10 !px-4 !text-sm ${perfHudEnabled ? activeCls : ''}`}
+                      aria-pressed={perfHudEnabled}
+                    >
+                      Perf HUD
+                    </Button>
+                  ) : null}
                 </div>
                 <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
                   <Button
