@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Button from '../ui/Button'
 import useDynamicFeatureLimit from '../../hooks/useDynamicFeatureLimit'
 import {
@@ -137,10 +137,6 @@ export default function PricingTierCard({
   const visibleFeatures = featuresExpanded
     ? tier.features
     : tier.features.slice(0, foldFeatures ? dynamicLimit : tier.features.length)
-
-  useEffect(() => {
-    setFeaturesExpanded(false)
-  }, [tier.name])
 
   const hoverCls =
     interactive && presentation === 'mobileHero'

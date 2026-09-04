@@ -37,7 +37,6 @@ export default function usePerfMonitor(enabled = false) {
     if (!enabled) {
       collectorRef.current?.stop()
       collectorRef.current = null
-      setStats(initialStats())
       return undefined
     }
 
@@ -101,7 +100,7 @@ export default function usePerfMonitor(enabled = false) {
   }, [])
 
   return {
-    stats,
+    stats: enabled ? stats : initialStats(),
     resetLongTasks,
     resetSession,
     recordPhaseMarker,

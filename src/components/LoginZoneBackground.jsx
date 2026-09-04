@@ -1,6 +1,6 @@
 import { getLoginGradientStyle } from '../../shared/loginGradient.js'
 
-export default function LoginZoneBackground({ theme = 'light', reducedMotion = false, backdropStyle, washStyle }) {
+export default function LoginZoneBackground({ theme = 'light', backdropStyle, washStyle }) {
   const style = getLoginGradientStyle(theme)
   const overlayStyle = backdropStyle ?? washStyle
 

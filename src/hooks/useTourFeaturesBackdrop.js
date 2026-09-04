@@ -7,13 +7,10 @@ export default function useTourFeaturesBackdrop({ scrollerRef, featuresRef, enab
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    if (!enabled) {
-      setProgress(0)
-      return
-    }
+    if (!enabled) return undefined
 
     const scroller = scrollerRef.current
-    if (!scroller) return
+    if (!scroller) return undefined
 
     let raf = 0
 
@@ -38,5 +35,5 @@ export default function useTourFeaturesBackdrop({ scrollerRef, featuresRef, enab
     }
   }, [enabled, featuresRef, scrollerRef])
 
-  return progress
+  return enabled ? progress : 0
 }

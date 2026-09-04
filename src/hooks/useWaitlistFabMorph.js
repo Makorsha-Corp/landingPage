@@ -22,14 +22,40 @@ export default function useWaitlistFabMorph({
 }) {
   const [phase, setPhase] = useState(/** @type {WaitlistMorphPhase} */ ('idle'))
   const [collapsed, setCollapsed] = useState(true)
-  const [contentVisible, setContentVisible] = useState(false)
+  const [morphContentRevealed, setMorphContentRevealed] = useState(false)
   const [storedOrigin, setStoredOrigin] = useState(null)
   const [targetRect, setTargetRect] = useState(() => getWaitlistModalTargetRect())
+  const [prevOpen, setPrevOpen] = useState(open)
+  const prevOpenRef = useRef(open)
   const closeTimerRef = useRef(null)
   const contentTimerRef = useRef(null)
   const transitionHandledRef = useRef(false)
 
   const useMorph = Boolean(originRect) && !reducedMotion
+
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setStoredOrigin(cloneRect(originRect))
+      setTargetRect(getWaitlistModalTargetRect())
+      setMorphContentRevealed(false)
+
+      if (!useMorph) {
+        setPhase('open')
+        setCollapsed(false)
+      } else {
+        setPhase('morphIn')
+        setCollapsed(true)
+      }
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (open && !prevOpenRef.current) {
+      transitionHandledRef.current = false
+    }
+    prevOpenRef.current = open
+  }, [open])
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -37,26 +63,6 @@ export default function useWaitlistFabMorph({
       closeTimerRef.current = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!open) return undefined
-
-    transitionHandledRef.current = false
-    setStoredOrigin(cloneRect(originRect))
-    setTargetRect(getWaitlistModalTargetRect())
-
-    if (!useMorph) {
-      setPhase('open')
-      setCollapsed(false)
-      setContentVisible(true)
-      return undefined
-    }
-
-    setPhase('morphIn')
-    setCollapsed(true)
-    setContentVisible(false)
-    return undefined
-  }, [open, originRect, useMorph])
 
   useLayoutEffect(() => {
     if (phase !== 'morphIn' || !collapsed || !useMorph) return undefined
@@ -75,7 +81,7 @@ export default function useWaitlistFabMorph({
 
     if (phase === 'morphIn' && !collapsed && useMorph) {
       contentTimerRef.current = window.setTimeout(
-        () => setContentVisible(true),
+        () => setMorphContentRevealed(true),
         Math.round(MORPH_EXPAND_DURATION_MS * CONTENT_REVEAL_RATIO),
       )
       return () => {
@@ -83,18 +89,11 @@ export default function useWaitlistFabMorph({
       }
     }
 
-    if (phase === 'open') {
-      setContentVisible(true)
-      return undefined
-    }
-
-    if (phase === 'morphOut') {
-      setContentVisible(false)
-      return undefined
-    }
-
     return undefined
   }, [phase, collapsed, useMorph])
+
+  const contentVisible =
+    phase === 'open' || (!useMorph && open) || (phase === 'morphIn' && morphContentRevealed)
 
   const finishClose = useCallback(() => {
     clearCloseTimer()
@@ -105,7 +104,7 @@ export default function useWaitlistFabMorph({
     transitionHandledRef.current = false
     setPhase('idle')
     setCollapsed(true)
-    setContentVisible(false)
+    setMorphContentRevealed(false)
     setStoredOrigin(null)
     onCloseComplete?.()
   }, [clearCloseTimer, onCloseComplete])
@@ -146,7 +145,7 @@ export default function useWaitlistFabMorph({
 
     transitionHandledRef.current = false
     setPhase('morphOut')
-    setContentVisible(false)
+    setMorphContentRevealed(false)
     setCollapsed(false)
 
     clearCloseTimer()

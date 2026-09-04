@@ -13,7 +13,6 @@ import {
   readVitalsSnapshot,
 } from '../lib/landingPerfReport'
 import ThemeToggleButton from '../components/ThemeToggleButton'
-import Button from '../components/ui/Button'
 import LandingPostTourSections from '../components/LandingPostTourSections'
 import WaitlistFab from '../components/waitlist/WaitlistFab'
 import WaitlistMobileNavSignUp from '../components/waitlist/WaitlistMobileNavSignUp'
@@ -306,6 +305,9 @@ const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter(
   (section) => SHOW_PRICING_SECTION || section.id !== 'pricing',
 )
 
+const LANDING_SCROLL_SECTION_IDS = LANDING_SECTIONS.map((section) => section.id)
+const POST_TOUR_SECTION_IDS = LANDING_SCROLL_SECTION_IDS.filter((id) => id !== 'tour')
+
 function RightBar({ theme, stops, activeIndex, onJump, onStepPrev, onStepNext }) {
   const bar = getRightBarStyles(theme)
 
@@ -450,22 +452,10 @@ export default function Home() {
     [],
   )
 
-  const observedTargets = useMemo(
-    () =>
-      [
-        { id: 'tour', ref: tourRef },
-        { id: 'features', ref: capabilitiesRef },
-        { id: 'proof', ref: testimonialsRef },
-        SHOW_PRICING_SECTION ? { id: 'pricing', ref: pricingRef } : null,
-        { id: 'faq', ref: faqRef },
-      ].filter(Boolean),
-    [],
-  )
-
   const { activeSection, glideTo, navigateToSection } = useSectionScroll({
     scrollerRef,
     sectionRefMap,
-    observedTargets,
+    sectionIds: LANDING_SCROLL_SECTION_IDS,
     reducedMotion,
   })
 
@@ -539,7 +529,7 @@ export default function Home() {
     enabled: editMode && !heroActive && Boolean(activeStop) && !isMobileTour,
   })
 
-  const getTourPanelScrollTop = (panelIndex) => {
+  const getTourPanelScrollTop = useCallback((panelIndex) => {
     const scroller = scrollerRef.current
     const panel = tourPanelRefs.current[panelIndex]
     if (!scroller || !panel) return null
@@ -548,9 +538,12 @@ export default function Home() {
       panel.getBoundingClientRect().top -
       scroller.getBoundingClientRect().top
     )
-  }
+  }, [])
 
-  const getLastTourPanelScrollTop = () => getTourPanelScrollTop(lastTourPanelIndex)
+  const getLastTourPanelScrollTop = useCallback(
+    () => getTourPanelScrollTop(lastTourPanelIndex),
+    [getTourPanelScrollTop, lastTourPanelIndex],
+  )
 
   const readAtLastTourPanel = () => {
     const scroller = scrollerRef.current
@@ -826,7 +819,10 @@ export default function Home() {
   )
 
   const feedbackTourContextRef = useRef(feedbackTourContext)
-  feedbackTourContextRef.current = feedbackTourContext
+
+  useEffect(() => {
+    feedbackTourContextRef.current = feedbackTourContext
+  }, [feedbackTourContext])
 
   const getSectionScrollTop = useCallback(
     (targetRef) => {
@@ -868,8 +864,8 @@ export default function Home() {
       })
     }
 
-    for (const { id, ref } of observedTargets) {
-      if (id === 'tour') continue
+    for (const id of POST_TOUR_SECTION_IDS) {
+      const ref = sectionRefMap[id]
       steps.push(async () => {
         const dest = getSectionScrollTop(ref)
         if (dest == null) return
@@ -895,7 +891,7 @@ export default function Home() {
     getTourPanelScrollTop,
     getLastTourPanelScrollTop,
     lastTourPanelIndex,
-    observedTargets,
+    sectionRefMap,
     reducedMotion,
   ])
 

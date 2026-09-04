@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 /** Fade + slide up when desktop FAB appears after hero (no FLIP travel). */
 export default function useWaitlistFabFadeEnter({
@@ -6,23 +6,15 @@ export default function useWaitlistFabFadeEnter({
   reducedMotion = false,
   freezeTravel = false,
 }) {
-  const [useFadeEnter, setUseFadeEnter] = useState(false)
-  const didEnterRef = useRef(false)
+  const [entered, setEntered] = useState(false)
 
-  useLayoutEffect(() => {
-    if (!enabled) {
-      if (!freezeTravel) {
-        didEnterRef.current = false
-      }
-      setUseFadeEnter(false)
-      return
-    }
+  if (enabled && !reducedMotion && !entered) {
+    setEntered(true)
+  }
 
-    if (reducedMotion || didEnterRef.current) return
+  if (!enabled && !freezeTravel && entered) {
+    setEntered(false)
+  }
 
-    didEnterRef.current = true
-    setUseFadeEnter(true)
-  }, [enabled, freezeTravel, reducedMotion])
-
-  return { useFadeEnter }
+  return { useFadeEnter: enabled && entered }
 }

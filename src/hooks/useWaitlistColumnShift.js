@@ -23,30 +23,31 @@ export default function useWaitlistColumnShift({
   const generationRef = useRef(0)
 
   useLayoutEffect(() => {
-    if (!enabled || reducedMotion) {
-      setShiftX(0)
-      setTransitionEnabled(false)
-      return
+    if (!enabled || reducedMotion || centered) {
+      if (centered) {
+        const panelEl = panelRef?.current
+        const columnEl = columnRef?.current
+        if (panelEl && columnEl) {
+          centeredOffsetRef.current = measureCenterOffset(panelEl, columnEl)
+        }
+      }
+      return undefined
     }
 
     const panelEl = panelRef?.current
     const columnEl = columnRef?.current
-    if (!panelEl || !columnEl) return
-
-    if (centered) {
-      centeredOffsetRef.current = measureCenterOffset(panelEl, columnEl)
-      setTransitionEnabled(false)
-      setShiftX(0)
-      return
-    }
+    if (!panelEl || !columnEl) return undefined
 
     const generation = generationRef.current + 1
     generationRef.current = generation
     const startOffset = centeredOffsetRef.current
 
-    setShiftX(startOffset)
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
+      if (generationRef.current !== generation) return
+      setTransitionEnabled(false)
+      setShiftX(startOffset)
+
       raf2 = requestAnimationFrame(() => {
         if (generationRef.current !== generation) return
         setTransitionEnabled(true)
@@ -77,12 +78,15 @@ export default function useWaitlistColumnShift({
     return () => observer.disconnect()
   }, [centered, enabled, reducedMotion, panelRef, columnRef])
 
+  const effectiveShiftX = !enabled || reducedMotion || centered ? 0 : shiftX
+  const effectiveTransitionEnabled = enabled && !reducedMotion && !centered && transitionEnabled
+
   const columnStyle =
     !enabled || reducedMotion
       ? undefined
       : {
-          transform: `translate3d(${shiftX}px, 0, 0)`,
-          transition: transitionEnabled
+          transform: `translate3d(${effectiveShiftX}px, 0, 0)`,
+          transition: effectiveTransitionEnabled
             ? `transform ${PANEL_REVEAL_DURATION_MS}ms ${PANEL_REVEAL_EASING}`
             : 'none',
         }

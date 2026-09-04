@@ -30,7 +30,7 @@ export function LandingPerfProvider({ children }) {
       setTourContext,
       getSnapshot,
     }),
-    [perf, hudEnabled, setTourContext, getSnapshot],
+    [perf, hudEnabled, perfMonitorEnabled, setTourContext, getSnapshot],
   )
 
   return <LandingPerfContext.Provider value={value}>{children}</LandingPerfContext.Provider>

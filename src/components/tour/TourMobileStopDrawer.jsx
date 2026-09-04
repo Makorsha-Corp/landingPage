@@ -30,15 +30,27 @@ export default function TourMobileStopDrawer({
   const contentMeasureRef = useRef(null)
   const returnFocusRef = useRef(null)
   const pointerStartRef = useRef(null)
-  const expandedStopRef = useRef(null)
 
   const [peekHeightPx, setPeekHeightPx] = useState(PEEK_FALLBACK_PX)
   const [expandedHeightPx, setExpandedHeightPx] = useState(PEEK_FALLBACK_PX)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [revealPoints, setRevealPoints] = useState(false)
+  const [dragRevealPoints, setDragRevealPoints] = useState(false)
+  const [lastExpandedStop, setLastExpandedStop] = useState(null)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
 
-  if (expandedStop) expandedStopRef.current = expandedStop
+  if (expandedStop != null && expandedStop !== lastExpandedStop) {
+    setLastExpandedStop(expandedStop)
+  }
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    setDragOffset(0)
+    setIsDragging(false)
+    if (!isOpen) {
+      setDragRevealPoints(false)
+    }
+  }
 
   const expandedCapPx = Math.round(
     typeof window !== 'undefined' ? window.innerHeight * EXPANDED_VH : 640,
@@ -47,8 +59,8 @@ export default function TourMobileStopDrawer({
     typeof window !== 'undefined' ? window.innerHeight * PEEK_MAX_VH : 420,
   )
 
-  const resolvedExpandedStop = expandedStop ?? expandedStopRef.current
-  const displayStop = peekStop ?? resolvedExpandedStop
+  const revealPoints = isOpen || dragRevealPoints
+  const displayStop = peekStop ?? expandedStop ?? lastExpandedStop
   const showDrawer = Boolean(displayStop) && (peekVisible || isOpen || revealPoints)
 
   const hasPoints = Boolean(displayStop?.points?.length)
@@ -87,13 +99,34 @@ export default function TourMobileStopDrawer({
   }, [expandedCapPx, readBottomInsetPx])
 
   useLayoutEffect(() => {
-    if (!showDrawer) return
-    setPeekHeightPx(measurePeekHeight())
+    if (!showDrawer) return undefined
 
-    if (canExpand && showPoints && !isDragging) {
-      setExpandedHeightPx(Math.max(measureExpandedHeight(), measurePeekHeight()))
-    } else if (canExpand) {
-      setExpandedHeightPx(measurePeekHeight())
+    const headerEl = headerRef.current
+    const contentEl = contentMeasureRef.current
+    if (!headerEl || !contentEl) return undefined
+
+    const applyHeights = () => {
+      const peek = measurePeekHeight()
+      setPeekHeightPx(peek)
+
+      if (canExpand) {
+        if (showPoints && !isDragging) {
+          setExpandedHeightPx(Math.max(measureExpandedHeight(), peek))
+        } else {
+          setExpandedHeightPx(peek)
+        }
+      }
+    }
+
+    const observer = new ResizeObserver(applyHeights)
+    observer.observe(headerEl)
+    observer.observe(contentEl)
+
+    const frame = requestAnimationFrame(applyHeights)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
     }
   }, [
     showDrawer,
@@ -106,20 +139,6 @@ export default function TourMobileStopDrawer({
     measurePeekHeight,
     measureExpandedHeight,
   ])
-
-  useEffect(() => {
-    if (isOpen) {
-      setRevealPoints(true)
-      return undefined
-    }
-    setRevealPoints(false)
-    return undefined
-  }, [isOpen])
-
-  useEffect(() => {
-    setDragOffset(0)
-    setIsDragging(false)
-  }, [isOpen])
 
   const getSheetHeight = useCallback(() => {
     const peek = peekHeightPx
@@ -170,7 +189,7 @@ export default function TourMobileStopDrawer({
 
     if (!isOpen) {
       const draggedHeight = peekHeightPx + Math.max(0, -dy)
-      setRevealPoints(draggedHeight > peekHeightPx + 20)
+      setDragRevealPoints(draggedHeight > peekHeightPx + 20)
     }
   }
 
@@ -182,7 +201,7 @@ export default function TourMobileStopDrawer({
 
     if (!start || start.id !== event.pointerId) {
       setDragOffset(0)
-      if (!isOpen) setRevealPoints(false)
+      if (!isOpen) setDragRevealPoints(false)
       return
     }
 
@@ -192,7 +211,7 @@ export default function TourMobileStopDrawer({
       if (-dy >= SWIPE_OPEN_PX || Math.abs(dy) < 10) {
         onOpen?.()
       } else {
-        setRevealPoints(false)
+        setDragRevealPoints(false)
       }
     } else if (dy >= SWIPE_DISMISS_PX) {
       handleClose()
@@ -209,7 +228,7 @@ export default function TourMobileStopDrawer({
     pointerStartRef.current = null
     setIsDragging(false)
     setDragOffset(0)
-    if (!isOpen) setRevealPoints(false)
+    if (!isOpen) setDragRevealPoints(false)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }

@@ -108,11 +108,13 @@ export function normalizeCard(card, fallback = DEFAULT_CARD) {
   if (merged.heightPx === undefined) merged.heightPx = null
 
   if (merged.anchor && merged.anchor !== 'top-left') {
-    const { anchor: _anchor, ...rest } = merged
+    const rest = { ...merged }
+    delete rest.anchor
     return { ...rest, ...legacyAnchorToTopLeft(merged) }
   }
 
-  const { anchor: _anchor, ...withoutAnchor } = merged
+  const withoutAnchor = { ...merged }
+  delete withoutAnchor.anchor
   return withoutAnchor
 }
 

@@ -21,10 +21,7 @@ export default function useDynamicFeatureLimit({
   const [limit, setLimit] = useState(MIN_VISIBLE_FEATURES)
 
   useLayoutEffect(() => {
-    if (!enabled || expanded) {
-      setLimit(totalCount)
-      return undefined
-    }
+    if (!enabled || expanded) return undefined
 
     const card = cardRef.current
     if (!card) return undefined
@@ -59,5 +56,6 @@ export default function useDynamicFeatureLimit({
     return () => observer.disconnect()
   }, [enabled, expanded, totalCount, cardRef, headerRef, actionsRef, sampleRowRef])
 
-  return expanded ? totalCount : limit
+  if (!enabled || expanded) return totalCount
+  return limit
 }

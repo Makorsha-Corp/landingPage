@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clamp } from '../lib/tourScrollMath'
 
 const restoreSnap = (scroller) => {
@@ -16,9 +16,13 @@ function getScrollDest(scroller, target) {
 export default function useSectionScroll({
   scrollerRef,
   sectionRefMap,
-  observedTargets,
+  sectionIds,
   reducedMotion,
 }) {
+  const observedTargets = useMemo(
+    () => sectionIds.map((id) => ({ id, ref: sectionRefMap[id] })),
+    [sectionIds, sectionRefMap],
+  )
   const [activeSection, setActiveSection] = useState('tour')
   const snapOwnerRef = useRef(null)
   const glideRafRef = useRef(0)
