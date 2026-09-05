@@ -19,7 +19,7 @@ import WaitlistMobileNavSignUp from '../components/waitlist/WaitlistMobileNavSig
 import WaitlistModal from '../components/waitlist/WaitlistModal'
 import { clearWaitlistMorphOrigin, getOriginChrome, markWaitlistMorphOrigin, resolveTravelBg } from '../lib/waitlistFabMorph'
 import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
-import TourMobileStopDrawer from '../components/tour/TourMobileStopDrawer'
+import TourMobileFloatingCard from '../components/tour/TourMobileFloatingCard'
 import TourStoryCardBody from '../components/tour/TourStoryCardBody'
 import useLandingMotion from '../hooks/useLandingMotion'
 import useIsMobileTour from '../hooks/useIsMobileTour'
@@ -383,7 +383,6 @@ export default function Home() {
   const [waitlistOriginRect, setWaitlistOriginRect] = useState(null)
   const [waitlistMorphMeta, setWaitlistMorphMeta] = useState(null)
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
-  const [mobileStopPanelStopId, setMobileStopPanelStopId] = useState(null)
   const [rainbowColorPreset, setRainbowColorPreset] = useState(DEFAULT_RAINBOW_COLOR_PRESET)
   const [heroOverlayScrimStrength, setHeroOverlayScrimStrength] = useState(
     () => ({ ...DEFAULT_HERO_OVERLAY_SCRIM_STRENGTH }),
@@ -506,9 +505,6 @@ export default function Home() {
 
   const activeStop = stops[activeIndex]
   const contentStop = stops[contentStopIndex]
-  const mobilePanelStop = mobileStopPanelStopId
-    ? stops.find((s) => s.id === mobileStopPanelStopId) ?? null
-    : null
   const activeCard = normalizeCard(activeStop?.card, DEFAULT_STOPS[activeIndex]?.card)
 
   const handleCardPositionChange = useCallback(
@@ -793,7 +789,7 @@ export default function Home() {
       )
     : sectionsBackdropStyle
 
-  const mobileTourDrawerVisible =
+  const mobileTourCopyVisible =
     !heroActive &&
     Boolean(activeStop) &&
     activeSection === 'tour' &&
@@ -809,8 +805,7 @@ export default function Home() {
       heroActive,
       activeIndex,
       activeSection,
-      mobileTourDrawerVisible,
-      mobileTourDrawerExpanded: Boolean(mobileStopPanelStopId),
+      mobileTourCopyVisible,
       featuresBackdropProgress,
     }),
     [
@@ -819,8 +814,7 @@ export default function Home() {
       heroActive,
       activeIndex,
       activeSection,
-      mobileTourDrawerVisible,
-      mobileStopPanelStopId,
+      mobileTourCopyVisible,
       featuresBackdropProgress,
     ],
   )
@@ -869,24 +863,6 @@ export default function Home() {
         const clampedDest = maxDest != null ? Math.min(dest, maxDest) : dest
         await scrollScrollerTo(scroller, Math.max(0, clampedDest), { reducedMotion })
       })
-
-      if (isMobileTour && panelIndex >= 1) {
-        const stop = stops[panelIndex - 1]
-        if (stop?.points?.length) {
-          steps.push({
-            action: async () => {
-              setMobileStopPanelStopId(stop.id)
-            },
-            label: `tour · stop ${panelIndex - 1} · drawer expanded`,
-          })
-          steps.push({
-            action: async () => {
-              setMobileStopPanelStopId(null)
-            },
-            recordMarker: false,
-          })
-        }
-      }
     }
 
     for (const id of POST_TOUR_SECTION_IDS) {
@@ -916,8 +892,6 @@ export default function Home() {
     getTourPanelScrollTop,
     getLastTourPanelScrollTop,
     lastTourPanelIndex,
-    isMobileTour,
-    stops,
     sectionRefMap,
     reducedMotion,
   ])
@@ -1217,7 +1191,7 @@ export default function Home() {
           {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
             ref={storyCardWrapperRef}
-            className={`pointer-events-none absolute ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute left-0 top-0 will-change-transform ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
             style={
               editMode
                 ? {
@@ -1277,17 +1251,14 @@ export default function Home() {
             </div>
           </div>
 
-          {isMobileTour ? (
-            <TourMobileStopDrawer
-              peekStop={activeStop}
-              expandedStop={mobilePanelStop}
+          {isMobileTour && mobileTourCopyVisible && contentStop ? (
+            <TourMobileFloatingCard
+              stop={contentStop}
               theme={theme}
-              scrollerRef={scrollerRef}
-              reducedMotion={reducedMotion}
-              peekVisible={mobileTourDrawerVisible}
-              isOpen={Boolean(mobilePanelStop)}
-              onOpen={() => activeStop?.id && setMobileStopPanelStopId(activeStop.id)}
-              onClose={() => setMobileStopPanelStopId(null)}
+              activeIndex={activeIndex}
+              stopCount={stops.length}
+              containerRef={tourStageRef}
+              stageRef={stageRef}
             />
           ) : null}
 
@@ -1368,8 +1339,7 @@ export default function Home() {
         heroActive={heroActive}
         heroExitAdvanced={heroExitAdvanced}
         activeIndex={activeIndex}
-        mobileTourDrawerVisible={mobileTourDrawerVisible}
-        mobileTourDrawerExpanded={Boolean(mobileStopPanelStopId)}
+        mobileTourCopyVisible={mobileTourCopyVisible}
         featuresBackdropProgress={featuresBackdropProgress}
         tourMetricsRef={tourMetricsRef}
       />
@@ -1380,8 +1350,7 @@ export default function Home() {
         heroActive={heroActive}
         heroExitAdvanced={heroExitAdvanced}
         activeIndex={activeIndex}
-        mobileTourDrawerVisible={mobileTourDrawerVisible}
-        mobileTourDrawerExpanded={Boolean(mobileStopPanelStopId)}
+        mobileTourCopyVisible={mobileTourCopyVisible}
         featuresBackdropProgress={featuresBackdropProgress}
       />
       </div>

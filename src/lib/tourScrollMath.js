@@ -240,9 +240,9 @@ export function computeInterpolatedCard(fromCard, toCard, frac, layout = {}) {
 
 export function getStoryCardAbsoluteWrapperStyle(card) {
   return {
-    left: `${card.leftPx}px`,
-    top: `${card.topPx}px`,
-    transform: 'none',
+    left: '0px',
+    top: '0px',
+    transform: `translate3d(${card.leftPx}px, ${card.topPx}px, 0)`,
   }
 }
 

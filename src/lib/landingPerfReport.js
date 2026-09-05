@@ -95,11 +95,9 @@ function formatHardwareLine(device) {
 
 function formatTourLine(tour = {}) {
   const hero = tour.heroActive ? 'on' : 'off'
-  let drawer = 'off'
-  if (tour.mobileTourDrawerExpanded) drawer = 'expanded'
-  else if (tour.mobileTourDrawerVisible) drawer = 'peek'
+  const copy = tour.mobileTourCopyVisible ? 'on' : 'off'
   const mobile = tour.isMobileTour ? 'mobile tour' : 'desktop tour'
-  return `${mobile} · ${tour.theme ?? 'unknown'} · hero ${hero} · stop ${tour.activeIndex ?? 0} · drawer ${drawer} · wash ${(tour.featuresBackdropProgress ?? 0).toFixed(2)} · section ${tour.activeSection ?? 'n/a'}`
+  return `${mobile} · ${tour.theme ?? 'unknown'} · hero ${hero} · stop ${tour.activeIndex ?? 0} · copy ${copy} · wash ${(tour.featuresBackdropProgress ?? 0).toFixed(2)} · section ${tour.activeSection ?? 'n/a'}`
 }
 
 function formatVitalsLine(vitals) {

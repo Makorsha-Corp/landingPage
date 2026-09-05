@@ -10,8 +10,7 @@ export default function LandingPerfTourSync({
   heroActive,
   heroExitAdvanced,
   activeIndex,
-  mobileTourDrawerVisible,
-  mobileTourDrawerExpanded = false,
+  mobileTourCopyVisible,
   featuresBackdropProgress,
   tourMetricsRef,
 }) {
@@ -19,8 +18,7 @@ export default function LandingPerfTourSync({
   const prevRef = useRef({
     heroActive,
     activeIndex,
-    mobileTourDrawerVisible,
-    mobileTourDrawerExpanded,
+    mobileTourCopyVisible,
     washAbove: featuresBackdropProgress >= WASH_THRESHOLD,
   })
 
@@ -32,8 +30,7 @@ export default function LandingPerfTourSync({
       heroActive,
       heroExitAdvanced,
       activeIndex,
-      mobileTourDrawerVisible,
-      mobileTourDrawerExpanded,
+      mobileTourCopyVisible,
       featuresBackdropProgress,
       displayHeroExitT: tourMetricsRef?.current?.displayHeroExitT ?? 0,
     })
@@ -44,8 +41,7 @@ export default function LandingPerfTourSync({
     heroActive,
     heroExitAdvanced,
     activeIndex,
-    mobileTourDrawerVisible,
-    mobileTourDrawerExpanded,
+    mobileTourCopyVisible,
     featuresBackdropProgress,
     tourMetricsRef,
     setTourContext,
@@ -68,11 +64,8 @@ export default function LandingPerfTourSync({
     if (prev.activeIndex !== activeIndex) {
       recordPhaseMarker(`stop ${activeIndex}`, markerContext)
     }
-    if (prev.mobileTourDrawerVisible !== mobileTourDrawerVisible) {
-      recordPhaseMarker(mobileTourDrawerVisible ? 'drawer peek' : 'drawer off', markerContext)
-    }
-    if (prev.mobileTourDrawerExpanded !== mobileTourDrawerExpanded) {
-      recordPhaseMarker(mobileTourDrawerExpanded ? 'drawer expanded' : 'drawer collapsed', markerContext)
+    if (prev.mobileTourCopyVisible !== mobileTourCopyVisible) {
+      recordPhaseMarker(mobileTourCopyVisible ? 'copy on' : 'copy off', markerContext)
     }
 
     const washAbove = featuresBackdropProgress >= WASH_THRESHOLD
@@ -83,16 +76,14 @@ export default function LandingPerfTourSync({
     prevRef.current = {
       heroActive,
       activeIndex,
-      mobileTourDrawerVisible,
-      mobileTourDrawerExpanded,
+      mobileTourCopyVisible,
       washAbove,
     }
   }, [
     perfMonitorEnabled,
     heroActive,
     activeIndex,
-    mobileTourDrawerVisible,
-    mobileTourDrawerExpanded,
+    mobileTourCopyVisible,
     featuresBackdropProgress,
     recordPhaseMarker,
     stats.fps,
