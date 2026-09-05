@@ -13,6 +13,7 @@ import {
   getStoryCardAbsoluteWrapperStyle,
   getStoryCardInnerSizeStyle,
   getTourSmoothRate,
+  CARD_INNER_PADDING_Y_PX,
   lerp,
   BASE_TOUR_CAMERA_SMOOTH_RATE,
   BASE_TOUR_CARD_SMOOTH_RATE,
@@ -295,12 +296,40 @@ export default function useTourCamera({
               'overflowY',
               sizeStyle.overflowY,
             )
+            const maxHeightKey = 'cardInner:maxHeight'
+            if (lastDomRef.current[maxHeightKey] !== null) {
+              lastDomRef.current[maxHeightKey] = null
+              storyCardInnerRef.current.style.removeProperty('max-height')
+            }
+          } else if (sizeStyle.maxHeight) {
+            setStyleIfChanged(
+              'cardInner',
+              storyCardInnerRef.current,
+              'maxHeight',
+              sizeStyle.maxHeight,
+            )
+            setStyleIfChanged(
+              'cardInner',
+              storyCardInnerRef.current,
+              'overflowY',
+              sizeStyle.overflowY,
+            )
+            const heightKey = 'cardInner:height'
+            if (lastDomRef.current[heightKey] !== null) {
+              lastDomRef.current[heightKey] = null
+              storyCardInnerRef.current.style.removeProperty('height')
+            }
           } else {
             const heightKey = 'cardInner:height'
+            const maxHeightKey = 'cardInner:maxHeight'
             const overflowKey = 'cardInner:overflowY'
             if (lastDomRef.current[heightKey] !== null) {
               lastDomRef.current[heightKey] = null
               storyCardInnerRef.current.style.removeProperty('height')
+            }
+            if (lastDomRef.current[maxHeightKey] !== null) {
+              lastDomRef.current[maxHeightKey] = null
+              storyCardInnerRef.current.style.removeProperty('max-height')
             }
             if (lastDomRef.current[overflowKey] !== null) {
               lastDomRef.current[overflowKey] = null
@@ -309,7 +338,15 @@ export default function useTourCamera({
           }
         }
         if (storyCardContentShellRef?.current) {
-          const minHeight = `${Math.round(smoothedCard.minHeightPx)}px`
+          let shellMinPx = Math.round(smoothedCard.minHeightPx)
+          if (displayCard.maxHeightPx) {
+            const maxShellMin = Math.max(
+              0,
+              displayCard.maxHeightPx - CARD_INNER_PADDING_Y_PX,
+            )
+            shellMinPx = Math.min(shellMinPx, maxShellMin)
+          }
+          const minHeight = `${shellMinPx}px`
           setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'minHeight', minHeight)
         }
         const committed = renderedStopIndexRef.current === contentState.wantedStopIndex

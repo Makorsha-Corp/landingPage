@@ -5,6 +5,9 @@ export const TOUR_MD_MAX_PX = TOUR_MD_MIN_PX - 1
 /** Tailwind default `lg`. */
 export const DESKTOP_LG_MIN_PX = 1024
 
+/** Compact tour stage — story card auto-clamps below this width. */
+export const COMPACT_TOUR_STAGE_MAX_PX = 1280
+
 export const MOBILE_TOUR_QUERY = `(max-width: ${TOUR_MD_MAX_PX}px)`
 export const DESKTOP_MD_QUERY = `(min-width: ${TOUR_MD_MIN_PX}px)`
 export const DESKTOP_LG_QUERY = `(min-width: ${DESKTOP_LG_MIN_PX}px)`

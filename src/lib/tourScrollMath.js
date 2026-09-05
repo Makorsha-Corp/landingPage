@@ -125,6 +125,19 @@ function lerpNullable(a, b, t) {
 
 export const DEFAULT_STAGE_WIDTH_PX = 1280
 export const DEFAULT_CARD_HEIGHT_PX = 200
+export const COMPACT_TOUR_STAGE_MAX_PX = DEFAULT_STAGE_WIDTH_PX
+export const CARD_STAGE_RIGHT_GUTTER_PX = 80
+export const CARD_STAGE_EDGE_PADDING_PX = 16
+export const CARD_MIN_WIDTH_PX = 320
+export const CARD_MIN_HEIGHT_PX = DEFAULT_CARD_HEIGHT_PX
+export const CARD_AUTO_HEIGHT_ESTIMATE_PX = DEFAULT_CARD_HEIGHT_PX
+export const COMPACT_CARD_MAX_WIDTH_RATIO = 0.68
+/** Vertical padding on story card inner (`p-6` × 2) — for content shell min-height cap. */
+export const CARD_INNER_PADDING_Y_PX = 48
+
+function isCompactTourStage(stageWidthPx) {
+  return stageWidthPx > 0 && stageWidthPx < COMPACT_TOUR_STAGE_MAX_PX
+}
 
 export function getCardWidthPx(card, stageWidthPx) {
   const normalized = normalizeCardForLerp(card)
@@ -132,7 +145,59 @@ export function getCardWidthPx(card, stageWidthPx) {
   const maxWidthVw = normalized.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw
   if (stageWidthPx <= 0) return widthPx
   const maxFromVw = (maxWidthVw / 100) * stageWidthPx
-  return Math.min(widthPx, maxFromVw)
+  let resolved = Math.min(widthPx, maxFromVw)
+  if (isCompactTourStage(stageWidthPx)) {
+    resolved = Math.min(resolved, Math.floor(stageWidthPx * COMPACT_CARD_MAX_WIDTH_RATIO))
+  }
+  return resolved
+}
+
+/** Keep floating story card inside sticky tour stage on compact widths (tablet). */
+export function fitCardLayoutToStage(layout, stageWidthPx, stageHeightPx) {
+  if (stageWidthPx <= 0 || !isCompactTourStage(stageWidthPx)) return layout
+
+  const pad = CARD_STAGE_EDGE_PADDING_PX
+  const rightGutter = CARD_STAGE_RIGHT_GUTTER_PX
+  const effectiveStageH =
+    stageHeightPx > 0 ? stageHeightPx : stageWidthPx * (9 / 16)
+
+  let widthPx = layout.widthPx ?? DEFAULT_CARD_LAYOUT.widthPx
+  widthPx = Math.min(
+    widthPx,
+    stageWidthPx - pad * 2 - rightGutter,
+  )
+  widthPx = clamp(widthPx, CARD_MIN_WIDTH_PX, stageWidthPx - pad - rightGutter - pad)
+
+  let leftPx = layout.leftPx
+  const maxLeft = stageWidthPx - widthPx - rightGutter
+  leftPx = clamp(leftPx, pad, Math.max(pad, maxLeft))
+
+  if (leftPx + widthPx > stageWidthPx - rightGutter - pad) {
+    widthPx = clamp(
+      stageWidthPx - rightGutter - pad - leftPx,
+      CARD_MIN_WIDTH_PX,
+      stageWidthPx - pad - rightGutter - pad,
+    )
+  }
+
+  const cardHeight = layout.heightPx ?? CARD_AUTO_HEIGHT_ESTIMATE_PX
+  let topPx = layout.topPx
+  const maxTop = effectiveStageH - cardHeight - pad
+  topPx = clamp(topPx, pad, Math.max(pad, maxTop))
+
+  let maxHeightPx = Math.round(effectiveStageH - topPx - pad)
+  if (maxHeightPx < CARD_MIN_HEIGHT_PX) {
+    maxHeightPx = CARD_MIN_HEIGHT_PX
+    topPx = Math.max(pad, effectiveStageH - maxHeightPx - pad)
+  }
+
+  return {
+    ...layout,
+    leftPx: Math.round(leftPx),
+    topPx: Math.round(topPx),
+    widthPx: Math.round(widthPx),
+    maxHeightPx,
+  }
 }
 
 /** Card x/y (top-left %) → absolute top-left bbox in stage px. */
@@ -157,16 +222,20 @@ export function computeInterpolatedCard(fromCard, toCard, frac, layout = {}) {
   const fromAbs = cardToAbsoluteTopLeft(from, stageWidthPx, stageHeightPx)
   const toAbs = cardToAbsoluteTopLeft(to, stageWidthPx, stageHeightPx)
 
-  return {
-    positioning: 'absolute',
-    leftPx: lerp(fromAbs.leftPx, toAbs.leftPx, frac),
-    topPx: lerp(fromAbs.topPx, toAbs.topPx, frac),
-    widthPx: Math.round(
-      lerp(getCardWidthPx(from, stageWidthPx), getCardWidthPx(to, stageWidthPx), frac),
-    ),
-    heightPx: lerpNullable(from.heightPx, to.heightPx, frac),
-    maxWidthVw: lerp(from.maxWidthVw, to.maxWidthVw, frac),
-  }
+  return fitCardLayoutToStage(
+    {
+      positioning: 'absolute',
+      leftPx: lerp(fromAbs.leftPx, toAbs.leftPx, frac),
+      topPx: lerp(fromAbs.topPx, toAbs.topPx, frac),
+      widthPx: Math.round(
+        lerp(getCardWidthPx(from, stageWidthPx), getCardWidthPx(to, stageWidthPx), frac),
+      ),
+      heightPx: lerpNullable(from.heightPx, to.heightPx, frac),
+      maxWidthVw: lerp(from.maxWidthVw, to.maxWidthVw, frac),
+    },
+    stageWidthPx,
+    stageHeightPx,
+  )
 }
 
 export function getStoryCardAbsoluteWrapperStyle(card) {
@@ -188,27 +257,38 @@ export function getStoryCardWrapperStyle(card) {
 
 export function getStoryCardInnerSizeStyle(card, stageWidthPx = 0) {
   const normalized = normalizeCardForLerp(card)
-  const widthPx = getCardWidthPx(normalized, stageWidthPx)
-  return {
+  const widthPx = card.widthPx ?? getCardWidthPx(normalized, stageWidthPx)
+  const style = {
     width: `${widthPx}px`,
     maxWidth: `${normalized.maxWidthVw}vw`,
-    ...(normalized.heightPx
-      ? { height: `${normalized.heightPx}px`, overflowY: 'auto' }
-      : {}),
   }
+
+  if (normalized.heightPx) {
+    style.height = `${normalized.heightPx}px`
+    style.overflowY = 'auto'
+  } else if (card.maxHeightPx) {
+    style.maxHeight = `${card.maxHeightPx}px`
+    style.overflowY = 'auto'
+  }
+
+  return style
 }
 
 export function cardAtAbsoluteRest(stop, card, stageWidthPx, stageHeightPx) {
   const normalized = normalizeCardForLerp(card)
   const abs = cardToAbsoluteTopLeft(normalized, stageWidthPx, stageHeightPx)
-  return {
-    positioning: 'absolute',
-    leftPx: abs.leftPx,
-    topPx: abs.topPx,
-    widthPx: getCardWidthPx(normalized, stageWidthPx),
-    heightPx: normalized.heightPx,
-    maxWidthVw: normalized.maxWidthVw,
-  }
+  return fitCardLayoutToStage(
+    {
+      positioning: 'absolute',
+      leftPx: abs.leftPx,
+      topPx: abs.topPx,
+      widthPx: getCardWidthPx(normalized, stageWidthPx),
+      heightPx: normalized.heightPx,
+      maxWidthVw: normalized.maxWidthVw,
+    },
+    stageWidthPx,
+    stageHeightPx,
+  )
 }
 
 export function computeTourFrame({
