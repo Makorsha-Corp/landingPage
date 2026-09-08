@@ -1,7 +1,8 @@
+import TourStoryPointsList from './TourStoryPointsList'
+
 export default function TourMobileCondensedBody({
   stop,
   descCls,
-  chipCls = '',
   stagger = false,
 }) {
   if (!stop) return null
@@ -31,23 +32,15 @@ export default function TourMobileCondensedBody({
           {stop.desc2}
         </p>
       ) : null}
-      {stop.points?.length ? (
-        <ul
-          className={`mt-3 flex flex-wrap gap-1.5 ${
-            stagger ? 'animate-tour-mobile-copy-in' : ''
-          }`}
-          style={stagger ? delayStyle(3) : undefined}
-        >
-          {stop.points.map((point) => (
-            <li
-              key={point}
-              className={`rounded-full border px-2.5 py-1 text-[11px] leading-snug ${descCls} ${chipCls}`}
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <TourStoryPointsList
+        points={stop.points}
+        descCls={descCls}
+        className={`mt-3 grid grid-cols-2 gap-x-3 gap-y-2 ${
+          stagger ? 'animate-tour-mobile-copy-in' : ''
+        }`}
+        itemClassName="text-xs leading-snug"
+        style={stagger ? delayStyle(3) : undefined}
+      />
     </>
   )
 }

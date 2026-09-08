@@ -28,7 +28,11 @@ import {
   BASE_TOUR_CARD_SMOOTH_RATE,
   BASE_TOUR_CONTENT_SMOOTH_RATE,
   BASE_TOUR_CARD_SIZE_SMOOTH_RATE,
+  CARD_COPY_HOLD_OUT,
+  CARD_COPY_HOLD_IN,
 } from '../lib/tourScrollMath'
+
+const COPY_WIDTH_REMEASURE_THRESHOLD_PX = 8
 
 const SETTLE_EPSILON = 0.05
 const CARD_SETTLE_EPSILON = 0.5
@@ -64,7 +68,8 @@ export default function useTourCamera({
   storyCardContentShellRef,
   storyCardHeroCopyRef,
   storyCardCopyRef,
-  mobileCardRef,
+  mobileCardWrapRef,
+  mobileCardCopyRef,
   tourTransitionSpeedRef,
   tourCardContentSpeedRef,
   stops,
@@ -90,6 +95,7 @@ export default function useTourCamera({
   })
   const smoothedContentPosRef = useRef(0)
   const contentHeightsByStopIdRef = useRef(new Map())
+  const lastStoryCopyWidthRef = useRef(0)
   const heroContentHeightRef = useRef(DEFAULT_CARD_HEIGHT_PX)
   const renderedStopIndexRef = useRef(0)
   const dirtyRef = useRef(true)
@@ -156,26 +162,43 @@ export default function useTourCamera({
     const stop = stops[contentStopIndex]
     if (!copyEl || !stop?.id) {
       dirtyRef.current = true
-      if (kickRafRef.current) kickRafRef.current()
+      kickRafRef.current?.()
       return undefined
     }
 
-    if (contentHeightsByStopIdRef.current.has(stop.id)) {
-      dirtyRef.current = true
-      if (kickRafRef.current) kickRafRef.current()
-      return undefined
-    }
-
-    const measureRaf = requestAnimationFrame(() => {
+    const remeasureStoryCopy = () => {
       const height = copyEl.scrollHeight
       if (height > 0) {
         contentHeightsByStopIdRef.current.set(stop.id, height)
         dirtyRef.current = true
-        if (kickRafRef.current) kickRafRef.current()
+        kickRafRef.current?.()
       }
-    })
+    }
 
-    return () => cancelAnimationFrame(measureRaf)
+    const handleResize = (entries) => {
+      const entry = entries[0]
+      const nextWidth = entry?.contentRect?.width ?? copyEl.offsetWidth
+      const prevWidth = lastStoryCopyWidthRef.current
+      if (
+        prevWidth > 0 &&
+        Math.abs(nextWidth - prevWidth) > COPY_WIDTH_REMEASURE_THRESHOLD_PX
+      ) {
+        contentHeightsByStopIdRef.current.clear()
+      }
+      lastStoryCopyWidthRef.current = nextWidth
+      remeasureStoryCopy()
+    }
+
+    if (!contentHeightsByStopIdRef.current.has(stop.id)) {
+      requestAnimationFrame(remeasureStoryCopy)
+    } else {
+      dirtyRef.current = true
+      kickRafRef.current?.()
+    }
+
+    const ro = new ResizeObserver(handleResize)
+    ro.observe(copyEl)
+    return () => ro.disconnect()
   }, [contentStopIndex, stops, storyCardCopyRef])
 
   useLayoutEffect(() => {
@@ -328,9 +351,11 @@ export default function useTourCamera({
     }
 
     const setOpacityIfChanged = (el, keyPrefix, opacity) => {
+      if (!el) return
       const next = String(opacity)
       const key = `${keyPrefix}:opacity`
-      if (lastDomRef.current[key] === next) return
+      const current = el.style.opacity === '' ? '1' : el.style.opacity
+      if (lastDomRef.current[key] === next && current === next) return
       lastDomRef.current[key] = next
       el.style.opacity = next
     }
@@ -339,7 +364,8 @@ export default function useTourCamera({
       if (!el) return
       const next = visible ? 'visible' : 'hidden'
       const key = `${keyPrefix}:visibility`
-      if (lastDomRef.current[key] === next) return
+      const current = el.style.visibility || 'visible'
+      if (lastDomRef.current[key] === next && current === next) return
       lastDomRef.current[key] = next
       el.style.visibility = next
     }
@@ -358,7 +384,38 @@ export default function useTourCamera({
       el.classList.toggle('tour-glass-blur-off', off)
     }
 
-    const applyDomFrame = (frame, stageTransform, background, smoothedCard, contentState, effectiveCard, reversingToHero = false) => {
+    const clearStyleIfSet = (keyPrefix, el, prop) => {
+      if (!el) return
+      const key = `${keyPrefix}:${prop}`
+      if (lastDomRef.current[key] == null) return
+      lastDomRef.current[key] = null
+      el.style.removeProperty(prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`))
+    }
+
+    const shouldMorphShellHeight = (contentState, scrollIdle, exitCrossfade) => {
+      if (exitCrossfade) return true
+      const t = contentState.t
+      if (t <= CARD_COPY_HOLD_OUT || t >= CARD_COPY_HOLD_IN) return false
+      if (scrollIdle) return false
+      return true
+    }
+
+    const syncCardInnerOverflow = (innerEl) => {
+      if (!innerEl) return
+      const needsScroll = innerEl.scrollHeight > innerEl.clientHeight + 1
+      setStyleIfChanged('cardInner', innerEl, 'overflowY', needsScroll ? 'auto' : 'hidden')
+    }
+
+    const applyDomFrame = (
+      frame,
+      stageTransform,
+      background,
+      smoothedCard,
+      contentState,
+      effectiveCard,
+      reversingToHero = false,
+      scrollIdle = false,
+    ) => {
       if (stageRef.current) {
         setStyleIfChanged('stage', stageRef.current, 'transform', stageTransform)
       }
@@ -533,12 +590,6 @@ export default function useTourCamera({
           setStyleIfChanged('cardInner', storyCardInnerRef.current, 'maxWidth', sizeStyle.maxWidth)
           if (sizeStyle.height) {
             setStyleIfChanged('cardInner', storyCardInnerRef.current, 'height', sizeStyle.height)
-            setStyleIfChanged(
-              'cardInner',
-              storyCardInnerRef.current,
-              'overflowY',
-              sizeStyle.overflowY,
-            )
             const maxHeightKey = 'cardInner:maxHeight'
             if (lastDomRef.current[maxHeightKey] !== null) {
               lastDomRef.current[maxHeightKey] = null
@@ -550,12 +601,6 @@ export default function useTourCamera({
               storyCardInnerRef.current,
               'maxHeight',
               sizeStyle.maxHeight,
-            )
-            setStyleIfChanged(
-              'cardInner',
-              storyCardInnerRef.current,
-              'overflowY',
-              sizeStyle.overflowY,
             )
             const heightKey = 'cardInner:height'
             if (lastDomRef.current[heightKey] !== null) {
@@ -579,9 +624,11 @@ export default function useTourCamera({
               storyCardInnerRef.current.style.removeProperty('overflow-y')
             }
           }
+          syncCardInnerOverflow(storyCardInnerRef.current)
         }
         if (storyCardContentShellRef?.current) {
-          if (exitCrossfade) {
+          const morphShellHeight = shouldMorphShellHeight(contentState, scrollIdle, exitCrossfade)
+          if (exitCrossfade && morphShellHeight) {
             const heroH = heroContentHeightRef.current
             const storyH = smoothedCard.minHeightPx
             const exitT = frame.displayHeroExitT
@@ -601,7 +648,7 @@ export default function useTourCamera({
               'overflow',
               'hidden',
             )
-          } else {
+          } else if (morphShellHeight) {
             setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'overflow', '')
             let shellMinPx = Math.round(smoothedCard.minHeightPx)
             if (displayCard.maxHeightPx) {
@@ -613,7 +660,11 @@ export default function useTourCamera({
             }
             const minHeight = `${shellMinPx}px`
             setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'minHeight', minHeight)
+          } else {
+            setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'overflow', '')
+            clearStyleIfSet('cardShell', storyCardContentShellRef.current, 'minHeight')
           }
+          syncCardInnerOverflow(storyCardInnerRef.current)
         }
         const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
 
@@ -672,30 +723,58 @@ export default function useTourCamera({
         }
       }
 
-      if (mobileCardRef?.current) {
+      if (mobileCardWrapRef?.current || mobileCardCopyRef?.current) {
         if (isMobile && exitCrossfade) {
           const copyPhase = computeHeroExitCopyPhase(frame.displayHeroExitT)
-          setOpacityIfChanged(mobileCardRef.current, 'mobileCard', copyPhase.storyOpacity)
-          setStyleIfChanged(
-            'mobileCard',
-            mobileCardRef.current,
-            'transform',
-            `translate3d(0, ${copyPhase.storyOffsetY}px, 0)`,
+          if (mobileCardCopyRef?.current) {
+            setOpacityIfChanged(
+              mobileCardCopyRef.current,
+              'mobileCardCopy',
+              copyPhase.storyOpacity,
+            )
+          }
+          setVisibilityIfChanged(
+            mobileCardWrapRef?.current,
+            'mobileCardWrapVis',
+            copyPhase.storyOpacity > 0.01,
           )
+          if (mobileCardWrapRef?.current) {
+            setStyleIfChanged(
+              'mobileCardWrap',
+              mobileCardWrapRef.current,
+              'transform',
+              `translate3d(0, ${copyPhase.storyOffsetY}px, 0)`,
+            )
+          }
         } else if (isMobile && !frame.heroActive && heroExitComplete) {
           const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
           const opacity = committed ? contentState.phase.opacity : 0
           const offsetY = committed ? contentState.phase.offsetY : 0
-          setOpacityIfChanged(mobileCardRef.current, 'mobileCard', opacity)
-          setStyleIfChanged(
-            'mobileCard',
-            mobileCardRef.current,
-            'transform',
-            `translate3d(0, ${offsetY}px, 0)`,
-          )
+          if (mobileCardCopyRef?.current) {
+            setOpacityIfChanged(mobileCardCopyRef.current, 'mobileCardCopy', opacity)
+          }
+          setVisibilityIfChanged(mobileCardWrapRef?.current, 'mobileCardWrapVis', opacity > 0.01)
+          if (mobileCardWrapRef?.current) {
+            setStyleIfChanged(
+              'mobileCardWrap',
+              mobileCardWrapRef.current,
+              'transform',
+              `translate3d(0, ${offsetY}px, 0)`,
+            )
+          }
         } else if (isMobile && frame.heroActive && !handoffActive) {
-          setOpacityIfChanged(mobileCardRef.current, 'mobileCard', 0)
-          setStyleIfChanged('mobileCard', mobileCardRef.current, 'transform', 'translate3d(0, 8px, 0)')
+          if (mobileCardCopyRef?.current) {
+            setOpacityIfChanged(mobileCardCopyRef.current, 'mobileCardCopy', 0)
+          }
+          setVisibilityIfChanged(mobileCardWrapRef?.current, 'mobileCardWrapVis', false)
+          if (mobileCardWrapRef?.current) {
+            setStyleIfChanged(
+              'mobileCardWrap',
+              mobileCardWrapRef.current,
+              'transform',
+              'translate3d(0, 8px, 0)',
+            )
+          }
         }
       }
     }
@@ -938,6 +1017,7 @@ export default function useTourCamera({
         contentState,
         effectiveCard,
         reversingToHero,
+        scrollIdle,
       )
       syncReactState(frame, contentState.wantedStopIndex)
 
@@ -1086,7 +1166,8 @@ export default function useTourCamera({
     scrollerRef,
     stageRef,
     stops,
-    mobileCardRef,
+    mobileCardWrapRef,
+    mobileCardCopyRef,
     storyCardContentShellRef,
     storyCardHeroCopyRef,
     storyCardCopyRef,

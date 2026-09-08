@@ -24,7 +24,7 @@ export default function useMobileTourCopySpace(containerRef, stageRef, enabled =
     const stageEl = stageRef?.current
     if (!enabled || !containerEl || !stageEl) return
 
-    const sceneBottomPx = stageEl.offsetTop + stageEl.offsetHeight
+    const sceneBottomPx = stageEl.getBoundingClientRect().bottom - containerEl.getBoundingClientRect().top
     const bottomInsetPx = readBottomInsetPx()
     const availablePx = Math.max(
       0,

@@ -2,9 +2,13 @@ import { getStoryCardStyles } from './storyCardStyles'
 
 const CARD_SHELL_BASE = 'relative mx-auto max-w-[640px] text-center rounded-2xl p-5 sm:p-7'
 
+/** Shared dark tour glass — hero shell + floating story cards use identical tokens. */
+const DARK_TOUR_GLASS_SHELL =
+  'border border-white/10 bg-black/45 text-white backdrop-blur-md'
+
 /** Subtle tour-card glass — dark stays lighter; light matches story card for handoff. */
 const HERO_CARD_SHELL = {
-  dark: `${CARD_SHELL_BASE} border border-white/8 bg-black/25 backdrop-blur-sm`,
+  dark: `${CARD_SHELL_BASE} ${DARK_TOUR_GLASS_SHELL}`,
   light: `${CARD_SHELL_BASE} ${getStoryCardStyles('light').card}`,
 }
 
@@ -35,12 +39,25 @@ export function getHeroCardShellClasses(theme = 'dark') {
   return `${HERO_CARD_SHELL[themeKey(theme)]} tour-glass-shell isolate`
 }
 
-/** Same glass fill/blur as hero shell — for mobile story cards (no hero layout sizing). */
+/** Same glass fill/blur as hero shell — for tour story cards (desktop + mobile). */
 export function getHeroMatchedGlassClasses(theme = 'dark') {
+  return getTourStoryCardShellClasses(theme)
+}
+
+export function getTourStoryCardShellClasses(theme = 'dark') {
   if (themeKey(theme) === 'dark') {
-    return 'border border-white/8 bg-black/25 backdrop-blur-sm'
+    return DARK_TOUR_GLASS_SHELL
   }
   return getStoryCardStyles('light').card
+}
+
+/** Left-aligned tour story copy — matches hero text opacities. */
+export function getTourStoryCardTextClasses(theme = 'dark') {
+  const text = HERO_CARD_TEXT[themeKey(theme)]
+  return {
+    title: text.title || 'text-foreground',
+    desc: text.body,
+  }
 }
 
 export function getHeroCardTextClasses(theme = 'dark') {

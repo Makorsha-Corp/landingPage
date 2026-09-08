@@ -52,14 +52,12 @@ function CapabilityCard({
   onCardChange,
   onOpen,
 }) {
-  const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
+  const { glass: glassCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
   const showCard = reducedMotion || reveal
 
-  const sharedCls = `group relative rounded-2xl border p-5 ${editMode ? CAPABILITY_CARD_EDIT_CLASS : CAPABILITY_CARD_CLASS} ${cardCls} ${
-    editMode ? 'ring-2 ring-primary/50' : ''
-  } ${showCard ? 'animate-fade-up' : 'opacity-0'} ${
-    !editMode ? getStoryCardInteractiveClasses(theme) : ''
-  }`
+  const sharedCls = `group relative rounded-2xl border p-5 ${editMode ? CAPABILITY_CARD_EDIT_CLASS : CAPABILITY_CARD_CLASS} ${glassCls} ${
+    editMode ? 'ring-2 ring-primary/50 border-white/10' : getStoryCardInteractiveClasses(theme)
+  } ${showCard ? 'animate-fade-up' : 'opacity-0'}`
 
   const style = showCard && !reducedMotion ? { animationDelay: `${Math.min(index, 5) * 40}ms` } : undefined
 

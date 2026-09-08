@@ -316,10 +316,8 @@ export function getStoryCardInnerSizeStyle(card, stageWidthPx = 0) {
 
   if (normalized.heightPx) {
     style.height = `${normalized.heightPx}px`
-    style.overflowY = 'auto'
   } else if (card.maxHeightPx) {
     style.maxHeight = `${card.maxHeightPx}px`
-    style.overflowY = 'auto'
   }
 
   return style

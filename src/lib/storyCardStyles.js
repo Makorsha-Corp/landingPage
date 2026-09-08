@@ -2,12 +2,14 @@ export function getStoryCardStyles(theme) {
   if (theme === 'dark') {
     return {
       card: 'border-white/10 bg-black/45 text-white backdrop-blur-md',
+      glass: 'bg-black/45 text-white backdrop-blur-md',
       title: '',
       desc: 'text-white/80',
     }
   }
   return {
     card: 'border-white/60 bg-white/75 text-foreground backdrop-blur-md ring-1 ring-black/5 shadow-black/10',
+    glass: 'bg-white/75 text-foreground backdrop-blur-md',
     title: 'text-foreground',
     desc: 'text-muted-foreground',
   }
@@ -23,7 +25,8 @@ export function getStoryCardInteractiveClasses(theme) {
   if (theme === 'dark') {
     return (
       `${shared} ` +
-      'shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-white/10 ' +
+      'border-primary/35 ring-1 ring-primary/25 ' +
+      'shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ' +
       'hover:border-primary/50 hover:ring-primary/35 ' +
       'hover:shadow-[0_28px_56px_-16px_rgba(149,104,184,0.48)] ' +
       'active:border-primary/45 active:ring-primary/30 ' +
@@ -33,6 +36,7 @@ export function getStoryCardInteractiveClasses(theme) {
 
   return (
     `${shared} ` +
+    'border-primary/30 ring-1 ring-primary/20 ' +
     'shadow-[0_12px_32px_-16px_rgba(0,0,0,0.14)] ' +
     'hover:border-primary/45 hover:ring-primary/30 ' +
     'hover:shadow-[0_28px_56px_-16px_rgba(149,104,184,0.32)] ' +
@@ -44,16 +48,16 @@ export function getStoryCardInteractiveClasses(theme) {
 /** Top-right open affordance on feature/capability cards. */
 export function getStoryCardArrowPillClasses(theme) {
   const shared =
-    'pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm ' +
-    'text-primary transition-[background-color,color,transform] ' +
-    'group-hover:translate-x-0.5 group-hover:bg-primary/25 group-hover:text-white ' +
-    'group-active:translate-x-0.5 group-active:bg-primary/30 group-active:text-white'
+    'pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full ' +
+    'bg-primary/10 text-primary transition-[background-color,color,transform] ' +
+    'group-hover:translate-x-0.5 group-hover:bg-primary group-hover:text-white ' +
+    'group-active:translate-x-0.5 group-active:bg-primary group-active:text-white'
 
   if (theme === 'dark') {
-    return `${shared} bg-white/10`
+    return shared
   }
 
-  return `${shared} bg-black/5 ring-1 ring-black/5`
+  return `${shared} ring-1 ring-primary/10`
 }
 
 /** Static elevated glass cards (testimonials, etc.) — feature-card look without click affordances. */

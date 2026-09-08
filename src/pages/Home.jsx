@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
@@ -54,8 +54,7 @@ import Homepage2HeroCameraControls, {
 import { getLoginGradientStyle } from '../../shared/loginGradient.js'
 import useStoryCardDrag from '../hooks/useStoryCardDrag'
 import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardControls'
-import { getStoryCardStyles } from '../lib/storyCardStyles'
-import { getHeroCardTextClasses, getHeroExploreButtonVariant } from '../lib/heroCardStyles'
+import { getHeroCardTextClasses, getHeroExploreButtonVariant, getTourStoryCardShellClasses, getTourStoryCardTextClasses } from '../lib/heroCardStyles'
 import { copyHomepageContentForCode, normalizeHomepageSnapshot } from '../lib/homepageContentExport'
 import {
   applyRainbowColorPreset,
@@ -373,7 +372,8 @@ export default function Home() {
   const storyCardContentShellRef = useRef(null)
   const storyCardHeroCopyRef = useRef(null)
   const storyCardCopyRef = useRef(null)
-  const mobileTourCardRef = useRef(null)
+  const mobileTourCardWrapRef = useRef(null)
+  const mobileTourCardCopyRef = useRef(null)
   const tourStageRef = useRef(null)
   const tourPanelRefs = useRef([])
   const { reducedMotion } = useLandingMotion()
@@ -507,7 +507,8 @@ export default function Home() {
     storyCardContentShellRef,
     storyCardHeroCopyRef,
     storyCardCopyRef,
-    mobileCardRef: mobileTourCardRef,
+    mobileCardWrapRef: mobileTourCardWrapRef,
+    mobileCardCopyRef: mobileTourCardCopyRef,
     tourTransitionSpeedRef,
     tourCardContentSpeedRef,
     stops,
@@ -529,6 +530,13 @@ export default function Home() {
     }
     syncTourDomRef.current?.()
   }, [theme])
+
+  // Mobile card unmounts when leaving tour; remount clears inline opacity but rAF cache
+  // can still think copy is visible — force a DOM resync when tour section returns.
+  useLayoutEffect(() => {
+    if (!isMobileTour || activeSection !== 'tour') return
+    syncTourDomRef.current?.()
+  }, [activeSection, isMobileTour, contentStopIndex])
 
   useEffect(() => {
     const card = heroCardShellRef.current
@@ -836,7 +844,8 @@ export default function Home() {
       { codeBaselineSnapshot: exportCodeBaseline },
     )
 
-  const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
+  const tourStoryShellCls = useMemo(() => getTourStoryCardShellClasses(theme), [theme])
+  const tourStoryTextCls = useMemo(() => getTourStoryCardTextClasses(theme), [theme])
   const heroTextCls = useMemo(() => getHeroCardTextClasses(theme), [theme])
   const heroExploreVariant = useMemo(() => getHeroExploreButtonVariant(theme), [theme])
   const scrollHintPillCls = getScrollHintPillStyles(theme)
@@ -1291,7 +1300,7 @@ export default function Home() {
           >
             <div
               ref={storyCardInnerRef}
-              className={`pointer-events-auto tour-glass-shell isolate rounded-2xl border shadow-2xl ${cardCls} ${
+              className={`pointer-events-auto tour-glass-shell isolate rounded-2xl ${tourStoryShellCls} ${
                 editMode ? 'ring-2 ring-primary/50' : 'will-change-transform p-6'
               } ${editMode ? 'overflow-hidden' : ''}`}
               style={
@@ -1319,8 +1328,8 @@ export default function Home() {
               {editMode && activeStop ? (
                 <TourStoryCardBody
                   stop={activeStop}
-                  titleCls={titleCls}
-                  descCls={descCls}
+                  titleCls={tourStoryTextCls.title}
+                  descCls={tourStoryTextCls.desc}
                   className="p-6 pt-4"
                 />
               ) : null}
@@ -1329,8 +1338,8 @@ export default function Home() {
                   <div ref={storyCardCopyRef} style={{ willChange: 'opacity, transform' }}>
                     <TourStoryCardBody
                       stop={contentStop}
-                      titleCls={titleCls}
-                      descCls={descCls}
+                      titleCls={tourStoryTextCls.title}
+                      descCls={tourStoryTextCls.desc}
                     />
                   </div>
                   <div
@@ -1369,7 +1378,8 @@ export default function Home() {
 
           {isMobileTour && contentStop && activeSection === 'tour' ? (
             <TourMobileFloatingCard
-              rootRef={mobileTourCardRef}
+              wrapRef={mobileTourCardWrapRef}
+              copyRef={mobileTourCardCopyRef}
               scrollDrivenEnter
               stop={contentStop}
               theme={theme}

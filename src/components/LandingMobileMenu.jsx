@@ -134,6 +134,36 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
 
 
 
+  const handlePointerMove = (event) => {
+
+    const start = pointerStartRef.current
+
+    if (!start || start.id !== event.pointerId) return
+
+
+
+    const dx = event.clientX - start.x
+
+    const dy = event.clientY - start.y
+
+    const absX = Math.abs(dx)
+
+    const absY = Math.abs(dy)
+
+
+
+    // Stop the page scroller from hijacking vertical swipes meant for section change.
+
+    if (absY > 6 && absY > absX * 1.2) {
+
+      event.preventDefault()
+
+    }
+
+  }
+
+
+
   const handlePointerUp = (event) => {
 
     const start = pointerStartRef.current
@@ -310,6 +340,8 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
 
         onPointerDown={handlePointerDown}
 
+        onPointerMove={handlePointerMove}
+
         onPointerUp={handlePointerUp}
 
         onPointerCancel={handlePointerCancel}
@@ -322,7 +354,7 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
 
         aria-label={`${activeSectionMeta?.label ?? 'Section'}. Swipe up or down to change section. Tap to open section list.`}
 
-        className="pointer-events-auto flex min-h-10 max-w-full touch-pan-y flex-row items-center gap-2 px-2 py-1 active:opacity-70"
+        className="pointer-events-auto flex min-h-10 max-w-full touch-none flex-row items-center gap-2 px-2 py-1 active:opacity-70"
 
       >
 

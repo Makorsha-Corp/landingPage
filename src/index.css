@@ -169,6 +169,12 @@
   background: hsl(var(--primary-hover));
 }
 
+*::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
 .homepage2-page,
 .homepage2-page body,
 .homepage2-page #root {
