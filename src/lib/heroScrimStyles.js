@@ -10,7 +10,7 @@ export const HERO_OVERLAY_SCRIM_STYLE_LIST = [
   { id: 'none', label: 'None' },
 ]
 
-const SCRIM_BASE = 'pointer-events-none absolute inset-0'
+const SCRIM_BASE = 'pointer-events-none absolute inset-0 homepage-hero-scrim'
 
 const LINEAR_TOP = {
   light: 'bg-gradient-to-b from-black/18 via-black/8 to-transparent',

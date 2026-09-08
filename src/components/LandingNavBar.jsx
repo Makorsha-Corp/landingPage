@@ -14,6 +14,7 @@ export default function LandingNavBar({
   mobileActions,
   desktopActions,
   devToolsProps,
+  collectFeedbackReport,
 }) {
   return (
     <NavbarShell>
@@ -38,7 +39,12 @@ export default function LandingNavBar({
         <div className="ml-auto flex shrink-0 translate-x-0.5 items-center gap-1.5 overflow-visible max-md:-mr-0.5 sm:gap-3 md:translate-x-0">
           {mobileActions ? <div className="flex items-center md:hidden">{mobileActions}</div> : null}
           {desktopActions}
-          {devToolsProps ? <LandingMobileThemeDevMenu devToolsProps={devToolsProps} /> : null}
+          {devToolsProps || collectFeedbackReport ? (
+            <LandingMobileThemeDevMenu
+              devToolsProps={devToolsProps}
+              collectFeedbackReport={collectFeedbackReport}
+            />
+          ) : null}
         </div>
       </div>
     </NavbarShell>

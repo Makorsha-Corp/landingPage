@@ -32,7 +32,7 @@ export default function LandingPerfTourSync({
       activeIndex,
       mobileTourCopyVisible,
       featuresBackdropProgress,
-      displayHeroExitT: tourMetricsRef?.current?.displayHeroExitT ?? 0,
+      heroTransitionT: tourMetricsRef?.current?.heroTransitionT ?? 0,
     })
   }, [
     theme,

@@ -18,7 +18,13 @@ import WaitlistFab from '../components/waitlist/WaitlistFab'
 import WaitlistMobileNavSignUp from '../components/waitlist/WaitlistMobileNavSignUp'
 import WaitlistModal from '../components/waitlist/WaitlistModal'
 import { clearWaitlistMorphOrigin, getOriginChrome, markWaitlistMorphOrigin, resolveTravelBg } from '../lib/waitlistFabMorph'
-import Homepage2HeroOverlay from '../components/Homepage2HeroOverlay'
+import Homepage2HeroOverlay, {
+  HeroBadge,
+  HeroBodyParagraphs,
+  HeroButtons,
+  HeroSubtitle,
+  HeroTitle,
+} from '../components/Homepage2HeroOverlay'
 import TourMobileFloatingCard from '../components/tour/TourMobileFloatingCard'
 import TourStoryCardBody from '../components/tour/TourStoryCardBody'
 import useLandingMotion from '../hooks/useLandingMotion'
@@ -49,6 +55,7 @@ import { getLoginGradientStyle } from '../../shared/loginGradient.js'
 import useStoryCardDrag from '../hooks/useStoryCardDrag'
 import { DEFAULT_CARD, getCardStyle, normalizeCard } from './Homepage2CardControls'
 import { getStoryCardStyles } from '../lib/storyCardStyles'
+import { getHeroCardTextClasses, getHeroExploreButtonVariant } from '../lib/heroCardStyles'
 import { copyHomepageContentForCode, normalizeHomepageSnapshot } from '../lib/homepageContentExport'
 import {
   applyRainbowColorPreset,
@@ -356,10 +363,17 @@ export default function Home() {
   const tourTransitionSpeedRef = useRef(DEFAULT_TOUR_TRANSITION_SPEED)
   const tourCardContentSpeedRef = useRef(DEFAULT_TOUR_CARD_CONTENT_SPEED)
   const heroTextRef = useRef(null)
+  const heroOverlayScrimRef = useRef(null)
+  const heroContentRef = useRef(null)
+  const heroCardShellRef = useRef(null)
+  const heroScrollHintRef = useRef(null)
+  const heroOverlayScrimOpacityRef = useRef(1)
   const storyCardInnerRef = useRef(null)
   const storyCardWrapperRef = useRef(null)
   const storyCardContentShellRef = useRef(null)
+  const storyCardHeroCopyRef = useRef(null)
   const storyCardCopyRef = useRef(null)
+  const mobileTourCardRef = useRef(null)
   const tourStageRef = useRef(null)
   const tourPanelRefs = useRef([])
   const { reducedMotion } = useLandingMotion()
@@ -398,6 +412,7 @@ export default function Home() {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).has('perf')
   })
+  const [showScrollHint, setShowScrollHint] = useState(true)
   const signUpButtonVariant = getSignUpVariantForTheme(theme, lightSignUpVariant, darkSignUpVariant)
   const exportCodeBaseline = useMemo(
     () =>
@@ -444,6 +459,9 @@ export default function Home() {
     [heroOverlayScrimStrength, theme, heroOverlayScrimStyle],
   )
 
+  useEffect(() => {
+    heroOverlayScrimOpacityRef.current = heroOverlayScrimOpacity
+  }, [heroOverlayScrimOpacity])
 
   const sectionRefMap = useMemo(
     () => ({
@@ -469,7 +487,7 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
-  const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced, tourMetricsRef } = useTourCamera({
+  const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced, heroExiting, tourMetricsRef, syncTourDomRef } = useTourCamera({
     scrollerRef,
     tourRef,
     stageRef,
@@ -479,10 +497,17 @@ export default function Home() {
     heroBlurRef,
     buildingSharpRef,
     heroTextRef,
+    heroOverlayScrimRef,
+    heroContentRef,
+    heroCardShellRef,
+    heroScrollHintRef,
+    heroOverlayScrimOpacityRef,
     storyCardInnerRef,
     storyCardWrapperRef,
     storyCardContentShellRef,
+    storyCardHeroCopyRef,
     storyCardCopyRef,
+    mobileCardRef: mobileTourCardRef,
     tourTransitionSpeedRef,
     tourCardContentSpeedRef,
     stops,
@@ -494,6 +519,39 @@ export default function Home() {
     mobileCameraPanMode,
     overlayPaused: featureOverlayOpen,
   })
+
+  // Both images render at opacity 0 until mid hero-exit, so their first raster
+  // lands inside the scroll and stalls a frame. Decode them while the hero rests.
+  // Must run after useTourCamera so syncTourDomRef / kickRafRef are wired first.
+  useEffect(() => {
+    for (const img of [buildingSharpRef.current, backgroundImgRef.current]) {
+      img?.decode?.().catch(() => {})
+    }
+    syncTourDomRef.current?.()
+  }, [theme])
+
+  useEffect(() => {
+    const card = heroCardShellRef.current
+    const hint = heroScrollHintRef.current
+    if (!card || !hint) return undefined
+
+    const checkOverlap = () => {
+      const cardRect = card.getBoundingClientRect()
+      const hintRect = hint.getBoundingClientRect()
+      const gap = hintRect.top - cardRect.bottom
+      setShowScrollHint(gap > 16)
+    }
+
+    checkOverlap()
+    const ro = new ResizeObserver(checkOverlap)
+    ro.observe(card)
+    window.addEventListener('resize', checkOverlap)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', checkOverlap)
+    }
+  }, [heroActive])
 
   const waitlistFabVisible =
     !editMode && !featureOverlayOpen && !heroActive && !isMobileTour
@@ -553,7 +611,7 @@ export default function Home() {
     return scroller.scrollTop >= maxDest - TOUR_END_THRESHOLD
   }
 
-  const scrollToTourPanel = (panelIndex) => {
+  const scrollToTourPanel = useCallback((panelIndex) => {
     const scroller = scrollerRef.current
     if (!scroller) return
 
@@ -582,11 +640,14 @@ export default function Home() {
       const speed = tourTransitionSpeedRef.current ?? DEFAULT_TOUR_TRANSITION_SPEED
       window.setTimeout(finish, reducedMotion ? 0 : Math.round(600 / speed))
     }
-  }
+  }, [getTourPanelScrollTop, getLastTourPanelScrollTop, reducedMotion, scrollerRef, tourTransitionSpeedRef])
 
-  const scrollToStop = (idx) => {
-    scrollToTourPanel(idx + heroPanelCount)
-  }
+  const scrollToStop = useCallback(
+    (idx) => {
+      scrollToTourPanel(idx + heroPanelCount)
+    },
+    [scrollToTourPanel, heroPanelCount],
+  )
 
   const stepTourPrev = () => {
     if (activeIndex > 0) scrollToStop(activeIndex - 1)
@@ -602,7 +663,7 @@ export default function Home() {
     scrollToStop(activeIndex + 1)
   }
 
-  const goFaq = () => glideTo(faqRef)
+  const goFaq = useCallback(() => glideTo(faqRef), [glideTo])
 
   const openWaitlist = useCallback((source = 'waitlist_section', rect = null, meta = null, triggerEl = null) => {
     clearWaitlistMorphOrigin()
@@ -640,9 +701,20 @@ export default function Home() {
     navigateToSection(sectionId)
   }
 
-  const goExplore = () => {
+  const goExplore = useCallback(() => {
     scrollToStop(0)
-  }
+  }, [scrollToStop])
+
+  const openHeroWaitlist = useCallback(
+    (rect, triggerEl) =>
+      openWaitlist(
+        'hero',
+        rect,
+        { label: 'Sign Up', variant: signUpButtonVariant, face: 'rainbow' },
+        triggerEl,
+      ),
+    [openWaitlist, signUpButtonVariant],
+  )
 
   useEffect(() => {
     // One-time mount normalization of legacy eyebrow copy.
@@ -732,13 +804,13 @@ export default function Home() {
     updateStop(nextStop)
   }
 
-  const handleCapabilitiesChange = (nextCapabilities) => {
+  const handleCapabilitiesChange = useCallback((nextCapabilities) => {
     setCapabilities(cloneCapabilities(nextCapabilities))
-  }
+  }, [])
 
-  const handleFaqChange = (patch) => {
+  const handleFaqChange = useCallback((patch) => {
     setFaq((prev) => ({ ...prev, ...patch }))
-  }
+  }, [])
 
   const resetHeroCamera = () => {
     setHeroCamera({ ...DEFAULT_HERO_CAMERA })
@@ -765,11 +837,17 @@ export default function Home() {
     )
 
   const { card: cardCls, title: titleCls, desc: descCls } = getStoryCardStyles(theme)
+  const heroTextCls = useMemo(() => getHeroCardTextClasses(theme), [theme])
+  const heroExploreVariant = useMemo(() => getHeroExploreButtonVariant(theme), [theme])
   const scrollHintPillCls = getScrollHintPillStyles(theme)
   const pageGradientStyle = getLoginGradientStyle(theme)
   const pageGradientLayerCls = 'opacity-70 mix-blend-soft-light'
   const tourBackdropStyle = getBackgroundOverlayStyle(theme, tourBackdropOpacity)
-  const sectionsBackdropStyle = getBackgroundOverlayStyle(theme, sectionsBackdropOpacity)
+  // Stable identity so the memoized post-tour section tree can bail out of re-renders.
+  const sectionsBackdropStyle = useMemo(
+    () => getBackgroundOverlayStyle(theme, sectionsBackdropOpacity),
+    [theme, sectionsBackdropOpacity],
+  )
   const showCampusBackdrop = Boolean(sectionBackdrops[activeSection])
   const scrollLinkedFeaturesWash = !reducedMotion
   const sectionsBackdropT = scrollLinkedFeaturesWash
@@ -794,6 +872,9 @@ export default function Home() {
     Boolean(activeStop) &&
     activeSection === 'tour' &&
     (reducedMotion || featuresBackdropProgress < 0.12)
+
+  // rAF owns shell visibility during heroExiting (forward hide / reverse fade-in).
+  const hideHeroCardShell = !heroActive && !heroExiting
 
   const perfMonitorEnabled = SHOW_PERF_HUD && perfHudEnabled
   useLandingPerfHudToggle(perfMonitorEnabled)
@@ -986,7 +1067,6 @@ export default function Home() {
         onSectionNavigate={handleSectionNavigate}
         mobileActions={
           <div className="flex items-center gap-1.5">
-            <ShareFeedbackButton collectReport={collectFeedbackReport} />
             <WaitlistMobileNavSignUp
               ref={waitlistMobileNavRef}
               visible={isMobileTour && !heroActive && !editMode && !featureOverlayOpen}
@@ -1028,6 +1108,7 @@ export default function Home() {
           </div>
         }
         devToolsProps={landingDevToolsProps}
+        collectFeedbackReport={collectFeedbackReport}
       />
 
       {/* Scroll-driven building experience */}
@@ -1096,18 +1177,22 @@ export default function Home() {
           {/* Hero overlay — first screen before scroll */}
           <div
             ref={heroTextRef}
-            className={`absolute inset-0 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-0 ${
+            className={`homepage-hero-overlay-layer absolute inset-0 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-0 ${
               heroActive ? '' : 'pointer-events-none homepage-hero-overlay--inactive'
-            } ${editMode && heroActive ? 'z-40 pointer-events-auto' : 'z-30'}`}
+            } ${
+              editMode && heroActive
+                ? 'z-40 pointer-events-auto'
+                : heroActive
+                  ? 'z-30'
+                  : 'z-[5]'
+            }`}
             style={{ opacity: 1 }}
           >
             <div
+              ref={heroOverlayScrimRef}
               aria-hidden="true"
               className={heroOverlayScrimLayer.className}
-              style={{
-                ...heroOverlayScrimLayer.style,
-                opacity: heroOverlayScrimOpacity,
-              }}
+              style={heroOverlayScrimLayer.style}
             />
             <div className="relative flex h-full items-center justify-center">
               <Homepage2HeroOverlay
@@ -1115,14 +1200,11 @@ export default function Home() {
                 editMode={editMode}
                 heroActive={heroActive}
                 heroSignUpRef={heroSignUpRef}
-                onGoWaitlist={(rect, triggerEl) =>
-                  openWaitlist(
-                    'hero',
-                    rect,
-                    { label: 'Sign Up', variant: signUpButtonVariant, face: 'rainbow' },
-                    triggerEl,
-                  )
-                }
+                theme={theme}
+                hideCardShell={hideHeroCardShell}
+                cardShellRef={heroCardShellRef}
+                contentRef={heroContentRef}
+                onGoWaitlist={openHeroWaitlist}
                 onGoExplore={goExplore}
                 onHeroChange={setHero}
                 heroSignUpButtonVariant={signUpButtonVariant}
@@ -1130,7 +1212,12 @@ export default function Home() {
             </div>
 
             {!editMode && !factoryPanMode && !mobileCameraPanMode && (
-              <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center">
+              <div
+                ref={heroScrollHintRef}
+                className={`pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center transition-opacity duration-200 ${
+                  showScrollHint ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
                 <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${scrollHintPillCls}`}>
                   <span>Scroll to explore</span>
                   <svg className="h-4 w-4 animate-bounce text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1191,7 +1278,7 @@ export default function Home() {
           {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
             ref={storyCardWrapperRef}
-            className={`pointer-events-none absolute left-0 top-0 will-change-transform ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute left-0 top-0 ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
             style={
               editMode
                 ? {
@@ -1204,9 +1291,9 @@ export default function Home() {
           >
             <div
               ref={storyCardInnerRef}
-              className={`pointer-events-auto isolate rounded-2xl border shadow-2xl ${cardCls} ${
-                editMode ? 'ring-2 ring-primary/50' : ''
-              } ${editMode ? 'overflow-hidden' : 'p-6'}`}
+              className={`pointer-events-auto tour-glass-shell isolate rounded-2xl border shadow-2xl ${cardCls} ${
+                editMode ? 'ring-2 ring-primary/50' : 'will-change-transform p-6'
+              } ${editMode ? 'overflow-hidden' : ''}`}
               style={
                 editMode
                   ? {
@@ -1246,13 +1333,44 @@ export default function Home() {
                       descCls={descCls}
                     />
                   </div>
+                  <div
+                    ref={storyCardHeroCopyRef}
+                    className={`pointer-events-none absolute inset-0 text-center ${heroTextCls.wrap}`}
+                    style={{ willChange: 'opacity' }}
+                  >
+                    <HeroBadge className={heroTextCls.badge}>{hero.badge}</HeroBadge>
+                    <HeroTitle className={heroTextCls.title} textShadow={heroTextCls.titleShadow}>
+                      {hero.title}
+                    </HeroTitle>
+                    {hero.subtitle?.trim() ? (
+                      <HeroSubtitle className={heroTextCls.body} textShadow={heroTextCls.bodyShadow}>
+                        {hero.subtitle}
+                      </HeroSubtitle>
+                    ) : null}
+                    <HeroBodyParagraphs
+                      hero={hero}
+                      className={heroTextCls.body}
+                      textShadow={heroTextCls.bodyShadow}
+                    />
+                    <div className="pointer-events-auto">
+                      <HeroButtons
+                        onGoWaitlist={openHeroWaitlist}
+                        onGoExplore={goExplore}
+                        signUpVariant={signUpButtonVariant}
+                        signUpRef={heroSignUpRef}
+                        exploreVariant={heroExploreVariant}
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>
           </div>
 
-          {isMobileTour && mobileTourCopyVisible && contentStop ? (
+          {isMobileTour && contentStop && activeSection === 'tour' ? (
             <TourMobileFloatingCard
+              rootRef={mobileTourCardRef}
+              scrollDrivenEnter
               stop={contentStop}
               theme={theme}
               activeIndex={activeIndex}
@@ -1316,9 +1434,7 @@ export default function Home() {
         displayFaq={faq}
         onFaqChange={handleFaqChange}
         onFaqClick={goFaq}
-        onJoinWaitlist={(source, rect, meta, triggerEl) =>
-          openWaitlist(source, rect, meta, triggerEl)
-        }
+        onJoinWaitlist={openWaitlist}
       />
 
       <WaitlistModal

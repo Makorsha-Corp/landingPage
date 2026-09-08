@@ -8,9 +8,8 @@ export const MOBILE_FY_CENTER_BIAS = 0.75
 export const MOBILE_TX_DAMPING = 0.25
 export const MOBILE_TY_DAMPING = 0.25
 export const HERO_TEXT_FADE_END = 0.8
+export const HERO_SCRIM_FADE_END = 0.42
 const HERO_BLUR_HOLD = 0.18
-const STORY_CARD_FADE_SPAN = 0.25
-const STORY_CARD_FADE_START = 0
 
 export const DEFAULT_TOUR_TRANSITION_SPEED = 0.75
 export const DEFAULT_TOUR_CARD_CONTENT_SPEED = 1
@@ -19,7 +18,8 @@ export const TOUR_TRANSITION_SPEED_MIN = 0.25
 export const TOUR_TRANSITION_SPEED_MAX = 4
 export const BASE_TOUR_CAMERA_SMOOTH_RATE = 0.18
 export const BASE_TOUR_BLUR_SMOOTH_RATE = 0.14
-export const BASE_TOUR_HERO_EXIT_SMOOTH_RATE = 0.2
+export const BASE_TOUR_HERO_EXIT_SMOOTH_RATE = 0.32
+export const BASE_TOUR_HERO_SCRIM_SMOOTH_RATE = 0.6
 export const BASE_TOUR_CARD_SMOOTH_RATE = 0.18
 export const BASE_TOUR_CONTENT_SMOOTH_RATE = 0.18
 export const BASE_TOUR_CARD_SIZE_SMOOTH_RATE = 0.18
@@ -29,6 +29,11 @@ export const CARD_COPY_FADE_OUT_END = 0.45
 export const CARD_COPY_FADE_IN_START = 0.55
 export const CARD_COPY_HOLD_IN = 0.82
 export const CARD_COPY_SLIDE_PX = 8
+
+export const HERO_EXIT_COPY_OUT_START = 0.06
+export const HERO_EXIT_COPY_OUT_END = 0.44
+export const HERO_EXIT_COPY_IN_START = 0.30
+export const HERO_EXIT_COPY_IN_END = 0.78
 
 export function computeCardCopyPhase(t) {
   if (t <= CARD_COPY_FADE_OUT_END) {
@@ -43,6 +48,44 @@ export function computeCardCopyPhase(t) {
   return { opacity: p, offsetY: -CARD_COPY_SLIDE_PX * (1 - p), useNextStop: true }
 }
 
+/** Overlapping hero→story copy crossfade during hero exit (desktop + mobile). */
+export function computeHeroExitCopyPhase(t) {
+  const clampedT = clamp(t, 0, 1)
+
+  let heroOpacity = 1
+  let heroOffsetY = 0
+  if (clampedT <= HERO_EXIT_COPY_OUT_END) {
+    const outP =
+      clampedT <= HERO_EXIT_COPY_OUT_START
+        ? 0
+        : smoothstep(
+            (clampedT - HERO_EXIT_COPY_OUT_START) /
+              (HERO_EXIT_COPY_OUT_END - HERO_EXIT_COPY_OUT_START),
+          )
+    heroOpacity = 1 - outP
+    heroOffsetY = CARD_COPY_SLIDE_PX * outP
+  } else {
+    heroOpacity = 0
+    heroOffsetY = CARD_COPY_SLIDE_PX
+  }
+
+  let storyOpacity = 0
+  let storyOffsetY = -CARD_COPY_SLIDE_PX
+  if (clampedT >= HERO_EXIT_COPY_IN_START) {
+    const inP =
+      clampedT >= HERO_EXIT_COPY_IN_END
+        ? 1
+        : smoothstep(
+            (clampedT - HERO_EXIT_COPY_IN_START) /
+              (HERO_EXIT_COPY_IN_END - HERO_EXIT_COPY_IN_START),
+          )
+    storyOpacity = inP
+    storyOffsetY = -CARD_COPY_SLIDE_PX * (1 - inP)
+  }
+
+  return { heroOpacity, storyOpacity, heroOffsetY, storyOffsetY }
+}
+
 export function getTourSmoothRate(baseRate, speed = DEFAULT_TOUR_TRANSITION_SPEED) {
   return clamp(baseRate * speed, 0.01, 0.95)
 }
@@ -52,6 +95,14 @@ export function computeHeroBlurOpacity(displayHeroExitT, heroActive) {
   if (heroActive) return 1
   const t = clamp((displayHeroExitT - HERO_BLUR_HOLD) / (1 - HERO_BLUR_HOLD), 0, 1)
   return 1 - smoothstep(t)
+}
+
+/** Fast ease-out scrim lift — decoupled from hero copy fade. */
+export function computeHeroScrimOpacity(scrimExitT, heroActive) {
+  if (heroActive) return 1
+  const t = clamp(scrimExitT / HERO_SCRIM_FADE_END, 0, 1)
+  const eased = 1 - (1 - t) ** 2
+  return 1 - eased
 }
 
 const BACKGROUND_PARALLAX = 0.3
@@ -291,58 +342,127 @@ export function cardAtAbsoluteRest(stop, card, stageWidthPx, stageHeightPx) {
   )
 }
 
+const HERO_CARD_HEIGHT_ESTIMATE_PX = 360
+
+/** Hero card bbox in stage px — width matches first story stop for clean morph handoff. */
+export function computeHeroCenterCard(stageWidthPx, stageHeightPx, stopCard = null) {
+  const cardForWidth = stopCard ?? DEFAULT_CARD_LAYOUT
+  const maxWidthVw = cardForWidth.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw
+  const widthPx = getCardWidthPx(cardForWidth, stageWidthPx)
+  const effectiveStageH =
+    stageHeightPx > 0 ? stageHeightPx : (stageWidthPx > 0 ? stageWidthPx * (9 / 16) : 0)
+  const leftPx = stageWidthPx > 0 ? (stageWidthPx - widthPx) / 2 : 0
+  const topPx =
+    effectiveStageH > 0
+      ? Math.max(
+          CARD_STAGE_EDGE_PADDING_PX,
+          (effectiveStageH - HERO_CARD_HEIGHT_ESTIMATE_PX) / 2,
+        )
+      : 0
+
+  return fitCardLayoutToStage(
+    {
+      positioning: 'absolute',
+      leftPx,
+      topPx,
+      widthPx: Math.round(widthPx),
+      heightPx: null,
+      maxWidthVw,
+    },
+    stageWidthPx,
+    stageHeightPx,
+  )
+}
+
+/** Measured hero card shell rect → stage layout for morph handoff (flex-centered hero). */
+export function layoutHeroCardFromDomRect(shellRect, boundsRect, stopCard = null) {
+  const maxWidthVw = stopCard?.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw
+  return {
+    positioning: 'absolute',
+    leftPx: shellRect.left - boundsRect.left,
+    topPx: shellRect.top - boundsRect.top,
+    widthPx: shellRect.width,
+    heightPx: null,
+    maxWidthVw,
+  }
+}
+
+function interpolateAbsoluteCardLayouts(fromLayout, toLayout, frac, stageWidthPx, stageHeightPx) {
+  return fitCardLayoutToStage(
+    {
+      positioning: 'absolute',
+      leftPx: lerp(fromLayout.leftPx, toLayout.leftPx, frac),
+      topPx: lerp(fromLayout.topPx, toLayout.topPx, frac),
+      widthPx: Math.round(lerp(fromLayout.widthPx, toLayout.widthPx, frac)),
+      heightPx: lerpNullable(fromLayout.heightPx, toLayout.heightPx, frac),
+      maxWidthVw: lerp(
+        fromLayout.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw,
+        toLayout.maxWidthVw ?? DEFAULT_CARD_LAYOUT.maxWidthVw,
+        frac,
+      ),
+    },
+    stageWidthPx,
+    stageHeightPx,
+  )
+}
+
+export const HERO_REST_PROGRESS_EPSILON = 0.005
+
+/** Hero rest + full-panel exit progress — one panel span matches a story segment. */
+export function computeHeroExitState(progress, stopCount) {
+  const heroSegment = stopCount > 0 ? 1 / stopCount : 1
+  const heroActive = progress < HERO_REST_PROGRESS_EPSILON
+  const scrollHeroExitT = heroActive ? 0 : clamp(progress / heroSegment, 0, 1)
+  return { heroActive, heroSegment, scrollHeroExitT }
+}
+
 export function computeTourFrame({
   progress,
   stops,
   heroCamera,
   heroMobileCamera = null,
   displayHeroExitT,
+  displayScrimExitT = displayHeroExitT,
+  scrollHeroExitT = displayHeroExitT,
   reducedMotion,
   editMode,
   isMobile = false,
   mobileCameraPanMode = false,
   stageWidthPx = 0,
   stageHeightPx = 0,
+  heroExitOriginLayout = null,
+  heroHandoffLatched = false,
 }) {
-  const heroPanelCount = 1
-  const totalPanels = heroPanelCount + stops.length
-  const heroSegment = 1 / (totalPanels - 1)
-  const heroActive = progress < heroSegment * 0.5
-  const heroTextOpacity = 1 - smoothstep(clamp(displayHeroExitT / HERO_TEXT_FADE_END, 0, 1))
+  const { heroActive: atHeroRest, heroSegment } = computeHeroExitState(progress, stops.length)
+  const heroActive = atHeroRest && !heroHandoffLatched
+  const scrollExitT = scrollHeroExitT
+  const visualExitT = displayHeroExitT ?? scrollExitT
+  const scrimExitT = displayScrimExitT ?? visualExitT
+  const heroTextOpacity = heroActive
+    ? 1
+    : 1 - smoothstep(clamp(visualExitT / HERO_TEXT_FADE_END, 0, 1))
+  const heroScrimOpacity = computeHeroScrimOpacity(scrimExitT, heroActive)
 
-  const stopProgress = heroActive
-    ? 0
-    : clamp((progress - heroSegment) / (1 - heroSegment), 0, 1)
+  const tourSpan = 1 - heroSegment
+  const stopProgress =
+    heroActive || tourSpan <= 0 ? 0 : clamp((progress - heroSegment) / tourSpan, 0, 1)
 
-  const segments = stops.length - 1
+  const segments = Math.max(stops.length - 1, 0)
   const scaled = stopProgress * segments
-  const segmentIndex = clamp(Math.floor(scaled), 0, segments - 1)
-  const segmentFrac = smoothstep(scaled - segmentIndex)
-  const index = segmentIndex
-  const frac = segmentFrac
+  const index = segments > 0 ? clamp(Math.floor(scaled), 0, segments - 1) : 0
+  const frac = segments > 0 ? smoothstep(scaled - index) : 0
   const activeIndex =
     segments <= 0 ? 0 : clamp(Math.round(scaled), 0, stops.length - 1)
 
-  const cardWrapperOpacity =
-    displayHeroExitT >= 1
-      ? 1
-      : smoothstep(clamp((displayHeroExitT - STORY_CARD_FADE_START) / STORY_CARD_FADE_SPAN, 0, 1))
-
-  const storyCardOpacity = heroActive
-    ? 0
-    : editMode || reducedMotion || displayHeroExitT >= 1
-      ? 1
-      : cardWrapperOpacity
-
   const from = stops[index]
-  const to = stops[index + 1]
+  const to = stops[index + 1] ?? from
   const fromCam = getStopCamera(from)
   const toCam = getStopCamera(to)
   const fx = lerp(fromCam.fx, toCam.fx, frac)
   const fy = lerp(fromCam.fy, toCam.fy, frac)
   const scale = lerp(fromCam.scale, toCam.scale, frac)
 
-  const heroBlend = heroActive ? 1 : clamp(1 - displayHeroExitT, 0, 1)
+  const heroBlend = heroActive ? 1 : clamp(1 - visualExitT, 0, 1)
   const activeHeroCamera =
     isMobile && heroMobileCamera ? heroMobileCamera : heroCamera
   let camFx = lerp(fx, activeHeroCamera.fx, heroBlend)
@@ -368,11 +488,32 @@ export function computeTourFrame({
   if (!heroActive && !editMode) {
     const fromCard = from?.card
     const toCard = to?.card
+    const firstStop = stops[0]
+    const inHeroExitMorph = visualExitT < 0.999
+
     if (reducedMotion) {
       const restStop = stops[activeIndex] ?? from
       interpolatedCard = cardAtAbsoluteRest(
         restStop,
         restStop?.card ?? fromCard,
+        stageWidthPx,
+        stageHeightPx,
+      )
+    } else if (inHeroExitMorph && firstStop?.card) {
+      const heroCenter = heroExitOriginLayout
+        ? fitCardLayoutToStage(heroExitOriginLayout, stageWidthPx, stageHeightPx)
+        : computeHeroCenterCard(stageWidthPx, stageHeightPx, firstStop.card)
+      const stop0Rest = cardAtAbsoluteRest(
+        firstStop,
+        firstStop.card,
+        stageWidthPx,
+        stageHeightPx,
+      )
+      const exitMorphT = smoothstep(clamp(visualExitT, 0, 1))
+      interpolatedCard = interpolateAbsoluteCardLayouts(
+        heroCenter,
+        stop0Rest,
+        exitMorphT,
         stageWidthPx,
         stageHeightPx,
       )
@@ -391,26 +532,22 @@ export function computeTourFrame({
     }
   }
 
-  const heroBlurOpacity = computeHeroBlurOpacity(displayHeroExitT, heroActive)
+  const heroBlurOpacity = computeHeroBlurOpacity(visualExitT, heroActive)
 
+  // Only fields the camera hook reads. Stage transform and background strings are
+  // rebuilt there from smoothed values, so building them here would be thrown away.
   return {
     heroActive,
     activeIndex,
-    segmentIndex,
-    segmentFrac,
     interpolatedCard,
-    stopProgress,
     scaled,
     heroTextOpacity,
-    storyCardOpacity,
+    heroScrimOpacity,
     heroBlurOpacity,
-    sharpBuildingOpacity: 1 - heroBlurOpacity,
     sharpBgOpacity: heroActive
       ? 0
-      : clamp((displayHeroExitT - 0.35) / 0.65, 0, 1),
-    displayHeroExitT,
-    stageTransform: `translate(${tx}%, ${ty}%) scale(${camScale})`,
-    background: computeBackgroundTransforms(tx, ty, camScale, heroBlend),
+      : clamp((visualExitT - 0.35) / 0.65, 0, 1),
+    displayHeroExitT: visualExitT,
     tx,
     ty,
     camScale,

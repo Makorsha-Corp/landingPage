@@ -2,8 +2,8 @@ import Button from '../components/ui/Button'
 
 export const DEFAULT_HERO_CAMERA = {
   fx: 0.5,
-  fy: 0.49,
-  scale: 0.84,
+  fy: 0.45,
+  scale: 0.8,
 }
 
 /** Hero framing on mobile tour — wider zoom-out so isometric sides stay visible. */

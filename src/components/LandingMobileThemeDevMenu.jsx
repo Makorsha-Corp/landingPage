@@ -4,8 +4,9 @@ import { useTheme } from '../context/ThemeContext'
 import { navIconButtonClass } from '../lib/navChrome'
 import { cn } from '../lib/cn'
 import DevToolsPopover from './DevToolsPopover'
+import ShareFeedbackButton from './ShareFeedbackButton'
 
-export default function LandingMobileThemeDevMenu({ devToolsProps }) {
+export default function LandingMobileThemeDevMenu({ devToolsProps, collectFeedbackReport }) {
   const { theme, iconAnimating, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const [devToolsOpen, setDevToolsOpen] = useState(false)
@@ -101,6 +102,14 @@ export default function LandingMobileThemeDevMenu({ devToolsProps }) {
                   )}
                   <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
                 </button>
+                {collectFeedbackReport ? (
+                  <ShareFeedbackButton
+                    collectReport={collectFeedbackReport}
+                    variant="menuItem"
+                    onTrigger={() => setMenuOpen(false)}
+                  />
+                ) : null}
+                {devToolsProps ? (
                 <button
                   type="button"
                   role="menuitem"
@@ -110,6 +119,7 @@ export default function LandingMobileThemeDevMenu({ devToolsProps }) {
                   <span>Dev tools</span>
                   <span className="text-xs text-muted-foreground">Homepage</span>
                 </button>
+                ) : null}
               </div>
             </div>,
             document.body,

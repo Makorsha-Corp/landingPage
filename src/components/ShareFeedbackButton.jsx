@@ -91,7 +91,12 @@ function ShareFeedbackReportSheet({ open, reportText, copyState, onCopy, onClose
   )
 }
 
-export default function ShareFeedbackButton({ collectReport, className = '' }) {
+export default function ShareFeedbackButton({
+  collectReport,
+  className = '',
+  variant = 'button',
+  onTrigger,
+}) {
   const [scanState, setScanState] = useState('idle')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [reportText, setReportText] = useState('')
@@ -99,6 +104,7 @@ export default function ShareFeedbackButton({ collectReport, className = '' }) {
 
   const handleFeedbackClick = async () => {
     if (scanState === 'scanning') return
+    onTrigger?.()
     setScanState('scanning')
     setCopyState('idle')
 
@@ -141,17 +147,43 @@ export default function ShareFeedbackButton({ collectReport, className = '' }) {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="navGhost"
-        size="sm"
-        className={`h-9 shrink-0 rounded-full px-3 text-xs sm:text-sm ${className}`}
-        aria-label="Share feedback about page performance"
-        onClick={handleFeedbackClick}
-        disabled={scanState === 'scanning'}
-      >
-        {label}
-      </Button>
+      {variant === 'menuItem' ? (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={handleFeedbackClick}
+          disabled={scanState === 'scanning'}
+          className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50 ${className}`}
+        >
+          <svg
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M7 8h10M7 12h6m-6 4h8M6 20l-1.5 3 3-1.5L18 8a2 2 0 00-2-2H8L6 20z"
+            />
+          </svg>
+          <span>{label}</span>
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="navGhost"
+          size="sm"
+          className={`h-9 shrink-0 rounded-full px-3 text-xs sm:text-sm ${className}`}
+          aria-label="Share feedback about page performance"
+          onClick={handleFeedbackClick}
+          disabled={scanState === 'scanning'}
+        >
+          {label}
+        </Button>
+      )}
 
       <ShareFeedbackReportSheet
         open={sheetOpen}

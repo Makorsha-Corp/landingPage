@@ -1,16 +1,20 @@
+import { memo } from 'react'
 import { RainbowButton } from '@/components/ui/rainbow-button'
+import {
+  getHeroCardShellClasses,
+  getHeroCardTextClasses,
+  getHeroExploreButtonVariant,
+} from '../lib/heroCardStyles'
 import Button from './ui/Button'
 import Homepage2HeroSettings from '../pages/Homepage2HeroSettings'
 
-const heroFloatingWrap =
-  'text-center text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]'
-const heroFloatingBadge =
-  'text-xs font-semibold uppercase tracking-[0.2em] text-white/80'
-const heroFloatingTitle =
-  'mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white [text-shadow:0_4px_18px_rgba(0,0,0,0.7)]'
-const heroBodyTextShadow = '[text-shadow:0_2px_12px_rgba(0,0,0,0.65)]'
-
-function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand', signUpRef }) {
+export function HeroButtons({
+  onGoWaitlist,
+  onGoExplore,
+  signUpVariant = 'brand',
+  signUpRef,
+  exploreVariant = 'heroGlass',
+}) {
   return (
     <div className="mt-8 flex flex-row items-center justify-center gap-3 sm:gap-4">
       <RainbowButton
@@ -27,7 +31,7 @@ function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand', signU
       </RainbowButton>
       <Button
         onClick={onGoExplore}
-        variant="heroGlass"
+        variant={exploreVariant}
         size="lg"
         className="min-w-0 flex-1 sm:flex-none sm:w-auto"
       >
@@ -37,7 +41,7 @@ function HeroButtons({ onGoWaitlist, onGoExplore, signUpVariant = 'brand', signU
   )
 }
 
-function HeroBadge({ className, children }) {
+export function HeroBadge({ className, children }) {
   return (
     <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${className}`}>
       {children}
@@ -45,15 +49,15 @@ function HeroBadge({ className, children }) {
   )
 }
 
-function HeroTitle({ className, children }) {
+export function HeroTitle({ className, textShadow, children }) {
   return (
-    <h1 className={`mt-3 text-4xl sm:text-5xl font-bold tracking-tight ${className}`}>
+    <h1 className={`mt-3 text-4xl sm:text-5xl font-bold tracking-tight ${className} ${textShadow}`}>
       {children}
     </h1>
   )
 }
 
-function HeroSubtitle({ className, textShadow, children, compactTop = false }) {
+export function HeroSubtitle({ className, textShadow, children, compactTop = false }) {
   const topCls = compactTop ? 'mt-4' : 'mt-5'
   return (
     <p
@@ -64,7 +68,7 @@ function HeroSubtitle({ className, textShadow, children, compactTop = false }) {
   )
 }
 
-function HeroBodyParagraphs({ hero, className, textShadow }) {
+export function HeroBodyParagraphs({ hero, className, textShadow }) {
   const paragraphs = [hero.paragraph, hero.paragraph2].filter(Boolean)
   const hasSubtitle = Boolean(hero.subtitle?.trim())
 
@@ -80,7 +84,7 @@ function HeroBodyParagraphs({ hero, className, textShadow }) {
   ))
 }
 
-export default function Homepage2HeroOverlay({
+function Homepage2HeroOverlay({
   hero,
   editMode,
   heroActive,
@@ -89,6 +93,10 @@ export default function Homepage2HeroOverlay({
   onHeroChange,
   heroSignUpButtonVariant = 'brand',
   heroSignUpRef,
+  theme = 'dark',
+  cardShellRef,
+  contentRef,
+  hideCardShell = false,
 }) {
   if (editMode && heroActive) {
     return (
@@ -98,22 +106,36 @@ export default function Homepage2HeroOverlay({
     )
   }
 
+  const shellCls = getHeroCardShellClasses(theme)
+  const textCls = getHeroCardTextClasses(theme)
+  const exploreVariant = getHeroExploreButtonVariant(theme)
+
   return (
-    <div className={`relative mx-auto max-w-2xl px-6 ${heroFloatingWrap}`}>
-      <HeroBadge className={heroFloatingBadge}>{hero.badge}</HeroBadge>
-      <HeroTitle className={heroFloatingTitle}>{hero.title}</HeroTitle>
-      {hero.subtitle?.trim() ? (
-        <HeroSubtitle className="text-white/95" textShadow={heroBodyTextShadow}>
-          {hero.subtitle}
-        </HeroSubtitle>
-      ) : null}
-      <HeroBodyParagraphs hero={hero} className="text-white/95" textShadow={heroBodyTextShadow} />
-      <HeroButtons
-        onGoWaitlist={onGoWaitlist}
-        onGoExplore={onGoExplore}
-        signUpVariant={heroSignUpButtonVariant}
-        signUpRef={heroSignUpRef}
-      />
+    <div
+      ref={cardShellRef}
+      className={`${shellCls} ${textCls.wrap} ${hideCardShell ? 'is-compositor-hidden' : ''}`}
+    >
+      <div ref={contentRef}>
+        <HeroBadge className={textCls.badge}>{hero.badge}</HeroBadge>
+        <HeroTitle className={textCls.title} textShadow={textCls.titleShadow}>
+          {hero.title}
+        </HeroTitle>
+        {hero.subtitle?.trim() ? (
+          <HeroSubtitle className={textCls.body} textShadow={textCls.bodyShadow}>
+            {hero.subtitle}
+          </HeroSubtitle>
+        ) : null}
+        <HeroBodyParagraphs hero={hero} className={textCls.body} textShadow={textCls.bodyShadow} />
+        <HeroButtons
+          onGoWaitlist={onGoWaitlist}
+          onGoExplore={onGoExplore}
+          signUpVariant={heroSignUpButtonVariant}
+          signUpRef={heroSignUpRef}
+          exploreVariant={exploreVariant}
+        />
+      </div>
     </div>
   )
 }
+
+export default memo(Homepage2HeroOverlay)

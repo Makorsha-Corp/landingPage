@@ -4,7 +4,7 @@ import { useLandingPerf } from '../context/LandingPerfContext'
 import { formatLandingPerfReport } from '../lib/landingPerfReport'
 
 function readTourMetrics(tourMetricsRef) {
-  return tourMetricsRef?.current ?? { displayHeroExitT: 0 }
+  return tourMetricsRef?.current ?? { heroTransitionT: 0 }
 }
 
 async function copyText(text) {
@@ -97,7 +97,7 @@ export default function LandingPerfHud({
       </div>
 
       <div className="mt-1 border-t border-white/10 pt-1 text-white/70">
-        hero {heroActive ? 'on' : 'off'} · exit {tourMetrics.displayHeroExitT.toFixed(2)} · adv{' '}
+        hero {heroActive ? 'on' : 'off'} · exit {tourMetrics.heroTransitionT.toFixed(2)} · adv{' '}
         {heroExitAdvanced ? 'Y' : 'N'}
       </div>
       <div>

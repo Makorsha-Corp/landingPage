@@ -1,4 +1,6 @@
-export default function TourStoryCardBody({ stop, titleCls, descCls, className = '' }) {
+import { memo } from 'react'
+
+function TourStoryCardBody({ stop, titleCls, descCls, className = '' }) {
   if (!stop) return null
 
   return (
@@ -31,3 +33,5 @@ export default function TourStoryCardBody({ stop, titleCls, descCls, className =
     </div>
   )
 }
+
+export default memo(TourStoryCardBody)
