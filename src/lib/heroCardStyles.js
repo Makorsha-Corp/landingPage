@@ -1,15 +1,22 @@
 import { getStoryCardStyles } from './storyCardStyles'
 
-const CARD_SHELL_BASE = 'relative mx-auto max-w-[640px] text-center rounded-2xl p-5 sm:p-7'
+const CARD_SHELL_BASE =
+  'relative w-full max-w-none text-center rounded-none p-5 sm:p-7 md:mx-auto md:max-w-[640px] md:rounded-2xl'
 
-/** Shared dark tour glass — hero shell + floating story cards use identical tokens. */
+/** Shared dark tour glass — story cards only; hero uses lighter fill below. */
 const DARK_TOUR_GLASS_SHELL =
   'border border-white/10 bg-black/45 text-white backdrop-blur-md'
 
-/** Subtle tour-card glass — dark stays lighter; light matches story card for handoff. */
+const HERO_DARK_GLASS_SHELL =
+  'border-y border-x-0 border-white/10 bg-black/45 text-white backdrop-blur-md md:border md:border-white/10'
+
+const HERO_LIGHT_GLASS_SHELL =
+  'border-y border-x-0 border-white/60 bg-white/65 text-foreground backdrop-blur-md ring-1 ring-inset ring-black/5 shadow-black/10 md:border md:border-white/60'
+
+/** Hero overlay glass — slightly more transparent than story cards. */
 const HERO_CARD_SHELL = {
-  dark: `${CARD_SHELL_BASE} ${DARK_TOUR_GLASS_SHELL}`,
-  light: `${CARD_SHELL_BASE} ${getStoryCardStyles('light').card}`,
+  dark: `${CARD_SHELL_BASE} ${HERO_DARK_GLASS_SHELL}`,
+  light: `${CARD_SHELL_BASE} ${HERO_LIGHT_GLASS_SHELL}`,
 }
 
 const HERO_CARD_TEXT = {

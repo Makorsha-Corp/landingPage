@@ -100,7 +100,7 @@ function Homepage2HeroOverlay({
 }) {
   if (editMode && heroActive) {
     return (
-      <div className="relative mx-auto max-w-2xl rounded-2xl border border-white/20 bg-black/50 p-6 px-6 shadow-2xl backdrop-blur-md ring-2 ring-primary/50">
+      <div className="relative mx-auto w-full max-w-none rounded-none border-x-0 border-y border-white/20 bg-black/50 p-6 px-6 shadow-2xl backdrop-blur-md ring-2 ring-primary/50 md:max-w-2xl md:rounded-2xl md:border-x">
         <Homepage2HeroSettings hero={hero} onChange={onHeroChange} />
       </div>
     )

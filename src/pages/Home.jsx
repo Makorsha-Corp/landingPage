@@ -1203,7 +1203,7 @@ export default function Home() {
               className={heroOverlayScrimLayer.className}
               style={heroOverlayScrimLayer.style}
             />
-            <div className="relative flex h-full items-center justify-center">
+            <div className="relative flex h-full w-full items-center justify-center">
               <Homepage2HeroOverlay
                 hero={hero}
                 editMode={editMode}
