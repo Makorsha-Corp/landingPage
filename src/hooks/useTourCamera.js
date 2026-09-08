@@ -158,6 +158,11 @@ export default function useTourCamera({
   useLayoutEffect(() => {
     renderedStopIndexRef.current = contentStopIndex
 
+    // New copy always starts at the top, never inherits the previous stop's scroll.
+    if (storyCardInnerRef?.current) {
+      storyCardInnerRef.current.scrollTop = 0
+    }
+
     const copyEl = storyCardCopyRef?.current
     const stop = stops[contentStopIndex]
     if (!copyEl || !stop?.id) {
@@ -199,7 +204,7 @@ export default function useTourCamera({
     const ro = new ResizeObserver(handleResize)
     ro.observe(copyEl)
     return () => ro.disconnect()
-  }, [contentStopIndex, stops, storyCardCopyRef])
+  }, [contentStopIndex, stops, storyCardCopyRef, storyCardInnerRef])
 
   useLayoutEffect(() => {
     const shell = heroCardShellRef?.current
@@ -345,7 +350,9 @@ export default function useTourCamera({
     const setStyleIfChanged = (keyPrefix, el, prop, nextValue) => {
       if (!el) return
       const key = `${keyPrefix}:${prop}`
-      if (lastDomRef.current[key] === nextValue) return
+      const cssProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
+      const current = el.style.getPropertyValue(cssProp)
+      if (lastDomRef.current[key] === nextValue && current === nextValue) return
       lastDomRef.current[key] = nextValue
       el.style[prop] = nextValue
     }
@@ -387,9 +394,11 @@ export default function useTourCamera({
     const clearStyleIfSet = (keyPrefix, el, prop) => {
       if (!el) return
       const key = `${keyPrefix}:${prop}`
-      if (lastDomRef.current[key] == null) return
+      const cssProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
+      // Cache can go stale across remounts, so trust the live style too.
+      if (lastDomRef.current[key] == null && !el.style.getPropertyValue(cssProp)) return
       lastDomRef.current[key] = null
-      el.style.removeProperty(prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`))
+      el.style.removeProperty(cssProp)
     }
 
     const shouldMorphShellHeight = (contentState, scrollIdle, exitCrossfade) => {
@@ -400,10 +409,27 @@ export default function useTourCamera({
       return true
     }
 
-    const syncCardInnerOverflow = (innerEl) => {
+    const syncCardInnerOverflow = (innerEl, copyEl) => {
       if (!innerEl) return
-      const needsScroll = innerEl.scrollHeight > innerEl.clientHeight + 1
+      const copyHeight = copyEl?.scrollHeight ?? 0
+      const paddedCopyHeight = copyHeight + CARD_INNER_PADDING_Y_PX
+      const needsScroll = paddedCopyHeight > innerEl.clientHeight + 1
       setStyleIfChanged('cardInner', innerEl, 'overflowY', needsScroll ? 'auto' : 'hidden')
+      if (!needsScroll && innerEl.scrollTop !== 0) {
+        innerEl.scrollTop = 0
+      }
+    }
+
+    const syncHeroCopyOverflow = (heroEl, visible) => {
+      if (!heroEl) return
+      if (visible) {
+        clearStyleIfSet('heroCardCopy', heroEl, 'maxHeight')
+        clearStyleIfSet('heroCardCopy', heroEl, 'overflow')
+      } else {
+        // visibility:hidden still counts for scroll overflow; collapse when off-screen.
+        setStyleIfChanged('heroCardCopy', heroEl, 'maxHeight', '0px')
+        setStyleIfChanged('heroCardCopy', heroEl, 'overflow', 'hidden')
+      }
     }
 
     const applyDomFrame = (
@@ -624,7 +650,7 @@ export default function useTourCamera({
               storyCardInnerRef.current.style.removeProperty('overflow-y')
             }
           }
-          syncCardInnerOverflow(storyCardInnerRef.current)
+          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current)
         }
         if (storyCardContentShellRef?.current) {
           const morphShellHeight = shouldMorphShellHeight(contentState, scrollIdle, exitCrossfade)
@@ -664,7 +690,7 @@ export default function useTourCamera({
             setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'overflow', '')
             clearStyleIfSet('cardShell', storyCardContentShellRef.current, 'minHeight')
           }
-          syncCardInnerOverflow(storyCardInnerRef.current)
+          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current)
         }
         const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
 
@@ -688,6 +714,7 @@ export default function useTourCamera({
             )
             storyCardHeroCopyRef.current.style.pointerEvents =
               heroCopyOpacity > 0.01 ? 'auto' : 'none'
+            syncHeroCopyOverflow(storyCardHeroCopyRef.current, heroCopyOpacity > 0.01)
             setStyleIfChanged(
               'heroCardCopy',
               storyCardHeroCopyRef.current,
@@ -705,6 +732,7 @@ export default function useTourCamera({
             setOpacityIfChanged(storyCardHeroCopyRef.current, 'heroCardCopy', 0)
             setVisibilityIfChanged(storyCardHeroCopyRef.current, 'heroCardCopyVis', false)
             storyCardHeroCopyRef.current.style.pointerEvents = 'none'
+            syncHeroCopyOverflow(storyCardHeroCopyRef.current, false)
             setStyleIfChanged(
               'heroCardCopy',
               storyCardHeroCopyRef.current,

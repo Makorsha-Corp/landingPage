@@ -4,7 +4,7 @@ import FaqSettings from './FaqSettings'
 import useInView from '../hooks/useInView'
 import { useTheme } from '../context/ThemeContext'
 import { isPublishableFaq } from '../lib/faqContent'
-import { getStoryCardInteractiveClasses, getStoryCardStyles } from '../lib/storyCardStyles'
+import { getStoryGlassShell, getStoryCardInteractiveClasses, getStoryCardTextClasses } from '../lib/storyCardStyles'
 import {
   sectionHeaderWrap,
   sectionLead,
@@ -24,14 +24,14 @@ function FaqAccordionItem({
   const panelId = `faq-panel-${item.id}`
   const buttonId = `faq-button-${item.id}`
   const isOpen = openIndex === index
-  const isDark = theme === 'dark'
-  const { card: cardCls } = getStoryCardStyles(theme)
+  const { title: questionTextCls, desc: answerTextCls } = getStoryCardTextClasses(theme)
   const [ref, inView] = useInView({ enabled: !reducedMotion })
   const reveal = reducedMotion || inView
 
-  const questionCls = isDark ? 'pr-4 font-semibold text-white' : 'pr-4 font-semibold text-foreground'
-  const answerCls = isDark ? 'leading-relaxed text-white/75' : 'leading-relaxed text-muted-foreground'
-  const chevronCls = isDark ? 'text-white/60 group-hover:text-primary' : 'text-muted-foreground group-hover:text-primary'
+  const questionCls = `pr-4 font-semibold ${questionTextCls}`
+  const answerCls = `leading-relaxed ${answerTextCls}`
+  const chevronCls = theme === 'dark' ? 'text-white/60 group-hover:text-primary' : 'text-muted-foreground group-hover:text-primary'
+  const cardCls = `${getStoryGlassShell(theme)} story-glass-shell--bordered`
 
   const shellCls = editMode
     ? `relative overflow-hidden rounded-2xl border p-0 ${cardCls} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-2 ring-primary/50`
@@ -57,7 +57,7 @@ function FaqAccordionItem({
             }
       }
       className={`${shellCls} ${
-        isOpen && !editMode ? (isDark ? 'ring-primary/40' : 'ring-primary/25') : ''
+        isOpen && !editMode ? (theme === 'dark' ? 'ring-primary/40' : 'ring-primary/25') : ''
       } ${reveal ? 'animate-fade-up' : 'opacity-0'}`}
       style={reveal && !reducedMotion ? { animationDelay: `${index * 80}ms` } : undefined}
     >

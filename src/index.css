@@ -169,10 +169,52 @@
   background: hsl(var(--primary-hover));
 }
 
-*::-webkit-scrollbar-button {
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:vertical:start,
+*::-webkit-scrollbar-button:vertical:end,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment,
+*::-webkit-scrollbar-button:horizontal:start,
+*::-webkit-scrollbar-button:horizontal:end {
   display: none;
   height: 0;
   width: 0;
+  background: transparent;
+}
+
+/* Tour story cards — no arrow buttons on inner scrollbars (Windows classic mode). */
+.tour-glass-shell {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) transparent;
+}
+
+.tour-glass-shell::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tour-glass-shell::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 3px;
+}
+
+.tour-glass-shell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tour-glass-shell::-webkit-scrollbar-button,
+.tour-glass-shell::-webkit-scrollbar-button:single-button,
+.tour-glass-shell::-webkit-scrollbar-button:vertical:start,
+.tour-glass-shell::-webkit-scrollbar-button:vertical:end,
+.tour-glass-shell::-webkit-scrollbar-button:vertical:start:decrement,
+.tour-glass-shell::-webkit-scrollbar-button:vertical:end:increment {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  background: transparent !important;
 }
 
 .homepage2-page,

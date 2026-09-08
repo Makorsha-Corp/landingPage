@@ -1,3 +1,21 @@
+/** Base glass shell classes (no border) for theme-aware panels. */
+export function getStoryGlassShell(theme) {
+  if (theme === 'dark') {
+    return 'bg-black/45 text-white backdrop-blur-md'
+  }
+  return 'bg-white/75 text-foreground backdrop-blur-md'
+}
+// Legacy export for components not yet updated to use theme param
+export const STORY_GLASS_SHELL = 'bg-white/75 text-foreground backdrop-blur-md'
+
+/** Text classes for story/feature cards (no theme param = light default). */
+export function getStoryCardTextClasses(theme) {
+  if (theme === 'dark') {
+    return { title: '', desc: 'text-white/80' }
+  }
+  return { title: 'text-foreground', desc: 'text-muted-foreground' }
+}
+
 export function getStoryCardStyles(theme) {
   if (theme === 'dark') {
     return {
@@ -48,16 +66,16 @@ export function getStoryCardInteractiveClasses(theme) {
 /** Top-right open affordance on feature/capability cards. */
 export function getStoryCardArrowPillClasses(theme) {
   const shared =
-    'pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full ' +
-    'bg-primary/10 text-primary transition-[background-color,color,transform] ' +
+    'pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm ' +
+    'text-primary transition-[background-color,color,transform] ' +
     'group-hover:translate-x-0.5 group-hover:bg-primary group-hover:text-white ' +
     'group-active:translate-x-0.5 group-active:bg-primary group-active:text-white'
 
   if (theme === 'dark') {
-    return shared
+    return `${shared} bg-primary/20 ring-1 ring-primary/25`
   }
 
-  return `${shared} ring-1 ring-primary/10`
+  return `${shared} bg-primary/15 ring-1 ring-primary/20`
 }
 
 /** Static elevated glass cards (testimonials, etc.) — feature-card look without click affordances. */

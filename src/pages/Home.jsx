@@ -1334,7 +1334,7 @@ export default function Home() {
                 />
               ) : null}
               {!editMode && contentStop ? (
-                <div ref={storyCardContentShellRef} className="relative">
+                <div ref={storyCardContentShellRef} className="relative overflow-hidden">
                   <div ref={storyCardCopyRef} style={{ willChange: 'opacity, transform' }}>
                     <TourStoryCardBody
                       stop={contentStop}
