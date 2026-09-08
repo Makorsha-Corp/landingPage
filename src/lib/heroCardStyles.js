@@ -8,10 +8,10 @@ const DARK_TOUR_GLASS_SHELL =
   'border border-white/10 bg-black/45 text-white backdrop-blur-md'
 
 const HERO_DARK_GLASS_SHELL =
-  'border-y border-x-0 border-white/10 bg-black/45 text-white backdrop-blur-md md:border md:border-white/10'
+  'bg-black/55 text-white backdrop-blur-md md:border md:border-white/10'
 
 const HERO_LIGHT_GLASS_SHELL =
-  'border-y border-x-0 border-white/60 bg-white/65 text-foreground backdrop-blur-md ring-1 ring-inset ring-black/5 shadow-black/10 md:border md:border-white/60'
+  'bg-white/55 text-foreground backdrop-blur-md md:border md:border-white/60 md:ring-1 md:ring-inset md:ring-black/5 md:shadow-black/10'
 
 /** Hero overlay glass — slightly more transparent than story cards. */
 const HERO_CARD_SHELL = {
@@ -43,7 +43,9 @@ function themeKey(theme) {
 }
 
 export function getHeroCardShellClasses(theme = 'dark') {
-  return `${HERO_CARD_SHELL[themeKey(theme)]} tour-glass-shell isolate`
+  const edgeClass =
+    themeKey(theme) === 'dark' ? 'hero-mobile-banner-edge-dark' : 'hero-mobile-banner-edge-light'
+  return `${HERO_CARD_SHELL[themeKey(theme)]} tour-glass-shell isolate ${edgeClass}`
 }
 
 /** Same glass fill/blur as hero shell — for tour story cards (desktop + mobile). */
