@@ -365,6 +365,17 @@
   .homepage-tour-panels-offset {
     margin-top: -100svh;
   }
+
+  .deck-panel,
+  .deck-panel.deck-panel--flow {
+    min-height: 100svh;
+  }
+
+  @media (min-height: 700px) {
+    .deck-panel {
+      height: 100svh;
+    }
+  }
 }
 
 @keyframes tour-mobile-copy-in {

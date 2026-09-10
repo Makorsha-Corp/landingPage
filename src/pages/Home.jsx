@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
 import LandingPerfHud from '../components/LandingPerfHud'
+import LandingScrollDebugHud from '../components/LandingScrollDebugHud'
 import LandingPerfTourSync from '../components/LandingPerfTourSync'
 import ShareFeedbackButton from '../components/ShareFeedbackButton'
 import { useLandingPerfHudToggle } from '../context/LandingPerfContext'
@@ -100,7 +101,12 @@ import {
   HOMEPAGE_BLUR_BACKGROUND_SRCSETS,
   HOMEPAGE_RESPONSIVE_SIZES,
 } from '../lib/homepageImages'
-import { SHOW_LANDING_DEV_TOOLS, SHOW_PERF_HUD, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
+import { SHOW_LANDING_DEV_TOOLS, SHOW_PERF_HUD, SHOW_PRICING_SECTION, SHOW_SCROLL_DEBUG } from '../lib/landingFeatureFlags'
+import {
+  attachLandingScrollProbe,
+  readScrollerSnapshot,
+} from '../lib/landingScrollDebug'
+import { runLandingScrollerMountReset } from '../lib/landingScrollReset'
 import {
   DEFAULT_WAITLIST_FAB_STYLE,
   getWaitlistFabMorphMeta,
@@ -430,8 +436,14 @@ export default function Home() {
     [],
   )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.add('homepage2-page')
+    if (SHOW_SCROLL_DEBUG) {
+      window.__LANDING_SCROLL_DEBUG__?.record(
+        'home:layout-after-class',
+        readScrollerSnapshot(scrollerRef.current, tourRef, tourPanelRefs),
+      )
+    }
     return () => document.documentElement.classList.remove('homepage2-page')
   }, [])
 
@@ -606,6 +618,38 @@ export default function Home() {
       scroller.getBoundingClientRect().top
     )
   }, [])
+
+  useLayoutEffect(() => {
+    if (!SHOW_SCROLL_DEBUG) return
+    window.__LANDING_SCROLL_DEBUG__?.record(
+      'home:layout-with-panels',
+      readScrollerSnapshot(scrollerRef.current, tourRef, tourPanelRefs, getTourPanelScrollTop),
+    )
+  }, [getTourPanelScrollTop])
+
+  useEffect(() => {
+    if (!SHOW_SCROLL_DEBUG) return undefined
+    return attachLandingScrollProbe({
+      scrollerRef,
+      tourRef,
+      tourPanelRefs,
+      getTourPanelScrollTop,
+    })
+  }, [getTourPanelScrollTop])
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return undefined
+
+    if (SHOW_SCROLL_DEBUG) {
+      window.__LANDING_SCROLL_DEBUG__?.record(
+        'home:mount-reset-start',
+        readScrollerSnapshot(scroller, tourRef, tourPanelRefs, getTourPanelScrollTop),
+      )
+    }
+
+    return runLandingScrollerMountReset(scroller)
+  }, [getTourPanelScrollTop])
 
   const getLastTourPanelScrollTop = useCallback(
     () => getTourPanelScrollTop(lastTourPanelIndex),
@@ -1287,7 +1331,7 @@ export default function Home() {
           {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
             ref={storyCardWrapperRef}
-            className={`pointer-events-none absolute left-0 top-0 ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute left-0 top-0 is-compositor-hidden ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
             style={
               editMode
                 ? {
@@ -1478,6 +1522,16 @@ export default function Home() {
         activeIndex={activeIndex}
         mobileTourCopyVisible={mobileTourCopyVisible}
         featuresBackdropProgress={featuresBackdropProgress}
+      />
+
+      <LandingScrollDebugHud
+        enabled={SHOW_SCROLL_DEBUG}
+        scrollerRef={scrollerRef}
+        tourRef={tourRef}
+        tourPanelRefs={tourPanelRefs}
+        getTourPanelScrollTop={getTourPanelScrollTop}
+        activeIndex={activeIndex}
+        heroActive={heroActive}
       />
       </div>
     </div>
