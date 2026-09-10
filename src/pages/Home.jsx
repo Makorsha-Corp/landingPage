@@ -3,7 +3,6 @@ import { useTheme } from '../context/ThemeContext'
 import LandingNavBar from '../components/LandingNavBar'
 import DevToolsPopover from '../components/DevToolsPopover'
 import LandingPerfHud from '../components/LandingPerfHud'
-import LandingScrollDebugHud from '../components/LandingScrollDebugHud'
 import LandingPerfTourSync from '../components/LandingPerfTourSync'
 import ShareFeedbackButton from '../components/ShareFeedbackButton'
 import { useLandingPerfHudToggle } from '../context/LandingPerfContext'
@@ -101,11 +100,7 @@ import {
   HOMEPAGE_BLUR_BACKGROUND_SRCSETS,
   HOMEPAGE_RESPONSIVE_SIZES,
 } from '../lib/homepageImages'
-import { SHOW_LANDING_DEV_TOOLS, SHOW_PERF_HUD, SHOW_PRICING_SECTION, SHOW_SCROLL_DEBUG } from '../lib/landingFeatureFlags'
-import {
-  attachLandingScrollProbe,
-  readScrollerSnapshot,
-} from '../lib/landingScrollDebug'
+import { SHOW_LANDING_DEV_TOOLS, SHOW_PERF_HUD, SHOW_PRICING_SECTION } from '../lib/landingFeatureFlags'
 import { runLandingScrollerMountReset } from '../lib/landingScrollReset'
 import {
   DEFAULT_WAITLIST_FAB_STYLE,
@@ -123,7 +118,7 @@ const DEFAULT_SECTION_BACKDROPS = {
 
 function getScrollHintPillStyles(theme) {
   if (theme === 'dark') {
-    return 'rounded-full border border-white/10 bg-black/25 text-white backdrop-blur-md shadow-lg'
+    return 'rounded-full border border-border/70 bg-card/80 text-card-foreground backdrop-blur-md shadow-lg'
   }
   return 'rounded-full border border-white/60 bg-white/75 text-foreground backdrop-blur-md ring-1 ring-black/5 shadow-lg shadow-black/10'
 }
@@ -134,10 +129,10 @@ function getRightBarStyles(theme) {
 
   if (theme === 'dark') {
     return {
-      wrap: `${base} border border-white/10 bg-black/25`,
-      tickInactive: 'bg-white/40 hover:bg-white/70',
+      wrap: `${base} border border-border/70 bg-card/80`,
+      tickInactive: 'bg-primary/40 hover:bg-primary/60',
       arrowBtn:
-        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-25',
+        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-card-foreground disabled:pointer-events-none disabled:opacity-25',
     }
   }
 
@@ -438,12 +433,6 @@ export default function Home() {
 
   useLayoutEffect(() => {
     document.documentElement.classList.add('homepage2-page')
-    if (SHOW_SCROLL_DEBUG) {
-      window.__LANDING_SCROLL_DEBUG__?.record(
-        'home:layout-after-class',
-        readScrollerSnapshot(scrollerRef.current, tourRef, tourPanelRefs),
-      )
-    }
     return () => document.documentElement.classList.remove('homepage2-page')
   }, [])
 
@@ -620,36 +609,10 @@ export default function Home() {
   }, [])
 
   useLayoutEffect(() => {
-    if (!SHOW_SCROLL_DEBUG) return
-    window.__LANDING_SCROLL_DEBUG__?.record(
-      'home:layout-with-panels',
-      readScrollerSnapshot(scrollerRef.current, tourRef, tourPanelRefs, getTourPanelScrollTop),
-    )
-  }, [getTourPanelScrollTop])
-
-  useEffect(() => {
-    if (!SHOW_SCROLL_DEBUG) return undefined
-    return attachLandingScrollProbe({
-      scrollerRef,
-      tourRef,
-      tourPanelRefs,
-      getTourPanelScrollTop,
-    })
-  }, [getTourPanelScrollTop])
-
-  useLayoutEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return undefined
-
-    if (SHOW_SCROLL_DEBUG) {
-      window.__LANDING_SCROLL_DEBUG__?.record(
-        'home:mount-reset-start',
-        readScrollerSnapshot(scroller, tourRef, tourPanelRefs, getTourPanelScrollTop),
-      )
-    }
-
     return runLandingScrollerMountReset(scroller)
-  }, [getTourPanelScrollTop])
+  }, [])
 
   const getLastTourPanelScrollTop = useCallback(
     () => getTourPanelScrollTop(lastTourPanelIndex),
@@ -1524,15 +1487,6 @@ export default function Home() {
         featuresBackdropProgress={featuresBackdropProgress}
       />
 
-      <LandingScrollDebugHud
-        enabled={SHOW_SCROLL_DEBUG}
-        scrollerRef={scrollerRef}
-        tourRef={tourRef}
-        tourPanelRefs={tourPanelRefs}
-        getTourPanelScrollTop={getTourPanelScrollTop}
-        activeIndex={activeIndex}
-        heroActive={heroActive}
-      />
       </div>
     </div>
     </BrandLogoVariantProvider>

@@ -1,7 +1,7 @@
 /** Base glass shell classes (no border) for theme-aware panels. */
 export function getStoryGlassShell(theme) {
   if (theme === 'dark') {
-    return 'bg-black/45 text-white backdrop-blur-md'
+    return 'bg-card/90 text-card-foreground backdrop-blur-md'
   }
   return 'bg-white/75 text-foreground backdrop-blur-md'
 }
@@ -11,7 +11,7 @@ export const STORY_GLASS_SHELL = 'bg-white/75 text-foreground backdrop-blur-md'
 /** Text classes for story/feature cards (no theme param = light default). */
 export function getStoryCardTextClasses(theme) {
   if (theme === 'dark') {
-    return { title: '', desc: 'text-white/80' }
+    return { title: 'text-card-foreground', desc: 'text-muted-foreground' }
   }
   return { title: 'text-foreground', desc: 'text-muted-foreground' }
 }
@@ -19,10 +19,10 @@ export function getStoryCardTextClasses(theme) {
 export function getStoryCardStyles(theme) {
   if (theme === 'dark') {
     return {
-      card: 'border-white/10 bg-black/45 text-white backdrop-blur-md',
-      glass: 'bg-black/45 text-white backdrop-blur-md',
-      title: '',
-      desc: 'text-white/80',
+      card: 'border-border/70 bg-card/90 text-card-foreground backdrop-blur-md',
+      glass: 'bg-card/90 text-card-foreground backdrop-blur-md',
+      title: 'text-card-foreground',
+      desc: 'text-muted-foreground',
     }
   }
   return {
@@ -86,7 +86,7 @@ export function getStoryCardElevatedClasses(theme) {
     'hover:shadow-[0_20px_40px_-14px_rgba(149,104,184,0.25)]'
 
   if (theme === 'dark') {
-    return `${base} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-white/10`
+    return `${base} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-border/50`
   }
 
   return `${base} shadow-[0_12px_32px_-16px_rgba(0,0,0,0.14)]`
@@ -98,7 +98,7 @@ export function getStoryCardStaticClasses(theme) {
   const base = `relative rounded-2xl border p-5 sm:p-6 backdrop-blur-md ${cardCls}`
 
   if (theme === 'dark') {
-    return `${base} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-white/10`
+    return `${base} shadow-[0_12px_32px_-14px_rgba(0,0,0,0.55)] ring-1 ring-border/50`
   }
 
   return `${base} shadow-[0_12px_32px_-16px_rgba(0,0,0,0.14)]`

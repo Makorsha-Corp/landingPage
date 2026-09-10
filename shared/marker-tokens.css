@@ -109,13 +109,13 @@
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
-  --glass-bg: rgb(0 0 0 / 0.45);
-  --glass-border: rgb(255 255 255 / 0.1);
-  --glass-text: rgb(255 255 255);
-  --glass-text-muted: rgb(255 255 255 / 0.8);
-  --glass-text-badge: rgb(255 255 255 / 0.75);
-  --glass-hero-body: rgb(255 255 255 / 0.9);
+  --glass-bg: hsl(var(--card) / 0.9);
+  --glass-border: hsl(var(--border) / 0.7);
+  --glass-text: hsl(var(--card-foreground));
+  --glass-text-muted: hsl(var(--muted-foreground));
+  --glass-text-badge: hsl(var(--muted-foreground));
+  --glass-hero-body: hsl(var(--muted-foreground));
   --glass-shadow: 0 12px 32px -14px rgb(0 0 0 / 0.55);
-  --glass-pill-bg: rgb(0 0 0 / 0.25);
-  --glass-pill-border: rgb(255 255 255 / 0.1);
+  --glass-pill-bg: hsl(var(--card) / 0.8);
+  --glass-pill-border: hsl(var(--border) / 0.7);
 }

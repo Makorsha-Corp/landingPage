@@ -5,10 +5,10 @@ const CARD_SHELL_BASE =
 
 /** Shared dark tour glass — story cards only; hero uses lighter fill below. */
 const DARK_TOUR_GLASS_SHELL =
-  'border border-white/10 bg-black/45 text-white backdrop-blur-md'
+  'border border-border/70 bg-card/90 text-card-foreground backdrop-blur-md'
 
 const HERO_DARK_GLASS_SHELL =
-  'bg-black/55 text-white backdrop-blur-md md:border md:border-white/10'
+  'bg-card/95 text-card-foreground backdrop-blur-md md:border md:border-border/70'
 
 const HERO_LIGHT_GLASS_SHELL =
   'bg-white/55 text-foreground backdrop-blur-md md:border md:border-white/60 md:ring-1 md:ring-inset md:ring-black/5 md:shadow-black/10'
@@ -21,10 +21,10 @@ const HERO_CARD_SHELL = {
 
 const HERO_CARD_TEXT = {
   dark: {
-    wrap: 'text-white',
-    badge: 'text-white/75',
-    title: 'text-white',
-    body: 'text-white/90',
+    wrap: 'text-card-foreground',
+    badge: 'text-muted-foreground',
+    title: 'text-card-foreground',
+    body: 'text-muted-foreground',
     titleShadow: '',
     bodyShadow: '',
   },
