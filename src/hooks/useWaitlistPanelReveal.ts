@@ -1,11 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PANEL_REVEAL_DURATION_MS } from '../lib/waitlistFabMorph'
+import type { WaitlistMorphPhase } from './useWaitlistFabMorph'
 
-export default function useWaitlistPanelReveal({ phase, reducedMotion, contentVisible }) {
+export interface UseWaitlistPanelRevealOptions {
+  phase: WaitlistMorphPhase
+  reducedMotion: boolean
+  contentVisible: boolean
+}
+
+export interface UseWaitlistPanelRevealReturn {
+  revealed: boolean
+  isCovering: boolean
+  startReveal: () => void
+  startCover: (onComplete?: () => void) => void
+}
+
+export default function useWaitlistPanelReveal({
+  phase,
+  reducedMotion,
+  contentVisible,
+}: UseWaitlistPanelRevealOptions): UseWaitlistPanelRevealReturn {
   const [revealed, setRevealed] = useState(false)
   const [isCovering, setIsCovering] = useState(false)
-  const coverTimerRef = useRef(null)
-  const coverCallbackRef = useRef(null)
+  const coverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const coverCallbackRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (reducedMotion || phase !== 'open') return undefined
@@ -24,9 +42,9 @@ export default function useWaitlistPanelReveal({ phase, reducedMotion, contentVi
   }, [reducedMotion])
 
   const startCover = useCallback(
-    (onComplete) => {
+    (onComplete?: () => void) => {
       if (coverTimerRef.current) {
-        window.clearTimeout(coverTimerRef.current)
+        clearTimeout(coverTimerRef.current)
         coverTimerRef.current = null
       }
 
@@ -37,9 +55,9 @@ export default function useWaitlistPanelReveal({ phase, reducedMotion, contentVi
 
       setIsCovering(true)
       setRevealed(false)
-      coverCallbackRef.current = onComplete
+      coverCallbackRef.current = onComplete ?? null
 
-      coverTimerRef.current = window.setTimeout(() => {
+      coverTimerRef.current = setTimeout(() => {
         coverTimerRef.current = null
         setIsCovering(false)
         coverCallbackRef.current?.()
@@ -51,7 +69,7 @@ export default function useWaitlistPanelReveal({ phase, reducedMotion, contentVi
 
   useEffect(
     () => () => {
-      if (coverTimerRef.current) window.clearTimeout(coverTimerRef.current)
+      if (coverTimerRef.current) clearTimeout(coverTimerRef.current)
     },
     [],
   )

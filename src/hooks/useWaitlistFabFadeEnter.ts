@@ -1,11 +1,21 @@
 import { useState } from 'react'
 
+export interface UseWaitlistFabFadeEnterOptions {
+  enabled?: boolean
+  reducedMotion?: boolean
+  freezeTravel?: boolean
+}
+
+export interface UseWaitlistFabFadeEnterReturn {
+  useFadeEnter: boolean
+}
+
 /** Fade + slide up when desktop FAB appears after hero (no FLIP travel). */
 export default function useWaitlistFabFadeEnter({
   enabled = true,
   reducedMotion = false,
   freezeTravel = false,
-}) {
+}: UseWaitlistFabFadeEnterOptions): UseWaitlistFabFadeEnterReturn {
   const [entered, setEntered] = useState(false)
 
   if (enabled && !reducedMotion && !entered) {

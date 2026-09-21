@@ -1,9 +1,21 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type RefObject, type CSSProperties } from 'react'
 import { PANEL_REVEAL_DURATION_MS, PANEL_REVEAL_EASING } from '../lib/waitlistFabMorph'
 
-function measureCenterOffset(panelEl, columnEl) {
+function measureCenterOffset(panelEl: HTMLElement, columnEl: HTMLElement): number {
   if (!panelEl || !columnEl) return 0
   return Math.max(0, (panelEl.clientWidth - columnEl.offsetWidth) / 2)
+}
+
+export interface UseWaitlistColumnShiftOptions {
+  centered: boolean
+  reducedMotion: boolean
+  enabled?: boolean
+  panelRef?: RefObject<HTMLElement | null>
+  columnRef?: RefObject<HTMLElement | null>
+}
+
+export interface UseWaitlistColumnShiftReturn {
+  columnStyle: CSSProperties | undefined
 }
 
 /**
@@ -16,7 +28,7 @@ export default function useWaitlistColumnShift({
   enabled = true,
   panelRef,
   columnRef,
-}) {
+}: UseWaitlistColumnShiftOptions): UseWaitlistColumnShiftReturn {
   const [shiftX, setShiftX] = useState(0)
   const [transitionEnabled, setTransitionEnabled] = useState(false)
   const centeredOffsetRef = useRef(0)
@@ -68,7 +80,7 @@ export default function useWaitlistColumnShift({
     const columnEl = columnRef?.current
     if (!panelEl || !columnEl) return undefined
 
-    const update = () => {
+    const update = (): void => {
       centeredOffsetRef.current = measureCenterOffset(panelEl, columnEl)
     }
 
@@ -81,7 +93,7 @@ export default function useWaitlistColumnShift({
   const effectiveShiftX = !enabled || reducedMotion || centered ? 0 : shiftX
   const effectiveTransitionEnabled = enabled && !reducedMotion && !centered && transitionEnabled
 
-  const columnStyle =
+  const columnStyle: CSSProperties | undefined =
     !enabled || reducedMotion
       ? undefined
       : {

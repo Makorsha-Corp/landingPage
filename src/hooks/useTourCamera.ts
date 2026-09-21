@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject, type MutableRefObject } from 'react'
 import {
   cardAtAbsoluteRest,
   clamp,
@@ -30,6 +30,10 @@ import {
   BASE_TOUR_CARD_SIZE_SMOOTH_RATE,
   CARD_COPY_HOLD_OUT,
   CARD_COPY_HOLD_IN,
+  type TourStop,
+  type CameraPosition,
+  type FittedCardLayout,
+  type CardCopyPhase,
 } from '../lib/tourScrollMath'
 
 const COPY_WIDTH_REMEASURE_THRESHOLD_PX = 8
@@ -39,14 +43,78 @@ const CARD_SETTLE_EPSILON = 0.5
 const CONTENT_POS_SETTLE_EPSILON = 0.008
 const EXIT_T_SETTLE_EPSILON = 0.01
 const SCROLL_IDLE_MS = 80
-// Smoothing is exponential in dt, so letting a stalled frame report its true
-// gap makes the blend catch up in one step. Refuse to bill more than ~1 frame.
 const MAX_SMOOTH_DT = 20
 const HERO_EXIT_ADVANCE_ON = 0.5
 const HERO_EXIT_ADVANCE_OFF = 0.45
-// Below this opacity the outgoing hero glass reads the same with or without blur, so its
-// backdrop-filter is dropped rather than kept alive over the moving building.
 const HERO_GLASS_BLUR_CUTOFF = 0.5
+
+interface SmoothedCamera {
+  tx: number
+  ty: number
+  scale: number
+}
+
+interface SmoothedCard {
+  leftPx: number
+  topPx: number
+  widthPx: number
+  minHeightPx: number
+}
+
+interface ContentState {
+  segIdx: number
+  t: number
+  wantedStopIndex: number
+  phase?: CardCopyPhase
+}
+
+interface TourMetrics {
+  displayHeroExitT: number
+}
+
+interface UseTourCameraOptions {
+  scrollerRef: RefObject<HTMLElement | null>
+  tourRef: RefObject<HTMLElement | null>
+  stageRef: RefObject<HTMLElement | null>
+  cardBoundsRef?: RefObject<HTMLElement | null>
+  backgroundWrapperRef: RefObject<HTMLElement | null>
+  backgroundImgRef: RefObject<HTMLElement | null>
+  heroBlurRef: RefObject<HTMLElement | null>
+  buildingSharpRef: RefObject<HTMLElement | null>
+  heroTextRef: RefObject<HTMLElement | null>
+  heroOverlayScrimRef?: RefObject<HTMLElement | null>
+  heroContentRef?: RefObject<HTMLElement | null>
+  heroCardShellRef?: RefObject<HTMLElement | null>
+  heroScrollHintRef?: RefObject<HTMLElement | null>
+  heroOverlayScrimOpacityRef?: MutableRefObject<number>
+  storyCardInnerRef: RefObject<HTMLElement | null>
+  storyCardWrapperRef?: RefObject<HTMLElement | null>
+  storyCardContentShellRef?: RefObject<HTMLElement | null>
+  storyCardHeroCopyRef?: RefObject<HTMLElement | null>
+  storyCardCopyRef?: RefObject<HTMLElement | null>
+  mobileCardWrapRef?: RefObject<HTMLElement | null>
+  mobileCardCopyRef?: RefObject<HTMLElement | null>
+  tourTransitionSpeedRef?: MutableRefObject<number>
+  tourCardContentSpeedRef?: MutableRefObject<number>
+  stops: TourStop[]
+  heroCamera: CameraPosition
+  heroMobileCamera?: CameraPosition | null
+  reducedMotion: boolean
+  editMode: boolean
+  isMobile?: boolean
+  mobileCameraPanMode?: boolean
+  overlayPaused?: boolean
+}
+
+interface UseTourCameraReturn {
+  activeIndex: number
+  heroActive: boolean
+  contentStopIndex: number
+  heroExitAdvanced: boolean
+  heroExiting: boolean
+  tourMetricsRef: MutableRefObject<TourMetrics>
+  syncTourDomRef: MutableRefObject<() => void>
+}
 
 export default function useTourCamera({
   scrollerRef,
@@ -80,38 +148,38 @@ export default function useTourCamera({
   isMobile = false,
   mobileCameraPanMode = false,
   overlayPaused = false,
-}) {
+}: UseTourCameraOptions): UseTourCameraReturn {
   const progressRef = useRef(0)
   const displayHeroExitTRef = useRef(0)
   const displayScrimExitTRef = useRef(0)
   const heroExitTargetRef = useRef(0)
   const smoothedBlurOpacityRef = useRef(1)
-  const smoothedRef = useRef({ tx: 0, ty: 0, scale: 1 })
-  const smoothedCardRef = useRef({
+  const smoothedRef = useRef<SmoothedCamera>({ tx: 0, ty: 0, scale: 1 })
+  const smoothedCardRef = useRef<SmoothedCard>({
     leftPx: 0,
     topPx: 0,
     widthPx: 640,
     minHeightPx: DEFAULT_CARD_HEIGHT_PX,
   })
   const smoothedContentPosRef = useRef(0)
-  const contentHeightsByStopIdRef = useRef(new Map())
+  const contentHeightsByStopIdRef = useRef<Map<string, number>>(new Map())
   const lastStoryCopyWidthRef = useRef(0)
   const heroContentHeightRef = useRef(DEFAULT_CARD_HEIGHT_PX)
   const renderedStopIndexRef = useRef(0)
   const dirtyRef = useRef(true)
   const activeIndexRef = useRef(0)
   const contentStopIndexRef = useRef(0)
-  const heroExitOriginLayoutRef = useRef(null)
+  const heroExitOriginLayoutRef = useRef<FittedCardLayout | null>(null)
   const heroExitShellHeightRef = useRef(0)
   const heroHandoffLatchedRef = useRef(false)
   const heroActiveRef = useRef(true)
   const snapCameraRef = useRef(false)
   const lastScrollAtRef = useRef(0)
   const overlayPausedRef = useRef(overlayPaused)
-  const kickRafRef = useRef(null)
-  const syncTourDomRef = useRef(() => {})
-  const lastDomRef = useRef({})
-  const tourMetricsRef = useRef({ displayHeroExitT: 0 })
+  const kickRafRef = useRef<(() => void) | null>(null)
+  const syncTourDomRef = useRef<() => void>(() => {})
+  const lastDomRef = useRef<Record<string, string | null>>({})
+  const tourMetricsRef = useRef<TourMetrics>({ displayHeroExitT: 0 })
 
   useEffect(() => {
     overlayPausedRef.current = overlayPaused
@@ -129,16 +197,16 @@ export default function useTourCamera({
 
   const getSegments = () => Math.max(stops.length - 1, 0)
 
-  const resolveContentHeight = (stopIndex) => {
+  const resolveContentHeight = (stopIndex: number): number => {
     const stop = stops[stopIndex]
     const id = stop?.id
     if (id && contentHeightsByStopIdRef.current.has(id)) {
-      return contentHeightsByStopIdRef.current.get(id)
+      return contentHeightsByStopIdRef.current.get(id)!
     }
     return DEFAULT_CARD_HEIGHT_PX
   }
 
-  const deriveContentState = (contentPos) => {
+  const deriveContentState = (contentPos: number): ContentState => {
     const segments = getSegments()
     if (segments <= 0) {
       return { segIdx: 0, t: 0, wantedStopIndex: 0 }
@@ -158,7 +226,6 @@ export default function useTourCamera({
   useLayoutEffect(() => {
     renderedStopIndexRef.current = contentStopIndex
 
-    // New copy always starts at the top, never inherits the previous stop's scroll.
     if (storyCardInnerRef?.current) {
       storyCardInnerRef.current.scrollTop = 0
     }
@@ -174,13 +241,13 @@ export default function useTourCamera({
     const remeasureStoryCopy = () => {
       const height = copyEl.scrollHeight
       if (height > 0) {
-        contentHeightsByStopIdRef.current.set(stop.id, height)
+        contentHeightsByStopIdRef.current.set(stop.id!, height)
         dirtyRef.current = true
         kickRafRef.current?.()
       }
     }
 
-    const handleResize = (entries) => {
+    const handleResize = (entries: ResizeObserverEntry[]) => {
       const entry = entries[0]
       const nextWidth = entry?.contentRect?.width ?? copyEl.offsetWidth
       const prevWidth = lastStoryCopyWidthRef.current
@@ -219,7 +286,7 @@ export default function useTourCamera({
       if (height > 0) {
         heroExitShellHeightRef.current = height
       }
-      if (contentEl?.scrollHeight > 0) {
+      if (contentEl?.scrollHeight && contentEl.scrollHeight > 0) {
         heroContentHeightRef.current = contentEl.scrollHeight
       }
     }
@@ -258,26 +325,26 @@ export default function useTourCamera({
     let lastTime = performance.now()
     lastScrollAtRef.current = lastTime
 
-    const readProgress = () => {
+    const readProgress = (): number => {
       const scrollable = tour.offsetHeight - scroller.clientHeight
       return scrollable > 0 ? clamp(scroller.scrollTop / scrollable, 0, 1) : 0
     }
 
-    const getCardBoundsEl = () => cardBoundsRef?.current ?? stageRef.current
+    const getCardBoundsEl = (): HTMLElement | null => cardBoundsRef?.current ?? stageRef.current
 
-    const getStageWidthPx = () => {
+    const getStageWidthPx = (): number => {
       const measured = getCardBoundsEl()?.clientWidth ?? 0
       if (measured > 0) return measured
       return typeof window !== 'undefined' ? window.innerWidth : 0
     }
 
-    const getStageHeightPx = () => {
+    const getStageHeightPx = (): number => {
       const measured = getCardBoundsEl()?.clientHeight ?? 0
       if (measured > 0) return measured
       return typeof window !== 'undefined' ? window.innerHeight : 0
     }
 
-    const updateHeroExit = (progress) => {
+    const updateHeroExit = (progress: number): void => {
       const { heroActive: heroActiveNow, scrollHeroExitT } = computeHeroExitState(
         progress,
         stops.length,
@@ -285,7 +352,6 @@ export default function useTourCamera({
 
       if (heroActiveNow && progress < HERO_REST_PROGRESS_EPSILON) {
         heroExitTargetRef.current = 0
-        // Snap at hero scroll rest — don't wait for smoothed exit T to catch up (scroll-back jump).
         displayHeroExitTRef.current = 0
         displayScrimExitTRef.current = 0
         heroExitOriginLayoutRef.current = null
@@ -306,7 +372,7 @@ export default function useTourCamera({
           const shellRect = shell.getBoundingClientRect()
           const contentEl = heroContentRef?.current
           heroExitShellHeightRef.current = shellRect.height
-          if (contentEl?.scrollHeight > 0) {
+          if (contentEl?.scrollHeight && contentEl.scrollHeight > 0) {
             heroContentHeightRef.current = contentEl.scrollHeight
           } else {
             heroContentHeightRef.current = Math.max(
@@ -341,23 +407,23 @@ export default function useTourCamera({
       heroExitTargetRef.current = scrollHeroExitT
     }
 
-    const getRestCardForStop = (stopIndex) => {
+    const getRestCardForStop = (stopIndex: number): FittedCardLayout | null => {
       const stop = stops[stopIndex]
       if (!stop?.card) return null
       return cardAtAbsoluteRest(stop, stop.card, getStageWidthPx(), getStageHeightPx())
     }
 
-    const setStyleIfChanged = (keyPrefix, el, prop, nextValue) => {
+    const setStyleIfChanged = (keyPrefix: string, el: HTMLElement | null, prop: string, nextValue: string): void => {
       if (!el) return
       const key = `${keyPrefix}:${prop}`
       const cssProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
       const current = el.style.getPropertyValue(cssProp)
       if (lastDomRef.current[key] === nextValue && current === nextValue) return
       lastDomRef.current[key] = nextValue
-      el.style[prop] = nextValue
+      el.style.setProperty(cssProp, nextValue)
     }
 
-    const setOpacityIfChanged = (el, keyPrefix, opacity) => {
+    const setOpacityIfChanged = (el: HTMLElement | null, keyPrefix: string, opacity: number): void => {
       if (!el) return
       const next = String(opacity)
       const key = `${keyPrefix}:opacity`
@@ -367,7 +433,7 @@ export default function useTourCamera({
       el.style.opacity = next
     }
 
-    const setVisibilityIfChanged = (el, keyPrefix, visible) => {
+    const setVisibilityIfChanged = (el: HTMLElement | null, keyPrefix: string, visible: boolean): void => {
       if (!el) return
       const next = visible ? 'visible' : 'hidden'
       const key = `${keyPrefix}:visibility`
@@ -377,31 +443,28 @@ export default function useTourCamera({
       el.style.visibility = next
     }
 
-    // Reads the live class instead of a memo: React also writes this class on the hero
-    // shell via className, so a cached value here would silently go stale.
-    const setCompositorHiddenIfChanged = (el, _keyPrefix, hidden) => {
+    const setCompositorHiddenIfChanged = (el: HTMLElement | null, _keyPrefix: string, hidden: boolean): void => {
       if (!el) return
       if (el.classList.contains('is-compositor-hidden') === hidden) return
       el.classList.toggle('is-compositor-hidden', hidden)
     }
 
-    const setGlassBlurOffIfChanged = (el, off) => {
+    const setGlassBlurOffIfChanged = (el: HTMLElement | null, off: boolean): void => {
       if (!el) return
       if (el.classList.contains('tour-glass-blur-off') === off) return
       el.classList.toggle('tour-glass-blur-off', off)
     }
 
-    const clearStyleIfSet = (keyPrefix, el, prop) => {
+    const clearStyleIfSet = (keyPrefix: string, el: HTMLElement | null, prop: string): void => {
       if (!el) return
       const key = `${keyPrefix}:${prop}`
       const cssProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
-      // Cache can go stale across remounts, so trust the live style too.
       if (lastDomRef.current[key] == null && !el.style.getPropertyValue(cssProp)) return
       lastDomRef.current[key] = null
       el.style.removeProperty(cssProp)
     }
 
-    const shouldMorphShellHeight = (contentState, scrollIdle, exitCrossfade) => {
+    const shouldMorphShellHeight = (contentState: ContentState, scrollIdle: boolean, exitCrossfade: boolean): boolean => {
       if (exitCrossfade) return true
       const t = contentState.t
       if (t <= CARD_COPY_HOLD_OUT || t >= CARD_COPY_HOLD_IN) return false
@@ -409,7 +472,7 @@ export default function useTourCamera({
       return true
     }
 
-    const syncCardInnerOverflow = (innerEl, copyEl) => {
+    const syncCardInnerOverflow = (innerEl: HTMLElement | null, copyEl: HTMLElement | null): void => {
       if (!innerEl) return
       const copyHeight = copyEl?.scrollHeight ?? 0
       const paddedCopyHeight = copyHeight + CARD_INNER_PADDING_Y_PX
@@ -420,28 +483,40 @@ export default function useTourCamera({
       }
     }
 
-    const syncHeroCopyOverflow = (heroEl, visible) => {
+    const syncHeroCopyOverflow = (heroEl: HTMLElement | null, visible: boolean): void => {
       if (!heroEl) return
       if (visible) {
         clearStyleIfSet('heroCardCopy', heroEl, 'maxHeight')
         clearStyleIfSet('heroCardCopy', heroEl, 'overflow')
       } else {
-        // visibility:hidden still counts for scroll overflow; collapse when off-screen.
         setStyleIfChanged('heroCardCopy', heroEl, 'maxHeight', '0px')
         setStyleIfChanged('heroCardCopy', heroEl, 'overflow', 'hidden')
       }
     }
 
+    interface TourFrameResult {
+      heroActive: boolean
+      activeIndex: number
+      heroTextOpacity: number
+      heroScrimOpacity: number
+      heroBlurOpacity: number
+      sharpBgOpacity: number
+      displayHeroExitT: number
+      heroBlend: number
+      interpolatedCard: FittedCardLayout | null
+      scaled: number
+    }
+
     const applyDomFrame = (
-      frame,
-      stageTransform,
-      background,
-      smoothedCard,
-      contentState,
-      effectiveCard,
-      reversingToHero = false,
-      scrollIdle = false,
-    ) => {
+      frame: TourFrameResult,
+      stageTransform: string,
+      background: { wrapperTransform: string; imgTransform: string; imgObjectFit: string; imgObjectPosition: string },
+      smoothedCard: SmoothedCard,
+      contentState: ContentState,
+      effectiveCard: FittedCardLayout | null,
+      reversingToHero: boolean = false,
+      scrollIdle: boolean = false,
+    ): void => {
       if (stageRef.current) {
         setStyleIfChanged('stage', stageRef.current, 'transform', stageTransform)
       }
@@ -479,8 +554,6 @@ export default function useTourCamera({
       if (heroBlurRef.current) {
         setOpacityIfChanged(heroBlurRef.current, 'heroBlur', smoothedBlurOpacityRef.current)
       }
-      // Glass shells (backdrop-blur) stay at opacity 1 — fading them breaks live blur compositing.
-      // Hero: fade scrim + inner copy only. Story: fade content shell during hero exit, not cardInner.
       const heroExitComplete = frame.displayHeroExitT >= 0.999
       const exitCrossfade = !frame.heroActive && !heroExitComplete
       const handoffActive = heroHandoffLatchedRef.current && !heroExitComplete
@@ -542,7 +615,6 @@ export default function useTourCamera({
             copyPhase.heroOpacity <= HERO_GLASS_BLUR_CUTOFF,
           )
         } else if (!isMobile && exitCrossfade && reversingToHero) {
-          // Scroll-back: real hero shell (flex center) replaces story-card hero copy near rest.
           const copyPhase = computeHeroExitCopyPhase(frame.displayHeroExitT)
           setOpacityIfChanged(
             heroCardShellRef.current,
@@ -650,7 +722,7 @@ export default function useTourCamera({
               storyCardInnerRef.current.style.removeProperty('overflow-y')
             }
           }
-          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current)
+          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current ?? null)
         }
         if (storyCardContentShellRef?.current) {
           const morphShellHeight = shouldMorphShellHeight(contentState, scrollIdle, exitCrossfade)
@@ -690,7 +762,7 @@ export default function useTourCamera({
             setStyleIfChanged('cardShell', storyCardContentShellRef.current, 'overflow', '')
             clearStyleIfSet('cardShell', storyCardContentShellRef.current, 'minHeight')
           }
-          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current)
+          syncCardInnerOverflow(storyCardInnerRef.current, storyCardCopyRef?.current ?? null)
         }
         const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
 
@@ -742,8 +814,8 @@ export default function useTourCamera({
           }
 
           if (storyCardCopyRef?.current) {
-            const opacity = committed ? contentState.phase.opacity : 0
-            const offsetY = committed ? contentState.phase.offsetY : 0
+            const opacity = committed ? (contentState.phase?.opacity ?? 0) : 0
+            const offsetY = committed ? (contentState.phase?.offsetY ?? 0) : 0
             setOpacityIfChanged(storyCardCopyRef.current, 'cardCopy', opacity)
             const copyTransform = `translate3d(0, ${offsetY}px, 0)`
             setStyleIfChanged('cardCopy', storyCardCopyRef.current, 'transform', copyTransform)
@@ -762,7 +834,7 @@ export default function useTourCamera({
             )
           }
           setVisibilityIfChanged(
-            mobileCardWrapRef?.current,
+            mobileCardWrapRef?.current ?? null,
             'mobileCardWrapVis',
             copyPhase.storyOpacity > 0.01,
           )
@@ -776,12 +848,12 @@ export default function useTourCamera({
           }
         } else if (isMobile && !frame.heroActive && heroExitComplete) {
           const committed = renderedStopIndexRef.current === contentState.wantedStopIndex
-          const opacity = committed ? contentState.phase.opacity : 0
-          const offsetY = committed ? contentState.phase.offsetY : 0
+          const opacity = committed ? (contentState.phase?.opacity ?? 0) : 0
+          const offsetY = committed ? (contentState.phase?.offsetY ?? 0) : 0
           if (mobileCardCopyRef?.current) {
             setOpacityIfChanged(mobileCardCopyRef.current, 'mobileCardCopy', opacity)
           }
-          setVisibilityIfChanged(mobileCardWrapRef?.current, 'mobileCardWrapVis', opacity > 0.01)
+          setVisibilityIfChanged(mobileCardWrapRef?.current ?? null, 'mobileCardWrapVis', opacity > 0.01)
           if (mobileCardWrapRef?.current) {
             setStyleIfChanged(
               'mobileCardWrap',
@@ -794,7 +866,7 @@ export default function useTourCamera({
           if (mobileCardCopyRef?.current) {
             setOpacityIfChanged(mobileCardCopyRef.current, 'mobileCardCopy', 0)
           }
-          setVisibilityIfChanged(mobileCardWrapRef?.current, 'mobileCardWrapVis', false)
+          setVisibilityIfChanged(mobileCardWrapRef?.current ?? null, 'mobileCardWrapVis', false)
           if (mobileCardWrapRef?.current) {
             setStyleIfChanged(
               'mobileCardWrap',
@@ -807,7 +879,7 @@ export default function useTourCamera({
       }
     }
 
-    const syncReactState = (frame, wantedStopIndex) => {
+    const syncReactState = (frame: TourFrameResult, wantedStopIndex: number): void => {
       if (frame.activeIndex !== activeIndexRef.current) {
         activeIndexRef.current = frame.activeIndex
         setActiveIndex(frame.activeIndex)
@@ -838,7 +910,7 @@ export default function useTourCamera({
       }
     }
 
-    const tick = (now) => {
+    const tick = (now: number): void => {
       raf = 0
       if (overlayPausedRef.current) return
 
@@ -860,7 +932,6 @@ export default function useTourCamera({
         displayHeroExitTRef.current = heroExitTarget
         displayScrimExitTRef.current = heroExitTarget
       } else if (reversingToHero) {
-        // Scroll-back: morph/camera follow scroll directly instead of lagging then snapping.
         displayHeroExitTRef.current = heroExitTarget
         displayScrimExitTRef.current = heroExitTarget
       } else {
@@ -922,7 +993,6 @@ export default function useTourCamera({
       const preferSmoothMotion = transitionSpeed < TOUR_SCROLL_LOCK_SPEED - 0.01
       const scrollIdle = now - lastScrollAtRef.current > SCROLL_IDLE_MS
 
-      // Blur crossfade is scroll-driven (opacity only — no animated backdrop-filter).
       smoothedBlurOpacityRef.current = targetBlurOpacity
 
       const smoothed = smoothedRef.current
@@ -1094,7 +1164,7 @@ export default function useTourCamera({
       kickRafRef.current?.()
     }
 
-    const onScroll = () => {
+    const onScroll = (): void => {
       if (overlayPausedRef.current) return
       lastScrollAtRef.current = performance.now()
       const prevProgress = progressRef.current

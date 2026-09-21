@@ -6,12 +6,33 @@ import {
   isMorphShellTransitionProperty,
   MORPH_COLLAPSE_DURATION_MS,
   MORPH_EXPAND_DURATION_MS,
+  type MorphRect,
 } from '../lib/waitlistFabMorph'
 
-/** @typedef {'idle' | 'morphIn' | 'open' | 'morphOut'} WaitlistMorphPhase */
+export type WaitlistMorphPhase = 'idle' | 'morphIn' | 'open' | 'morphOut'
 
 const CONTENT_REVEAL_RATIO = 0.7
 const MORPH_COMPLETION_PROPERTY = 'width'
+
+export interface UseWaitlistFabMorphOptions {
+  open: boolean
+  originRect: MorphRect | DOMRect | null
+  reducedMotion: boolean
+  onCloseComplete?: () => void
+  getReturnFocusElement?: () => HTMLElement | null
+}
+
+export interface UseWaitlistFabMorphReturn {
+  phase: WaitlistMorphPhase
+  collapsed: boolean
+  contentVisible: boolean
+  useMorph: boolean
+  isVisible: boolean
+  storedOrigin: MorphRect | null
+  targetRect: MorphRect
+  startClose: () => void
+  handleShellTransitionEnd: (event: TransitionEvent) => void
+}
 
 export default function useWaitlistFabMorph({
   open,
@@ -19,16 +40,16 @@ export default function useWaitlistFabMorph({
   reducedMotion,
   onCloseComplete,
   getReturnFocusElement,
-}) {
-  const [phase, setPhase] = useState(/** @type {WaitlistMorphPhase} */ ('idle'))
+}: UseWaitlistFabMorphOptions): UseWaitlistFabMorphReturn {
+  const [phase, setPhase] = useState<WaitlistMorphPhase>('idle')
   const [collapsed, setCollapsed] = useState(true)
   const [morphContentRevealed, setMorphContentRevealed] = useState(false)
-  const [storedOrigin, setStoredOrigin] = useState(null)
-  const [targetRect, setTargetRect] = useState(() => getWaitlistModalTargetRect())
+  const [storedOrigin, setStoredOrigin] = useState<MorphRect | null>(null)
+  const [targetRect, setTargetRect] = useState<MorphRect>(() => getWaitlistModalTargetRect())
   const [prevOpen, setPrevOpen] = useState(open)
   const prevOpenRef = useRef(open)
-  const closeTimerRef = useRef(null)
-  const contentTimerRef = useRef(null)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const transitionHandledRef = useRef(false)
 
   const useMorph = Boolean(originRect) && !reducedMotion
@@ -59,7 +80,7 @@ export default function useWaitlistFabMorph({
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current)
+      clearTimeout(closeTimerRef.current)
       closeTimerRef.current = null
     }
   }, [])
@@ -75,17 +96,17 @@ export default function useWaitlistFabMorph({
 
   useEffect(() => {
     if (contentTimerRef.current) {
-      window.clearTimeout(contentTimerRef.current)
+      clearTimeout(contentTimerRef.current)
       contentTimerRef.current = null
     }
 
     if (phase === 'morphIn' && !collapsed && useMorph) {
-      contentTimerRef.current = window.setTimeout(
+      contentTimerRef.current = setTimeout(
         () => setMorphContentRevealed(true),
         Math.round(MORPH_EXPAND_DURATION_MS * CONTENT_REVEAL_RATIO),
       )
       return () => {
-        if (contentTimerRef.current) window.clearTimeout(contentTimerRef.current)
+        if (contentTimerRef.current) clearTimeout(contentTimerRef.current)
       }
     }
 
@@ -98,7 +119,7 @@ export default function useWaitlistFabMorph({
   const finishClose = useCallback(() => {
     clearCloseTimer()
     if (contentTimerRef.current) {
-      window.clearTimeout(contentTimerRef.current)
+      clearTimeout(contentTimerRef.current)
       contentTimerRef.current = null
     }
     transitionHandledRef.current = false
@@ -110,7 +131,7 @@ export default function useWaitlistFabMorph({
   }, [clearCloseTimer, onCloseComplete])
 
   const handleShellTransitionEnd = useCallback(
-    (event) => {
+    (event: TransitionEvent) => {
       if (event.target !== event.currentTarget) return
       if (event.propertyName !== MORPH_COMPLETION_PROPERTY) return
       if (!isMorphShellTransitionProperty(event.propertyName)) return
@@ -153,13 +174,13 @@ export default function useWaitlistFabMorph({
       requestAnimationFrame(() => setCollapsed(true))
     })
 
-    closeTimerRef.current = window.setTimeout(finishClose, MORPH_COLLAPSE_DURATION_MS + 120)
+    closeTimerRef.current = setTimeout(finishClose, MORPH_COLLAPSE_DURATION_MS + 120)
   }, [useMorph, phase, finishClose, getReturnFocusElement, clearCloseTimer])
 
   useEffect(
     () => () => {
       clearCloseTimer()
-      if (contentTimerRef.current) window.clearTimeout(contentTimerRef.current)
+      if (contentTimerRef.current) clearTimeout(contentTimerRef.current)
     },
     [clearCloseTimer],
   )
