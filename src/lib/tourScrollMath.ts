@@ -709,6 +709,8 @@ export function computeTourFrame({
 
   const heroBlurOpacity = computeHeroBlurOpacity(visualExitT, heroActive)
 
+  // Only fields the camera hook reads. Stage transform and background strings are
+  // rebuilt there from smoothed values, so building them here would be thrown away.
   return {
     heroActive,
     activeIndex,
@@ -748,6 +750,7 @@ export function computeTourToFeaturesBackdropProgress(
   scrollerEl: HTMLElement | null,
   featuresEl: HTMLElement | null,
   {
+    // Start when Features top hits viewport bottom edge
     fadeStartViewportRatio = 1.0,
     fadeEndViewportRatio = 0.08,
   }: TourToFeaturesBackdropOptions = {},

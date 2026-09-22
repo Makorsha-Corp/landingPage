@@ -16,6 +16,7 @@ export interface Capabilities {
 
 export type CapabilitiesData = Capabilities
 
+// Screenshot PNGs: landingPage/public/features/{id}.png (e.g. business-lens.png)
 export const DEFAULT_CAPABILITIES: Capabilities = {
   eyebrow: 'Features',
   heading: 'Everything behind the walls',

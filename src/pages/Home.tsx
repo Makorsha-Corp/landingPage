@@ -228,6 +228,12 @@ interface HomeTourStop {
   mobileCamera?: CameraState
 }
 
+/**
+ * Focus stops. fx/fy are the focus point as a fraction (0..1) of the
+ * building image; scale is how far to zoom in at that stop. These are
+ * tuned by eye against the building cutaway (4572x3712, aspect 1024:831).
+ * Production assets: PRIMARY_BUILDING_IMAGE (sharp, tour) + BLURRED_BUILDING_IMAGE (hero only).
+ */
 const DEFAULT_STOPS: HomeTourStop[] = [
   {
     id: 'overview',
@@ -604,6 +610,9 @@ export default function Home() {
     overlayPaused: featureOverlayOpen,
   })
 
+  // Both images render at opacity 0 until mid hero-exit, so their first raster
+  // lands inside the scroll and stalls a frame. Decode them while the hero rests.
+  // Must run after useTourCamera so syncTourDomRef / kickRafRef are wired first.
   useEffect(() => {
     for (const img of [buildingSharpRef.current, backgroundImgRef.current]) {
       img?.decode?.().catch(() => {})
@@ -611,6 +620,8 @@ export default function Home() {
     syncTourDomRef.current?.()
   }, [theme, syncTourDomRef])
 
+  // Mobile card unmounts when leaving tour; remount clears inline opacity but rAF cache
+  // can still think copy is visible — force a DOM resync when tour section returns.
   useLayoutEffect(() => {
     if (!isMobileTour || activeSection !== 'tour') return
     syncTourDomRef.current?.()
@@ -821,6 +832,8 @@ export default function Home() {
   )
 
   useEffect(() => {
+    // One-time mount normalization of legacy eyebrow copy.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCapabilities((current) => {
       const eyebrow = normalizeCapabilitiesEyebrow(current.eyebrow)
       if (eyebrow === current.eyebrow) return current
@@ -946,6 +959,7 @@ export default function Home() {
   const pageGradientStyle = getLoginGradientStyle(theme)
   const pageGradientLayerCls = 'opacity-70 mix-blend-soft-light'
   const tourBackdropStyle = getBackgroundOverlayStyle(theme, tourBackdropOpacity)
+  // Stable identity so the memoized post-tour section tree can bail out of re-renders.
   const sectionsBackdropStyle = useMemo(
     () => getBackgroundOverlayStyle(theme, sectionsBackdropOpacity),
     [theme, sectionsBackdropOpacity],
@@ -975,6 +989,7 @@ export default function Home() {
     activeSection === 'tour' &&
     (reducedMotion || featuresBackdropProgress < 0.12)
 
+  // rAF owns shell visibility during heroExiting (forward hide / reverse fade-in).
   const hideHeroCardShell = !heroActive && !heroExiting
 
   const perfMonitorEnabled = SHOW_PERF_HUD && perfHudEnabled
@@ -1212,12 +1227,15 @@ export default function Home() {
         collectFeedbackReport={collectFeedbackReport}
       />
 
+      {/* Scroll-driven building experience */}
       <section ref={tourRef} className="relative">
+        {/* Building stage pinned over the snap panels */}
         <div
           ref={tourStageRef}
           className="homepage-tour-dvh sticky top-0 w-full overflow-hidden flex items-center justify-center"
           style={scrollLinkedFeaturesWash ? { opacity: tourStageOpacity } : undefined}
         >
+          {/* Campus backdrop — parallax under the scroll-driven factory cutaway */}
           <div
             ref={backgroundWrapperRef}
             className="homepage-tour-bg-wrapper pointer-events-none will-change-transform"
@@ -1272,6 +1290,7 @@ export default function Home() {
             />
           </div>
 
+          {/* Hero overlay — first screen before scroll */}
           <div
             ref={heroTextRef}
             className={`homepage-hero-overlay-layer absolute inset-0 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-0 ${
@@ -1355,7 +1374,7 @@ export default function Home() {
             <div className="pointer-events-auto absolute left-4 top-[calc(env(safe-area-inset-top,0px)+4.75rem)] z-50 md:hidden">
               <Homepage2HeroCameraControls
                 title="Mobile tour camera"
-                description={`Pan/zoom "${activeStop.title}". Saves per-stop override this session.`}
+                description={`Pan/zoom “${activeStop.title}”. Saves per-stop override this session.`}
                 limits={TOUR_CAMERA_LIMITS}
                 camera={normalizeTourCamera(activeStop.mobileCamera, activeStop)}
                 onChange={handleMobileTourCameraChange}
@@ -1372,6 +1391,7 @@ export default function Home() {
             />
           ) : null}
 
+          {/* Feature story card — desktop only; mobile uses compact bottom card */}
           <div
             ref={storyCardWrapperRef}
             className={`pointer-events-none absolute left-0 top-0 is-compositor-hidden ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
@@ -1490,6 +1510,8 @@ export default function Home() {
 
         </div>
 
+        {/* Snap panels — one per stop. Pulled up under the sticky stage so the
+            first panel aligns with progress 0. Each is a scroll-snap target. */}
         <div className="homepage-tour-panels-offset">
           <div
             ref={(el) => {

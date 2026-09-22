@@ -99,6 +99,7 @@ export default function LandingMobileMenu({ sections, activeSection, onNavigate 
     const absX = Math.abs(dx)
     const absY = Math.abs(dy)
 
+    // Stop the page scroller from hijacking vertical swipes meant for section change.
     if (absY > 6 && absY > absX * 1.2) {
       event.preventDefault()
     }

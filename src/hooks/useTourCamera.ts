@@ -43,9 +43,13 @@ const CARD_SETTLE_EPSILON = 0.5
 const CONTENT_POS_SETTLE_EPSILON = 0.008
 const EXIT_T_SETTLE_EPSILON = 0.01
 const SCROLL_IDLE_MS = 80
+// Smoothing is exponential in dt, so letting a stalled frame report its true
+// gap makes the blend catch up in one step. Refuse to bill more than ~1 frame.
 const MAX_SMOOTH_DT = 20
 const HERO_EXIT_ADVANCE_ON = 0.5
 const HERO_EXIT_ADVANCE_OFF = 0.45
+// Below this opacity the outgoing hero glass reads the same with or without blur, so its
+// backdrop-filter is dropped rather than kept alive over the moving building.
 const HERO_GLASS_BLUR_CUTOFF = 0.5
 
 interface SmoothedCamera {
@@ -227,6 +231,7 @@ export default function useTourCamera({
   useLayoutEffect(() => {
     renderedStopIndexRef.current = contentStopIndex
 
+    // New copy always starts at the top, never inherits the previous stop's scroll.
     if (storyCardInnerRef?.current) {
       storyCardInnerRef.current.scrollTop = 0
     }
@@ -353,6 +358,7 @@ export default function useTourCamera({
 
       if (heroActiveNow && progress < HERO_REST_PROGRESS_EPSILON) {
         heroExitTargetRef.current = 0
+        // Snap at hero scroll rest — don't wait for smoothed exit T to catch up (scroll-back jump).
         displayHeroExitTRef.current = 0
         displayScrimExitTRef.current = 0
         heroExitOriginLayoutRef.current = null
@@ -444,6 +450,8 @@ export default function useTourCamera({
       el.style.visibility = next
     }
 
+    // Reads the live class instead of a memo: React also writes this class on the hero
+    // shell via className, so a cached value here would silently go stale.
     const setCompositorHiddenIfChanged = (el: HTMLElement | null, _keyPrefix: string, hidden: boolean): void => {
       if (!el) return
       if (el.classList.contains('is-compositor-hidden') === hidden) return
@@ -460,6 +468,7 @@ export default function useTourCamera({
       if (!el) return
       const key = `${keyPrefix}:${prop}`
       const cssProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
+      // Cache can go stale across remounts, so trust the live style too.
       if (lastDomRef.current[key] == null && !el.style.getPropertyValue(cssProp)) return
       lastDomRef.current[key] = null
       el.style.removeProperty(cssProp)
@@ -490,6 +499,7 @@ export default function useTourCamera({
         clearStyleIfSet('heroCardCopy', heroEl, 'maxHeight')
         clearStyleIfSet('heroCardCopy', heroEl, 'overflow')
       } else {
+        // visibility:hidden still counts for scroll overflow; collapse when off-screen.
         setStyleIfChanged('heroCardCopy', heroEl, 'maxHeight', '0px')
         setStyleIfChanged('heroCardCopy', heroEl, 'overflow', 'hidden')
       }
@@ -555,6 +565,8 @@ export default function useTourCamera({
       if (heroBlurRef.current) {
         setOpacityIfChanged(heroBlurRef.current, 'heroBlur', smoothedBlurOpacityRef.current)
       }
+      // Glass shells (backdrop-blur) stay at opacity 1 — fading them breaks live blur compositing.
+      // Hero: fade scrim + inner copy only. Story: fade content shell during hero exit, not cardInner.
       const heroExitComplete = frame.displayHeroExitT >= 0.999
       const exitCrossfade = !frame.heroActive && !heroExitComplete
       const handoffActive = heroHandoffLatchedRef.current && !heroExitComplete
@@ -616,6 +628,7 @@ export default function useTourCamera({
             copyPhase.heroOpacity <= HERO_GLASS_BLUR_CUTOFF,
           )
         } else if (!isMobile && exitCrossfade && reversingToHero) {
+          // Scroll-back: real hero shell (flex center) replaces story-card hero copy near rest.
           const copyPhase = computeHeroExitCopyPhase(frame.displayHeroExitT)
           setOpacityIfChanged(
             heroCardShellRef.current,
@@ -933,6 +946,7 @@ export default function useTourCamera({
         displayHeroExitTRef.current = heroExitTarget
         displayScrimExitTRef.current = heroExitTarget
       } else if (reversingToHero) {
+        // Scroll-back: morph/camera follow scroll directly instead of lagging then snapping.
         displayHeroExitTRef.current = heroExitTarget
         displayScrimExitTRef.current = heroExitTarget
       } else {
@@ -995,6 +1009,7 @@ export default function useTourCamera({
       const preferSmoothMotion = transitionSpeed < TOUR_SCROLL_LOCK_SPEED - 0.01
       const scrollIdle = now - lastScrollAtRef.current > SCROLL_IDLE_MS
 
+      // Blur crossfade is scroll-driven (opacity only — no animated backdrop-filter).
       smoothedBlurOpacityRef.current = targetBlurOpacity
 
       const smoothed = smoothedRef.current

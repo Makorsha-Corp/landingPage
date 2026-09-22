@@ -136,6 +136,9 @@ export default function useSectionScroll({
 
     let raf = 0
 
+    // Ratio-based detection cannot work here: the tour section spans several
+    // viewports, so its intersection ratio never competes with the single-screen
+    // panels below it. Pick whichever panel owns the viewport midpoint instead.
     const readActiveSection = (): string | null => {
       const scrollerTop = scroller.getBoundingClientRect().top
       const midpoint = scroller.clientHeight / 2
