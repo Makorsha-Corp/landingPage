@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import useWaitlistForm from '../../hooks/useWaitlistForm'
-import useWaitlistFabMorph from '../../hooks/useWaitlistFabMorph'
+import useWaitlistFabMorph, { type WaitlistMorphPhase } from '../../hooks/useWaitlistFabMorph'
 import useWaitlistPanelReveal from '../../hooks/useWaitlistPanelReveal'
 import useLandingMotion from '../../hooks/useLandingMotion'
 import {
@@ -43,9 +43,7 @@ const TRAVEL_BG_CLASS: Record<string, string> = {
   card: 'bg-card',
 }
 
-type MorphPhase = 'morphIn' | 'morphOut' | 'open' | 'closing' | 'closed'
-
-function getBackdropOpacity(phase: MorphPhase, collapsed: boolean): number {
+function getBackdropOpacity(phase: WaitlistMorphPhase, collapsed: boolean): number {
   if (phase === 'morphOut') return 0
   if (phase === 'morphIn' && collapsed) return 0
   return MORPH_BACKDROP_MAX_OPACITY
@@ -189,7 +187,7 @@ export default function WaitlistModal({
       })
     : null
 
-  const backdropOpacity = getBackdropOpacity(phase as MorphPhase, collapsed)
+  const backdropOpacity = getBackdropOpacity(phase, collapsed)
   const backdropBlur = backdropOpacity > 0.05
   const showDialog = isOpen || !useMorph
   const faceVisible = useMorph && phase === 'morphIn' && collapsed
