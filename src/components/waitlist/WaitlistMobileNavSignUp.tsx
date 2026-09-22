@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useRef, useImperativeHandle } from 'react'
 import { RainbowButton, type RainbowButtonProps } from '@/components/ui/rainbow-button'
 import { cn } from '@/lib/utils'
 import useLandingMotion from '../../hooks/useLandingMotion'
@@ -18,9 +18,12 @@ const WaitlistMobileNavSignUp = forwardRef<HTMLButtonElement, WaitlistMobileNavS
     ref,
   ) {
     const { reducedMotion } = useLandingMotion()
+    const buttonRef = useRef<HTMLButtonElement>(null)
+
+    useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement)
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
-      const node = (ref as React.RefObject<HTMLButtonElement>)?.current ?? event.currentTarget
+      const node = buttonRef.current ?? event.currentTarget
       const rect = node?.getBoundingClientRect?.() ?? null
       onClick?.(rect as MorphRect | null, node)
     }
@@ -40,7 +43,7 @@ const WaitlistMobileNavSignUp = forwardRef<HTMLButtonElement, WaitlistMobileNavS
         aria-hidden={morphing ? true : undefined}
       >
         <RainbowButton
-          ref={ref}
+          ref={buttonRef}
           type="button"
           variant={variant}
           size="sm"

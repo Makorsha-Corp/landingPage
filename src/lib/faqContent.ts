@@ -10,6 +10,8 @@ export interface Faq {
   items: FaqItem[]
 }
 
+export type FaqData = Faq
+
 export const DEFAULT_FAQ: Faq = {
   items: [
     {

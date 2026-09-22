@@ -1,5 +1,7 @@
 export const DEFAULT_WAITLIST_FAB_STYLE = 'pill_rainbow'
 
+export type WaitlistFabStyle = string
+
 export interface WaitlistFabStyleEntry {
   id: string
   label: string
@@ -15,7 +17,7 @@ export const WAITLIST_FAB_STYLE_LIST: WaitlistFabStyleEntry[] = [
 export interface WaitlistFabMorphMeta {
   label: string
   variant: string
-  face: string
+  face: 'rainbow' | 'button'
 }
 
 const MORPH_META_BY_STYLE: Record<string, WaitlistFabMorphMeta> = {

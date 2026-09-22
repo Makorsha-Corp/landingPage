@@ -84,7 +84,7 @@ interface RawStop {
   fx: number
   fy: number
   scale: number
-  card?: Partial<CardLayout>
+  card?: Partial<CardLayout> | { x?: string | number; y?: string | number; widthPx?: number | null; heightPx?: number | null; maxWidthVw?: number | null }
   mobileCamera?: MobileCamera | null
 }
 
@@ -116,7 +116,7 @@ function formatMobileCamera(mobileCamera: MobileCamera): string {
 interface RawHero {
   badge: string
   title: string
-  subtitle: string
+  subtitle?: string
   paragraph?: string
   paragraph2?: string
 }
@@ -139,7 +139,7 @@ export function normalizeHomepageSnapshot(raw: RawHomepageSnapshot): HomepageSna
     hero: {
       badge: raw.hero.badge,
       title: raw.hero.title,
-      subtitle: raw.hero.subtitle,
+      subtitle: raw.hero.subtitle ?? '',
       paragraph: raw.hero.paragraph ?? '',
       paragraph2: raw.hero.paragraph2 ?? '',
     },

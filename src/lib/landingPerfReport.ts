@@ -129,6 +129,8 @@ function formatHardwareLine(device: DeviceContext): string {
 
 export interface TourContext {
   heroActive?: boolean
+  heroExitAdvanced?: boolean
+  heroTransitionT?: number
   mobileTourCopyVisible?: boolean
   isMobileTour?: boolean
   theme?: string

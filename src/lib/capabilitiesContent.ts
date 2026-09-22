@@ -2,9 +2,9 @@ export interface CapabilityCard {
   id: string
   title: string
   description: string
-  icon: string
-  badge: string | null
-  screenshotSrc: string | null
+  icon?: string
+  badge?: string | null
+  screenshotSrc?: string | null
 }
 
 export interface Capabilities {
@@ -13,6 +13,8 @@ export interface Capabilities {
   sub: string
   cards: CapabilityCard[]
 }
+
+export type CapabilitiesData = Capabilities
 
 export const DEFAULT_CAPABILITIES: Capabilities = {
   eyebrow: 'Features',

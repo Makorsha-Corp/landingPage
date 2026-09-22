@@ -1,4 +1,4 @@
-import { forwardRef, type CSSProperties } from 'react'
+import { forwardRef, useRef, useImperativeHandle, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import useLandingMotion from '../../hooks/useLandingMotion'
 import useWaitlistFabFadeEnter from '../../hooks/useWaitlistFabFadeEnter'
@@ -37,6 +37,9 @@ const WaitlistFab = forwardRef<HTMLButtonElement, WaitlistFabProps>(
   ) {
     const { reducedMotion } = useLandingMotion()
     const isInline = placement === 'inline'
+    const buttonRef = useRef<HTMLButtonElement>(null)
+
+    useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement)
 
     const { useFadeEnter } = useWaitlistFabFadeEnter({
       reducedMotion,
@@ -47,7 +50,7 @@ const WaitlistFab = forwardRef<HTMLButtonElement, WaitlistFabProps>(
     if (!visible) return null
 
     const handleClick = (): void => {
-      const node = (ref as React.RefObject<HTMLButtonElement>)?.current ?? null
+      const node = buttonRef.current
       const rect = node ? getSettledTriggerRect(node) : null
       onClick?.(rect, node)
     }
@@ -78,7 +81,7 @@ const WaitlistFab = forwardRef<HTMLButtonElement, WaitlistFabProps>(
         aria-hidden={morphing ? true : undefined}
       >
         <WaitlistFabFace
-          ref={ref}
+          ref={buttonRef}
           styleId={fabStyle}
           variant={variant}
           onClick={handleClick}

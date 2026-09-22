@@ -1,5 +1,7 @@
 export const DEFAULT_BRAND_LOGO_LIGHT_VARIANT = 'softTile'
 
+export type BrandLogoLightVariant = string
+
 export interface BrandLogoVariant {
   id: string
   label: string

@@ -1,0 +1,74 @@
+import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { navTitleClass } from '../lib/navChrome'
+import BrandLogo from './BrandLogo'
+import LandingSectionNav from './LandingSectionNav'
+import LandingMobileMenu from './LandingMobileMenu'
+import LandingMobileThemeDevMenu from './LandingMobileThemeDevMenu'
+import NavbarShell from './NavbarShell'
+import { BRAND_NAME } from '../lib/brand'
+
+interface Section {
+  id: string
+  label: string
+}
+
+interface DevToolsProps {
+  editMode?: boolean
+  onToggleEditMode?: () => void
+  [key: string]: unknown
+}
+
+interface LandingNavBarProps {
+  sections: Section[]
+  activeSection: string
+  onSectionNavigate: (sectionId: string) => void
+  mobileActions?: ReactNode
+  desktopActions?: ReactNode
+  devToolsProps?: DevToolsProps
+  collectFeedbackReport?: () => Promise<string>
+}
+
+export default function LandingNavBar({
+  sections,
+  activeSection,
+  onSectionNavigate,
+  mobileActions,
+  desktopActions,
+  devToolsProps,
+  collectFeedbackReport,
+}: LandingNavBarProps) {
+  return (
+    <NavbarShell>
+      <div className="relative flex h-14 items-center gap-2 px-4 sm:px-6">
+        <Link to="/" className="flex shrink-0 items-center gap-2">
+          <BrandLogo surface="light" />
+          <span className={navTitleClass}>{BRAND_NAME}</span>
+        </Link>
+
+        <LandingSectionNav
+          sections={sections}
+          activeSection={activeSection}
+          onNavigate={onSectionNavigate}
+        />
+
+        <LandingMobileMenu
+          sections={sections}
+          activeSection={activeSection}
+          onNavigate={onSectionNavigate}
+        />
+
+        <div className="ml-auto flex shrink-0 translate-x-0.5 items-center gap-1.5 overflow-visible max-md:-mr-0.5 sm:gap-3 md:translate-x-0">
+          {mobileActions ? <div className="flex items-center md:hidden">{mobileActions}</div> : null}
+          {desktopActions}
+          {devToolsProps || collectFeedbackReport ? (
+            <LandingMobileThemeDevMenu
+              devToolsProps={devToolsProps}
+              collectFeedbackReport={collectFeedbackReport}
+            />
+          ) : null}
+        </div>
+      </div>
+    </NavbarShell>
+  )
+}

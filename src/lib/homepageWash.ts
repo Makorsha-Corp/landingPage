@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 
 export interface BackdropOpacity {
+  [key: string]: number
   light: number
   dark: number
 }

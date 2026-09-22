@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent, type RefObject } from 'react'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 import {
   getDevBypassTurnstileToken,
   getTurnstileSiteKey,
@@ -8,10 +9,6 @@ import {
 export interface UseWaitlistFormOptions {
   source?: string
   formIdPrefix?: string
-}
-
-export interface TurnstileWidget {
-  reset(): void
 }
 
 export interface FormProps {
@@ -26,7 +23,7 @@ export interface FormProps {
   wantsUpdates: boolean
   setWantsUpdates: (value: boolean) => void
   honeypotRef: RefObject<HTMLInputElement | null>
-  turnstileRef: RefObject<TurnstileWidget | null>
+  turnstileRef: RefObject<TurnstileInstance | null>
   turnstileSiteKey: string
   setTurnstileToken: (token: string) => void
   errorMessage: string
@@ -46,7 +43,7 @@ export default function useWaitlistForm({
   formIdPrefix = 'waitlist',
 }: UseWaitlistFormOptions = {}): UseWaitlistFormReturn {
   const turnstileSiteKey = getTurnstileSiteKey()
-  const turnstileRef = useRef<TurnstileWidget | null>(null)
+  const turnstileRef = useRef<TurnstileInstance | null>(null)
   const honeypotRef = useRef<HTMLInputElement | null>(null)
 
   const [firstName, setFirstName] = useState('')

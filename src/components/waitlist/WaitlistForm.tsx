@@ -122,7 +122,7 @@ export default function WaitlistForm({
       {turnstileSiteKey ? (
         <div className="flex justify-center pt-1 sm:justify-start">
           <Turnstile
-            ref={turnstileRef as React.RefObject<never>}
+            ref={turnstileRef}
             siteKey={turnstileSiteKey}
             onSuccess={setTurnstileToken}
             onExpire={() => setTurnstileToken('')}

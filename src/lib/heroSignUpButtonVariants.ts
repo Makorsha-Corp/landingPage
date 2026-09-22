@@ -9,6 +9,8 @@ export interface SignUpButtonVariant {
   label: string
 }
 
+export type SignUpVariant = string
+
 export const SIGN_UP_BUTTON_VARIANT_LIST: SignUpButtonVariant[] = [
   { id: 'brand', label: 'Purple fill' },
   { id: 'brandLight', label: 'White fill' },

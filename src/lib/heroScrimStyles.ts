@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 
 export interface ScrimStrength {
+  [key: string]: number
   light: number
   dark: number
 }
@@ -8,6 +9,8 @@ export interface ScrimStrength {
 /** Black overlay on hero — strength 0–100 per theme (100 = full style base). */
 export const DEFAULT_HERO_OVERLAY_SCRIM_STRENGTH: ScrimStrength = { light: 50, dark: 50 }
 export const DEFAULT_HERO_OVERLAY_SCRIM_STYLE = 'radial'
+
+export type ScrimStyle = string
 
 export interface ScrimStyleEntry {
   id: string

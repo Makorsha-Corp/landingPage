@@ -69,7 +69,8 @@ interface ContentState {
 }
 
 interface TourMetrics {
-  displayHeroExitT: number
+  heroTransitionT: number
+  displayHeroExitT?: number
 }
 
 interface UseTourCameraOptions {
@@ -179,7 +180,7 @@ export default function useTourCamera({
   const kickRafRef = useRef<(() => void) | null>(null)
   const syncTourDomRef = useRef<() => void>(() => {})
   const lastDomRef = useRef<Record<string, string | null>>({})
-  const tourMetricsRef = useRef<TourMetrics>({ displayHeroExitT: 0 })
+  const tourMetricsRef = useRef<TourMetrics>({ heroTransitionT: 0, displayHeroExitT: 0 })
 
   useEffect(() => {
     overlayPausedRef.current = overlayPaused
@@ -948,6 +949,7 @@ export default function useTourCamera({
           scrimExitRate,
         )
       }
+      tourMetricsRef.current.heroTransitionT = displayHeroExitTRef.current
       tourMetricsRef.current.displayHeroExitT = displayHeroExitTRef.current
 
       const frame = computeTourFrame({

@@ -10,12 +10,12 @@ export interface UseInViewOptions {
  * Reveal-on-scroll hook for elements inside the homepage snap scroller.
  * Returns [ref, inView] — inView latches true after first intersection.
  */
-export default function useInView({
+export default function useInView<T extends HTMLElement = HTMLElement>({
   enabled = true,
   threshold = 0.15,
   rootMargin = '0px 0px -10% 0px',
-}: UseInViewOptions = {}): [RefObject<HTMLElement | null>, boolean] {
-  const ref = useRef<HTMLElement | null>(null)
+}: UseInViewOptions = {}): [RefObject<T | null>, boolean] {
+  const ref = useRef<T | null>(null)
   const [inView, setInView] = useState(false)
 
   useEffect(() => {
