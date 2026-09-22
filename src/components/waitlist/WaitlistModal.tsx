@@ -1,0 +1,288 @@
+import { useCallback, useEffect, useRef, type RefObject, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+import useWaitlistForm from '../../hooks/useWaitlistForm'
+import useWaitlistFabMorph, { type WaitlistMorphPhase } from '../../hooks/useWaitlistFabMorph'
+import useWaitlistPanelReveal from '../../hooks/useWaitlistPanelReveal'
+import useLandingMotion from '../../hooks/useLandingMotion'
+import {
+  getMorphShellStyle,
+  getWaitlistModalTargetRect,
+  MORPH_BACKDROP_EASING,
+  MORPH_BACKDROP_MAX_OPACITY,
+  MORPH_COLLAPSE_DURATION_MS,
+  MORPH_EXPAND_DURATION_MS,
+  MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
+  resolveTravelBg,
+  type MorphRect,
+} from '../../lib/waitlistFabMorph'
+import { cn } from '@/lib/utils'
+import FabMorphFace from './FabMorphFace'
+import WaitlistDialogLayout from './WaitlistDialogLayout'
+import WaitlistForm from './WaitlistForm'
+import WaitlistSuccess from './WaitlistSuccess'
+
+export interface MorphMeta {
+  label?: string
+  variant?: string
+  face?: 'rainbow' | 'button'
+  borderRadius?: string | number
+  travelBg?: string
+}
+
+const DEFAULT_MORPH_META: MorphMeta = {
+  label: 'Sign Up',
+  variant: 'brand',
+  face: 'rainbow',
+  borderRadius: MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
+  travelBg: 'primary',
+}
+
+const TRAVEL_BG_CLASS: Record<string, string> = {
+  primary: 'bg-primary',
+  'brand-secondary': 'bg-brand-secondary',
+  card: 'bg-card',
+}
+
+function getBackdropOpacity(phase: WaitlistMorphPhase, collapsed: boolean): number {
+  if (phase === 'morphOut') return 0
+  if (phase === 'morphIn' && collapsed) return 0
+  return MORPH_BACKDROP_MAX_OPACITY
+}
+
+export interface WaitlistModalProps {
+  open: boolean
+  originRect: MorphRect | null
+  morphMeta?: MorphMeta
+  source?: string
+  onClose?: () => void
+  onFaqClick?: () => void
+  scrollerRef?: RefObject<HTMLElement | null>
+  returnFocusRef?: RefObject<HTMLElement | null>
+}
+
+export default function WaitlistModal({
+  open,
+  originRect,
+  morphMeta = DEFAULT_MORPH_META,
+  source = 'waitlist_section',
+  onClose,
+  onFaqClick,
+  scrollerRef,
+  returnFocusRef,
+}: WaitlistModalProps): React.JSX.Element | null {
+  const { reducedMotion } = useLandingMotion()
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const pendingAfterCloseRef = useRef<(() => void) | null>(null)
+  const returnFocusStoredRef = useRef<Element | null>(null)
+  const resolvedMorphMeta = { ...DEFAULT_MORPH_META, ...morphMeta }
+  const travelBg = resolveTravelBg(resolvedMorphMeta)
+
+  const getReturnFocusElement = useCallback(
+    (): HTMLElement | null =>
+      (returnFocusRef?.current as HTMLElement) ?? (returnFocusStoredRef.current as HTMLElement),
+    [returnFocusRef],
+  )
+
+  const finishClose = useCallback(() => {
+    scrollerRef?.current?.style.removeProperty('overflow')
+    onClose?.()
+    const pending = pendingAfterCloseRef.current
+    pendingAfterCloseRef.current = null
+    if (pending) {
+      requestAnimationFrame(() => pending())
+      return
+    }
+    const trigger = getReturnFocusElement()
+    if (trigger && typeof trigger.focus === 'function') {
+      requestAnimationFrame(() => trigger.focus())
+    }
+  }, [onClose, getReturnFocusElement, scrollerRef])
+
+  const {
+    phase,
+    collapsed,
+    contentVisible,
+    useMorph,
+    isVisible,
+    storedOrigin,
+    targetRect,
+    startClose,
+    handleShellTransitionEnd,
+  } = useWaitlistFabMorph({
+    open,
+    originRect,
+    reducedMotion,
+    onCloseComplete: finishClose,
+    getReturnFocusElement,
+  })
+
+  const { revealed, isCovering, startCover } = useWaitlistPanelReveal({
+    phase,
+    reducedMotion,
+    contentVisible,
+  })
+
+  const { formProps, isSuccess } = useWaitlistForm({
+    source,
+    formIdPrefix: 'waitlist-modal',
+  })
+
+  const requestClose = useCallback(() => {
+    if (isCovering) return
+
+    if (useMorph && revealed && !reducedMotion) {
+      startCover(() => startClose())
+      return
+    }
+
+    startClose()
+  }, [isCovering, useMorph, revealed, reducedMotion, startCover, startClose])
+
+  const handleFaqClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault()
+      if (!onFaqClick) return
+      pendingAfterCloseRef.current = onFaqClick
+      requestClose()
+    },
+    [onFaqClick, requestClose],
+  )
+
+  useEffect(() => {
+    if (!isVisible) return undefined
+
+    returnFocusStoredRef.current = document.activeElement
+    scrollerRef?.current?.style.setProperty('overflow', 'hidden')
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') requestClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isVisible, requestClose, scrollerRef])
+
+  useEffect(() => {
+    if (phase === 'open' && revealed) {
+      closeButtonRef.current?.focus()
+    }
+  }, [phase, revealed])
+
+  if (!isVisible || typeof document === 'undefined') return null
+
+  const isCollapsing = phase === 'morphOut'
+  const morphDurationMs = isCollapsing ? MORPH_COLLAPSE_DURATION_MS : MORPH_EXPAND_DURATION_MS
+  const isTraveling = phase === 'morphIn' || phase === 'morphOut'
+  const isOpen = phase === 'open'
+
+  const resolvedTarget = targetRect ?? getWaitlistModalTargetRect()
+  const resolvedOrigin = storedOrigin ?? originRect
+  const originRadius = (resolvedMorphMeta.borderRadius ?? MORPH_DEFAULT_ORIGIN_BORDER_RADIUS) as string
+  const shellStyle = useMorph
+    ? getMorphShellStyle(resolvedOrigin, resolvedTarget, collapsed, reducedMotion, {
+        collapsing: isCollapsing,
+        originRadius,
+      })
+    : null
+
+  const backdropOpacity = getBackdropOpacity(phase, collapsed)
+  const backdropBlur = backdropOpacity > 0.05
+  const showDialog = isOpen || !useMorph
+  const faceVisible = useMorph && phase === 'morphIn' && collapsed
+  const showContent = contentVisible || showDialog
+  const showModalChrome = isOpen || !useMorph
+  const panelRevealed = !useMorph || reducedMotion || revealed
+
+  const dialogBody = (
+    <WaitlistDialogLayout
+      titleId="waitlist-dialog-title"
+      isSuccess={isSuccess}
+      onClose={requestClose}
+      onFaqClick={handleFaqClick}
+      closeButtonRef={closeButtonRef}
+      revealed={panelRevealed}
+      reducedMotion={reducedMotion || !useMorph}
+      renderForm={() => <WaitlistForm {...formProps} />}
+      renderSuccess={() => <WaitlistSuccess />}
+    />
+  )
+
+  if (!useMorph) {
+    return createPortal(
+      <div
+        className={cn(
+          'fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4',
+          !reducedMotion && 'animate-fade-in',
+        )}
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) requestClose()
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="waitlist-dialog-title"
+          className="relative h-[min(85vh,44rem)] w-[min(60rem,94vw)] overflow-hidden rounded-3xl bg-card shadow-2xl ring-1 ring-border/70"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          {dialogBody}
+        </div>
+      </div>,
+      document.body,
+    )
+  }
+
+  const backdropStyle: CSSProperties = {
+    opacity: backdropOpacity,
+    transitionDuration: `${morphDurationMs}ms`,
+    transitionTimingFunction: MORPH_BACKDROP_EASING,
+    pointerEvents: backdropOpacity > 0.05 ? 'auto' : 'none',
+  }
+
+  return createPortal(
+    <>
+      <div
+        className={cn(
+          'fixed inset-0 z-[200] bg-black transition-[opacity,backdrop-filter]',
+          backdropBlur && 'backdrop-blur-sm',
+        )}
+        style={backdropStyle}
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && showDialog) requestClose()
+        }}
+      />
+
+      <div
+        className={cn(
+          'waitlist-morph-shell relative overflow-hidden transition-colors duration-200',
+          isTraveling || isCovering ? TRAVEL_BG_CLASS[travelBg] ?? TRAVEL_BG_CLASS.primary : 'bg-card',
+          showModalChrome && !isCovering && 'shadow-2xl ring-1 ring-border/70',
+        )}
+        style={shellStyle ?? undefined}
+        aria-hidden={!showDialog}
+        onTransitionEnd={(e) => handleShellTransitionEnd(e.nativeEvent)}
+      >
+        <FabMorphFace
+          visible={faceVisible}
+          label={resolvedMorphMeta.label}
+          variant={resolvedMorphMeta.variant}
+          face={resolvedMorphMeta.face}
+        />
+
+        <div
+          role={showDialog ? 'dialog' : undefined}
+          aria-modal={showDialog ? true : undefined}
+          aria-labelledby={showDialog ? 'waitlist-dialog-title' : undefined}
+          className="waitlist-morph-content relative h-full w-full"
+        >
+          {showContent ? dialogBody : null}
+        </div>
+      </div>
+    </>,
+    document.body,
+  )
+}
