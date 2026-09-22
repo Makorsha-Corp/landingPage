@@ -116,6 +116,8 @@ function TourMobileFloatingCardBody({
   }, [measureContent, stop.id])
 
   useEffect(() => {
+    // Reset after commit, not during render: keeps the existing stop-change collapse timing.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLiftPx(0)
   }, [stop.id])
 

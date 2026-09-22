@@ -66,8 +66,8 @@ export interface HeroExitCopyPhase {
 export function computeHeroExitCopyPhase(t: number): HeroExitCopyPhase {
   const clampedT = clamp(t, 0, 1)
 
-  let heroOpacity = 1
-  let heroOffsetY = 0
+  let heroOpacity: number
+  let heroOffsetY: number
   if (clampedT <= HERO_EXIT_COPY_OUT_END) {
     const outP =
       clampedT <= HERO_EXIT_COPY_OUT_START
