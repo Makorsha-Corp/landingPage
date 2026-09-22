@@ -1,5 +1,5 @@
-import React from 'react'
-import { cva } from 'class-variance-authority'
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 
@@ -40,7 +40,13 @@ const rainbowButtonVariants = cva(
   },
 )
 
-const RainbowButton = React.forwardRef(
+export interface RainbowButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof rainbowButtonVariants> {
+  children?: ReactNode
+}
+
+const RainbowButton = forwardRef<HTMLButtonElement, RainbowButtonProps>(
   ({ className, variant, size, type = 'button', children, ...props }, ref) => (
     <button
       ref={ref}

@@ -1,6 +1,14 @@
+import type { CSSProperties, HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
-function getShineBackgroundImage(shineColor, gradient, radialOpacity = 'default') {
+type GradientType = 'linear' | 'radial'
+type RadialOpacity = 'default' | 'bold'
+
+function getShineBackgroundImage(
+  shineColor: string | string[],
+  gradient: GradientType,
+  radialOpacity: RadialOpacity = 'default',
+): string {
   const colors = Array.isArray(shineColor) ? shineColor : [shineColor]
 
   if (gradient === 'linear') {
@@ -18,6 +26,15 @@ function getShineBackgroundImage(shineColor, gradient, radialOpacity = 'default'
   return `radial-gradient(transparent,transparent, ${colors.join(',')},transparent,transparent)`
 }
 
+export interface ShineBorderProps extends HTMLAttributes<HTMLDivElement> {
+  borderWidth?: number
+  duration?: number
+  shineColor?: string | string[]
+  gradient?: GradientType
+  radialOpacity?: RadialOpacity
+  backgroundSize?: string
+}
+
 /**
  * Shine Border
  *
@@ -33,21 +50,23 @@ export function ShineBorder({
   className,
   style,
   ...props
-}) {
+}: ShineBorderProps): React.JSX.Element {
+  const combinedStyle: CSSProperties = {
+    '--border-width': `${borderWidth}px`,
+    '--duration': `${duration}s`,
+    backgroundImage: getShineBackgroundImage(shineColor, gradient, radialOpacity),
+    backgroundSize,
+    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+    WebkitMaskComposite: 'xor',
+    maskComposite: 'exclude',
+    padding: 'var(--border-width)',
+    ...style,
+  } as CSSProperties
+
   return (
     <div
-      style={{
-        '--border-width': `${borderWidth}px`,
-        '--duration': `${duration}s`,
-        backgroundImage: getShineBackgroundImage(shineColor, gradient, radialOpacity),
-        backgroundSize,
-        mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        WebkitMaskComposite: 'xor',
-        maskComposite: 'exclude',
-        padding: 'var(--border-width)',
-        ...style,
-      }}
+      style={combinedStyle}
       className={cn(
         'animate-shine pointer-events-none absolute inset-0 size-full rounded-[inherit] will-change-[background-position]',
         className,

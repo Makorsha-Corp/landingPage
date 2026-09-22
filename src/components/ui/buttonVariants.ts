@@ -3,7 +3,27 @@ import { cn } from '../../lib/cn'
 const base =
   'inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50'
 
-export const buttonVariants = {
+export type ButtonVariant =
+  | 'default'
+  | 'outline'
+  | 'secondary'
+  | 'ghost'
+  | 'link'
+  | 'muted'
+  | 'navGhost'
+  | 'marketing'
+  | 'marketingOutline'
+  | 'ctaInverse'
+  | 'ctaOutline'
+  | 'heroPrimary'
+  | 'heroGlass'
+
+export type ButtonSize = 'default' | 'sm' | 'lg' | 'xs' | 'icon'
+
+export const buttonVariants: {
+  variant: Record<ButtonVariant, string>
+  size: Record<ButtonSize, string>
+} = {
   variant: {
     default: 'rounded-md bg-primary text-primary-foreground hover:bg-primary/90',
     outline:
@@ -37,7 +57,17 @@ export const buttonVariants = {
   },
 }
 
-export function getButtonClasses({ variant = 'default', size = 'default', className = '' } = {}) {
+export interface GetButtonClassesOptions {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  className?: string
+}
+
+export function getButtonClasses({
+  variant = 'default',
+  size = 'default',
+  className = '',
+}: GetButtonClassesOptions = {}): string {
   const v = buttonVariants.variant[variant] ?? buttonVariants.variant.default
   const s = buttonVariants.size[size] ?? buttonVariants.size.default
   return cn(base, v, s, className)
