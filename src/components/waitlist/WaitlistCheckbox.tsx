@@ -1,4 +1,10 @@
-function CheckGlyph({ className = '' }) {
+import type { ChangeEvent, ReactNode } from 'react'
+
+interface CheckGlyphProps {
+  className?: string
+}
+
+function CheckGlyph({ className = '' }: CheckGlyphProps): React.JSX.Element {
   return (
     <svg
       className={className}
@@ -17,7 +23,19 @@ function CheckGlyph({ className = '' }) {
   )
 }
 
-export default function WaitlistCheckbox({ id, checked, onChange, children }) {
+export interface WaitlistCheckboxProps {
+  id: string
+  checked: boolean
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void
+  children: ReactNode
+}
+
+export default function WaitlistCheckbox({
+  id,
+  checked,
+  onChange,
+  children,
+}: WaitlistCheckboxProps): React.JSX.Element {
   return (
     <label
       htmlFor={id}

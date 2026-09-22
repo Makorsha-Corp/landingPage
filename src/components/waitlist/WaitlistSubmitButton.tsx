@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-function ArrowIcon() {
+function ArrowIcon(): React.JSX.Element {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
@@ -8,7 +8,17 @@ function ArrowIcon() {
   )
 }
 
-export default function WaitlistSubmitButton({ disabled, isSubmitting, className = '' }) {
+export interface WaitlistSubmitButtonProps {
+  disabled: boolean
+  isSubmitting: boolean
+  className?: string
+}
+
+export default function WaitlistSubmitButton({
+  disabled,
+  isSubmitting,
+  className = '',
+}: WaitlistSubmitButtonProps): React.JSX.Element {
   return (
     <button
       type="submit"

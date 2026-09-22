@@ -1,11 +1,17 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject, type ReactNode } from 'react'
 import BrandLogo from '../BrandLogo'
 import { cn } from '@/lib/utils'
 import useIsMobileTour from '../../hooks/useIsMobileTour'
 import useWaitlistColumnShift from '../../hooks/useWaitlistColumnShift'
 import { WAITLIST_COPY } from './waitlistContent'
 
-function CloseButton({ closeButtonRef, onClose, onBrandPanel = false }) {
+interface CloseButtonProps {
+  closeButtonRef: RefObject<HTMLButtonElement | null>
+  onClose: () => void
+  onBrandPanel?: boolean
+}
+
+function CloseButton({ closeButtonRef, onClose, onBrandPanel = false }: CloseButtonProps): React.JSX.Element {
   return (
     <button
       ref={closeButtonRef}
@@ -26,7 +32,11 @@ function CloseButton({ closeButtonRef, onClose, onBrandPanel = false }) {
   )
 }
 
-function BrandName({ className }) {
+interface BrandNameProps {
+  className?: string
+}
+
+function BrandName({ className }: BrandNameProps): React.JSX.Element {
   return (
     <span className={cn('text-2xl font-bold tracking-tight text-white', className)}>
       {WAITLIST_COPY.brandName}
@@ -34,7 +44,11 @@ function BrandName({ className }) {
   )
 }
 
-function BrandEyebrow({ className }) {
+interface BrandEyebrowProps {
+  className?: string
+}
+
+function BrandEyebrow({ className }: BrandEyebrowProps): React.JSX.Element {
   return (
     <p
       className={cn(
@@ -47,7 +61,12 @@ function BrandEyebrow({ className }) {
   )
 }
 
-function BrandHeadline({ titleId, className }) {
+interface BrandHeadlineProps {
+  titleId: string
+  className?: string
+}
+
+function BrandHeadline({ titleId, className }: BrandHeadlineProps): React.JSX.Element {
   return (
     <h2
       id={titleId}
@@ -62,6 +81,18 @@ function BrandHeadline({ titleId, className }) {
   )
 }
 
+export interface WaitlistDialogLayoutProps {
+  titleId: string
+  renderForm: () => ReactNode
+  renderSuccess: () => ReactNode
+  isSuccess: boolean
+  onClose: () => void
+  onFaqClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void
+  closeButtonRef: RefObject<HTMLButtonElement | null>
+  revealed?: boolean
+  reducedMotion?: boolean
+}
+
 export default function WaitlistDialogLayout({
   titleId,
   renderForm,
@@ -72,11 +103,11 @@ export default function WaitlistDialogLayout({
   closeButtonRef,
   revealed = true,
   reducedMotion = false,
-}) {
-  const rootRef = useRef(null)
-  const brandPanelRef = useRef(null)
-  const brandColumnRef = useRef(null)
-  const [brandHeightPx, setBrandHeightPx] = useState(null)
+}: WaitlistDialogLayoutProps): React.JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const brandPanelRef = useRef<HTMLDivElement>(null)
+  const brandColumnRef = useRef<HTMLDivElement>(null)
+  const [brandHeightPx, setBrandHeightPx] = useState<number | null>(null)
   const isMobile = useIsMobileTour()
 
   const showRevealed = reducedMotion || revealed
@@ -102,7 +133,7 @@ export default function WaitlistDialogLayout({
     const rootEl = rootRef.current
     if (!panelEl || !columnEl || !rootEl) return undefined
 
-    const measure = () => {
+    const measure = (): void => {
       const styles = getComputedStyle(panelEl)
       const padTop = parseFloat(styles.paddingTop) || 0
       const padBottom = parseFloat(styles.paddingBottom) || 0
@@ -121,8 +152,10 @@ export default function WaitlistDialogLayout({
     return () => observer.disconnect()
   }, [isMobile, showRevealed, titleId])
 
-  const wrapperStyle =
-    isMobile && brandHeightPx != null ? { '--waitlist-brand-h': `${brandHeightPx}px` } : undefined
+  const wrapperStyle: CSSProperties | undefined =
+    isMobile && brandHeightPx != null
+      ? ({ '--waitlist-brand-h': `${brandHeightPx}px` } as CSSProperties)
+      : undefined
 
   return (
     <div ref={rootRef} className="relative h-full min-h-0 overflow-hidden" style={wrapperStyle}>
@@ -176,7 +209,7 @@ export default function WaitlistDialogLayout({
           )}
           style={useDesktopChoreography ? columnStyle : undefined}
         >
-          <BrandLogo size="md" surface="dark" />
+          <BrandLogo size="md" surface="dark" variant={undefined} />
           <BrandName className="mt-1 sm:mt-2" />
           <BrandEyebrow />
           <BrandHeadline titleId={titleId} />

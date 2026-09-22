@@ -2,7 +2,8 @@ import { Turnstile } from '@marsidev/react-turnstile'
 import WaitlistCheckbox from './WaitlistCheckbox'
 import WaitlistSubmitButton from './WaitlistSubmitButton'
 import { waitlistInput } from '../../lib/loginSurfaceStyles'
-import { BRAND_NAME } from '../../lib/brand.js'
+import { BRAND_NAME } from '../../lib/brand'
+import type { FormProps as WaitlistFormProps } from '../../hooks/useWaitlistForm'
 
 export default function WaitlistForm({
   firstName,
@@ -24,7 +25,7 @@ export default function WaitlistForm({
   status,
   handleSubmit,
   idPrefix = 'waitlist',
-}) {
+}: WaitlistFormProps): React.JSX.Element {
   const firstNameId = `${idPrefix}-first-name`
   const lastNameId = `${idPrefix}-last-name`
   const companyId = `${idPrefix}-company`
@@ -121,7 +122,7 @@ export default function WaitlistForm({
       {turnstileSiteKey ? (
         <div className="flex justify-center pt-1 sm:justify-start">
           <Turnstile
-            ref={turnstileRef}
+            ref={turnstileRef as React.RefObject<never>}
             siteKey={turnstileSiteKey}
             onSuccess={setTurnstileToken}
             onExpire={() => setTurnstileToken('')}

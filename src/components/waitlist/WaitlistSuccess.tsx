@@ -1,7 +1,11 @@
 import { iconTileLg } from '../../lib/loginSurfaceStyles'
-import { BRAND_NAME } from '../../lib/brand.js'
+import { BRAND_NAME } from '../../lib/brand'
 
-function CheckGlyph({ className = 'h-7 w-7' }) {
+interface CheckGlyphProps {
+  className?: string
+}
+
+function CheckGlyph({ className = 'h-7 w-7' }: CheckGlyphProps): React.JSX.Element {
   return (
     <svg
       className={className}
@@ -16,7 +20,7 @@ function CheckGlyph({ className = 'h-7 w-7' }) {
   )
 }
 
-export default function WaitlistSuccess() {
+export default function WaitlistSuccess(): React.JSX.Element {
   return (
     <div className="flex flex-col items-center py-4 text-center sm:py-6">
       <div

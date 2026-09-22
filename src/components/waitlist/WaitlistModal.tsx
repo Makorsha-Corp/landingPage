@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, type RefObject, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import useWaitlistForm from '../../hooks/useWaitlistForm'
 import useWaitlistFabMorph from '../../hooks/useWaitlistFabMorph'
@@ -13,6 +13,7 @@ import {
   MORPH_EXPAND_DURATION_MS,
   MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
   resolveTravelBg,
+  type MorphRect,
 } from '../../lib/waitlistFabMorph'
 import { cn } from '@/lib/utils'
 import FabMorphFace from './FabMorphFace'
@@ -20,7 +21,15 @@ import WaitlistDialogLayout from './WaitlistDialogLayout'
 import WaitlistForm from './WaitlistForm'
 import WaitlistSuccess from './WaitlistSuccess'
 
-const DEFAULT_MORPH_META = {
+export interface MorphMeta {
+  label?: string
+  variant?: string
+  face?: 'rainbow' | 'button'
+  borderRadius?: string | number
+  travelBg?: string
+}
+
+const DEFAULT_MORPH_META: MorphMeta = {
   label: 'Sign Up',
   variant: 'brand',
   face: 'rainbow',
@@ -28,16 +37,29 @@ const DEFAULT_MORPH_META = {
   travelBg: 'primary',
 }
 
-const TRAVEL_BG_CLASS = {
+const TRAVEL_BG_CLASS: Record<string, string> = {
   primary: 'bg-primary',
   'brand-secondary': 'bg-brand-secondary',
   card: 'bg-card',
 }
 
-function getBackdropOpacity(phase, collapsed) {
+type MorphPhase = 'morphIn' | 'morphOut' | 'open' | 'closing' | 'closed'
+
+function getBackdropOpacity(phase: MorphPhase, collapsed: boolean): number {
   if (phase === 'morphOut') return 0
   if (phase === 'morphIn' && collapsed) return 0
   return MORPH_BACKDROP_MAX_OPACITY
+}
+
+export interface WaitlistModalProps {
+  open: boolean
+  originRect: MorphRect | null
+  morphMeta?: MorphMeta
+  source?: string
+  onClose?: () => void
+  onFaqClick?: () => void
+  scrollerRef?: RefObject<HTMLElement | null>
+  returnFocusRef?: RefObject<HTMLElement | null>
 }
 
 export default function WaitlistModal({
@@ -49,16 +71,17 @@ export default function WaitlistModal({
   onFaqClick,
   scrollerRef,
   returnFocusRef,
-}) {
+}: WaitlistModalProps): React.JSX.Element | null {
   const { reducedMotion } = useLandingMotion()
-  const closeButtonRef = useRef(null)
-  const pendingAfterCloseRef = useRef(null)
-  const returnFocusStoredRef = useRef(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const pendingAfterCloseRef = useRef<(() => void) | null>(null)
+  const returnFocusStoredRef = useRef<Element | null>(null)
   const resolvedMorphMeta = { ...DEFAULT_MORPH_META, ...morphMeta }
   const travelBg = resolveTravelBg(resolvedMorphMeta)
 
   const getReturnFocusElement = useCallback(
-    () => returnFocusRef?.current ?? returnFocusStoredRef.current,
+    (): HTMLElement | null =>
+      (returnFocusRef?.current as HTMLElement) ?? (returnFocusStoredRef.current as HTMLElement),
     [returnFocusRef],
   )
 
@@ -118,7 +141,7 @@ export default function WaitlistModal({
   }, [isCovering, useMorph, revealed, reducedMotion, startCover, startClose])
 
   const handleFaqClick = useCallback(
-    (event) => {
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault()
       if (!onFaqClick) return
       pendingAfterCloseRef.current = onFaqClick
@@ -133,7 +156,7 @@ export default function WaitlistModal({
     returnFocusStoredRef.current = document.activeElement
     scrollerRef?.current?.style.setProperty('overflow', 'hidden')
 
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') requestClose()
     }
 
@@ -158,7 +181,7 @@ export default function WaitlistModal({
 
   const resolvedTarget = targetRect ?? getWaitlistModalTargetRect()
   const resolvedOrigin = storedOrigin ?? originRect
-  const originRadius = resolvedMorphMeta.borderRadius ?? MORPH_DEFAULT_ORIGIN_BORDER_RADIUS
+  const originRadius = (resolvedMorphMeta.borderRadius ?? MORPH_DEFAULT_ORIGIN_BORDER_RADIUS) as string
   const shellStyle = useMorph
     ? getMorphShellStyle(resolvedOrigin, resolvedTarget, collapsed, reducedMotion, {
         collapsing: isCollapsing,
@@ -166,7 +189,7 @@ export default function WaitlistModal({
       })
     : null
 
-  const backdropOpacity = getBackdropOpacity(phase, collapsed)
+  const backdropOpacity = getBackdropOpacity(phase as MorphPhase, collapsed)
   const backdropBlur = backdropOpacity > 0.05
   const showDialog = isOpen || !useMorph
   const faceVisible = useMorph && phase === 'morphIn' && collapsed
@@ -214,6 +237,13 @@ export default function WaitlistModal({
     )
   }
 
+  const backdropStyle: CSSProperties = {
+    opacity: backdropOpacity,
+    transitionDuration: `${morphDurationMs}ms`,
+    transitionTimingFunction: MORPH_BACKDROP_EASING,
+    pointerEvents: backdropOpacity > 0.05 ? 'auto' : 'none',
+  }
+
   return createPortal(
     <>
       <div
@@ -221,12 +251,7 @@ export default function WaitlistModal({
           'fixed inset-0 z-[200] bg-black transition-[opacity,backdrop-filter]',
           backdropBlur && 'backdrop-blur-sm',
         )}
-        style={{
-          opacity: backdropOpacity,
-          transitionDuration: `${morphDurationMs}ms`,
-          transitionTimingFunction: MORPH_BACKDROP_EASING,
-          pointerEvents: backdropOpacity > 0.05 ? 'auto' : 'none',
-        }}
+        style={backdropStyle}
         role="presentation"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget && showDialog) requestClose()
@@ -241,7 +266,7 @@ export default function WaitlistModal({
         )}
         style={shellStyle ?? undefined}
         aria-hidden={!showDialog}
-        onTransitionEnd={handleShellTransitionEnd}
+        onTransitionEnd={(e) => handleShellTransitionEnd(e.nativeEvent)}
       >
         <FabMorphFace
           visible={faceVisible}
