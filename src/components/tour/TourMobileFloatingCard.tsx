@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { RefObject, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent, MouseEvent as ReactMouseEvent } from 'react'
-import useMobileTourCopySpace from '../../hooks/useMobileTourCopySpace'
 import {
   getTourStoryCardShellClasses,
   getTourStoryCardTextClasses,
@@ -15,8 +14,28 @@ function clamp(value: number, min: number, max: number): number {
 
 /** Collapsed strip: title row + chevron + hint of body. */
 const MOBILE_PEEK_HEIGHT_PX = 168
-/** Minimum expand travel on tap/drag — avoids chevron vanishing with ~0px lift. */
-const MIN_MEANINGFUL_LIFT_PX = 64
+const CONTENT_HEIGHT_EPSILON_PX = 2
+/** Gap between card bottom margin and viewport edge (matches card marginBottom intent). */
+const VIEWPORT_EXPAND_GAP_PX = 12
+const MIN_BOTTOM_INSET_PX = 16
+
+function readBottomInsetPx(): number {
+  if (typeof document === 'undefined') return MIN_BOTTOM_INSET_PX
+
+  const probe = document.createElement('div')
+  probe.style.paddingBottom = 'max(0.75rem, env(safe-area-inset-bottom, 0px))'
+  probe.style.visibility = 'hidden'
+  probe.style.position = 'fixed'
+  document.body.appendChild(probe)
+  const px = probe.offsetHeight
+  document.body.removeChild(probe)
+  return Math.max(px, MIN_BOTTOM_INSET_PX)
+}
+
+function computeViewportExpandCap(containerHeightPx: number): number {
+  if (containerHeightPx <= 0) return 0
+  return Math.max(0, containerHeightPx - readBottomInsetPx() - VIEWPORT_EXPAND_GAP_PX)
+}
 
 interface MobileCardLiftMetrics {
   expandCeilingPx: number
@@ -26,32 +45,21 @@ interface MobileCardLiftMetrics {
   canLift: boolean
 }
 
+/** Max open height = min(copy, sticky tour viewport). Independent of camera transform. */
 function computeMobileCardLiftMetrics(
   contentHeight: number,
-  availablePx: number,
+  viewportExpandCapPx: number,
 ): MobileCardLiftMetrics {
-  const reliableAvailablePx =
-    availablePx >= MOBILE_PEEK_HEIGHT_PX
-      ? availablePx
+  const expandCeilingPx =
+    viewportExpandCapPx > 0
+      ? viewportExpandCapPx
       : contentHeight > 0
         ? contentHeight
         : MOBILE_PEEK_HEIGHT_PX
-  const expandCeilingPx =
-    availablePx > 0 ? reliableAvailablePx : contentHeight > 0 ? contentHeight : MOBILE_PEEK_HEIGHT_PX
   const expandedCapPx =
     contentHeight > 0 ? Math.min(contentHeight, expandCeilingPx) : expandCeilingPx
-
-  let peekHeightPx = Math.min(MOBILE_PEEK_HEIGHT_PX, expandedCapPx)
-  let maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
-
-  if (maxLiftPx > 0 && maxLiftPx < MIN_MEANINGFUL_LIFT_PX) {
-    peekHeightPx = Math.min(
-      MOBILE_PEEK_HEIGHT_PX,
-      expandedCapPx,
-      Math.max(Math.floor(expandedCapPx * 0.38), expandedCapPx - MIN_MEANINGFUL_LIFT_PX),
-    )
-    maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
-  }
+  const peekHeightPx = Math.min(MOBILE_PEEK_HEIGHT_PX, expandedCapPx)
+  const maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
 
   return {
     expandCeilingPx,
@@ -74,8 +82,6 @@ interface TourMobileFloatingCardBodyProps {
   activeIndex: number
   stopCount: number
   containerRef: RefObject<HTMLElement | null>
-  stageRef: RefObject<HTMLElement | null>
-  scrollerRef: RefObject<HTMLElement | null>
   copyRef: RefObject<HTMLDivElement | null>
   scrollDrivenEnter?: boolean
 }
@@ -86,29 +92,29 @@ function TourMobileFloatingCardBody({
   activeIndex,
   stopCount,
   containerRef,
-  stageRef,
-  scrollerRef,
   copyRef,
   scrollDrivenEnter = false,
 }: TourMobileFloatingCardBodyProps) {
-  const { availablePx } = useMobileTourCopySpace({ containerRef, stageRef, scrollerRef })
   const glassCls = getTourStoryCardShellClasses(theme)
   const { title: titleCls, desc: descCls } = getTourStoryCardTextClasses(theme)
 
   const contentRef = useRef<HTMLDivElement>(null)
   const dragSurfaceRef = useRef<HTMLDivElement>(null)
+  const lastContentHeightRef = useRef(0)
+  const lastViewportCapRef = useRef(0)
   const pointerStartRef = useRef<PointerStart | null>(null)
   const liftStartRef = useRef<number>(0)
   const dragGestureRef = useRef<boolean>(false)
   const suppressClickRef = useRef<boolean>(false)
 
   const [contentHeight, setContentHeight] = useState(0)
+  const [viewportExpandCapPx, setViewportExpandCapPx] = useState(0)
   const [liftPx, setLiftPx] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
   const { peekHeightPx, expandedCapPx, maxLiftPx, canLift } = computeMobileCardLiftMetrics(
     contentHeight,
-    availablePx,
+    viewportExpandCapPx,
   )
   const effectiveLiftPx = clamp(liftPx, 0, maxLiftPx)
   const visibleHeight =
@@ -117,8 +123,17 @@ function TourMobileFloatingCardBody({
       : peekHeightPx
   const isFullyLifted = canLift && effectiveLiftPx >= maxLiftPx - 2
   const showLiftChevron = canLift && !isFullyLifted
-  const isContentClipped = contentHeight > expandedCapPx + 2
-  const needsBodyScroll = isFullyLifted && isContentClipped
+  const isContentClipped = contentHeight > expandedCapPx + CONTENT_HEIGHT_EPSILON_PX
+  const needsShellScroll = isFullyLifted && isContentClipped
+
+  const measureViewportCap = useCallback(() => {
+    const containerEl = containerRef?.current
+    if (!containerEl) return
+    const next = computeViewportExpandCap(containerEl.clientHeight)
+    if (Math.abs(next - lastViewportCapRef.current) < CONTENT_HEIGHT_EPSILON_PX) return
+    lastViewportCapRef.current = next
+    setViewportExpandCapPx(next)
+  }, [containerRef])
 
   const toggleLift = useCallback(() => {
     if (!canLift) return
@@ -143,8 +158,25 @@ function TourMobileFloatingCardBody({
   const measureContent = useCallback(() => {
     const el = contentRef.current
     if (!el) return
-    setContentHeight(Math.max(el.offsetHeight, el.scrollHeight))
+    const next = el.scrollHeight
+    if (Math.abs(next - lastContentHeightRef.current) < CONTENT_HEIGHT_EPSILON_PX) return
+    lastContentHeightRef.current = next
+    setContentHeight(next)
   }, [])
+
+  useLayoutEffect(() => {
+    measureViewportCap()
+    const containerEl = containerRef?.current
+    if (!containerEl) return undefined
+
+    const observer = new ResizeObserver(measureViewportCap)
+    observer.observe(containerEl)
+    window.addEventListener('resize', measureViewportCap)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measureViewportCap)
+    }
+  }, [containerRef, measureViewportCap])
 
   useLayoutEffect(() => {
     measureContent()
@@ -157,6 +189,7 @@ function TourMobileFloatingCardBody({
   }, [measureContent, stop.id])
 
   useEffect(() => {
+    lastContentHeightRef.current = 0
     setLiftPx(0)
   }, [stop.id])
 
@@ -226,7 +259,7 @@ function TourMobileFloatingCardBody({
   }
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    if (!canLift || needsBodyScroll) return
+    if (!canLift || needsShellScroll) return
     event.preventDefault()
     setLiftPx((prev) => clamp(prev - event.deltaY, 0, maxLiftPx))
   }
@@ -234,10 +267,13 @@ function TourMobileFloatingCardBody({
   const liftTransition =
     canLift && !isDragging ? 'max-height 280ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
   const dragSurfaceCls = canLift ? 'touch-none cursor-grab active:cursor-grabbing' : ''
+  const shellOverflowCls = needsShellScroll
+    ? 'overflow-y-auto overscroll-y-contain'
+    : 'overflow-hidden'
 
   return (
     <div
-      className={`${scrollDrivenEnter ? '' : 'animate-tour-mobile-copy-in'} tour-glass-shell isolate pointer-events-auto flex flex-col overflow-hidden rounded-2xl ${glassCls}`}
+      className={`${scrollDrivenEnter ? '' : 'animate-tour-mobile-copy-in'} tour-glass-shell isolate pointer-events-auto rounded-2xl ${shellOverflowCls} ${glassCls}`}
       style={{
         marginBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
         maxHeight: visibleHeight > 0 ? `${visibleHeight}px` : undefined,
@@ -245,11 +281,11 @@ function TourMobileFloatingCardBody({
       }}
       onWheel={handleWheel}
     >
-      <div ref={copyRef} className="flex min-h-0 flex-1 flex-col" style={{ opacity: 0, willChange: 'opacity, transform' }}>
-        <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">
+      <div ref={copyRef} style={{ opacity: 0, willChange: 'opacity, transform' }}>
+        <div ref={contentRef}>
           <div
             ref={dragSurfaceRef}
-            className={`shrink-0 px-4 pt-4 ${dragSurfaceCls}`}
+            className={`px-4 pt-4 ${dragSurfaceCls}`}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerEnd}
@@ -299,9 +335,7 @@ function TourMobileFloatingCardBody({
               </div>
             </div>
           </div>
-          <div
-            className={`px-4 pb-4 pt-2 ${needsBodyScroll ? 'min-h-0 flex-1 overflow-y-auto overscroll-y-contain' : ''}`}
-          >
+          <div className="mt-2 px-4 pb-4">
             <TourMobileCondensedBody stop={stop} descCls={descCls} />
           </div>
         </div>
@@ -321,8 +355,6 @@ interface TourMobileFloatingCardProps {
   activeIndex: number
   stopCount: number
   containerRef: RefObject<HTMLElement | null>
-  stageRef: RefObject<HTMLElement | null>
-  scrollerRef: RefObject<HTMLElement | null>
 }
 
 // Copy opacity starts at 0; glass shell stays at opacity 1 so backdrop-blur compositing works.

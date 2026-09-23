@@ -1508,8 +1508,6 @@ export default function Home() {
               activeIndex={activeIndex}
               stopCount={stops.length}
               containerRef={tourStageRef}
-              stageRef={stageRef}
-              scrollerRef={scrollerRef}
             />
           ) : null}
 
