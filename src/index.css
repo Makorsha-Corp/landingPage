@@ -306,6 +306,11 @@
   -webkit-backdrop-filter: none !important;
 }
 
+/* Tour story body — slightly heavier than default 400 */
+.text-tour-story-desc {
+  font-weight: 500;
+}
+
 /* Mobile hero→story crossfade shows two glass cards at once over a transform-animated
    building. Once the outgoing card is mostly transparent its blur is imperceptible, so
    drop it (and any nested glass) to halve backdrop-filter work mid-transition. */
@@ -327,8 +332,8 @@
 }
 
 .homepage-tour-dvh {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--landing-snap-h, 100dvh);
+  min-height: var(--landing-snap-h, 100dvh);
 }
 
 /* Fit full building width in viewport — width-first, never crop isometric sides. */
@@ -347,14 +352,14 @@
 }
 
 .homepage-tour-panels-offset {
-  margin-top: -100dvh;
+  margin-top: calc(-1 * var(--landing-snap-h, 100dvh));
 }
 
 /* Mobile: svh avoids URL-bar dvh resize CLS; desktop keeps dvh fill. */
 @media (max-width: 47.99rem) {
   .homepage-tour-dvh {
-    height: 100svh;
-    min-height: 100svh;
+    height: var(--landing-snap-h, 100svh);
+    min-height: var(--landing-snap-h, 100svh);
   }
 
   .homepage-tour-stage {
@@ -363,7 +368,7 @@
   }
 
   .homepage-tour-panels-offset {
-    margin-top: -100svh;
+    margin-top: calc(-1 * var(--landing-snap-h, 100svh));
   }
 
   .deck-panel,

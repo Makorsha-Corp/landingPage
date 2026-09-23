@@ -1,12 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useLandingPerf } from '../context/LandingPerfContext'
+import type { TourMetrics } from '../hooks/useTourCamera'
 
 const WASH_THRESHOLD = 0.12
-
-interface TourMetrics {
-  heroTransitionT: number
-}
 
 interface LandingPerfTourSyncProps {
   theme: string

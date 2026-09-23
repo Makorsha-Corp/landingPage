@@ -202,6 +202,7 @@ export interface CardLayout {
   widthPx?: number | null
   heightPx?: number | null
   maxWidthVw?: number
+  anchor?: string
   positioning?: 'absolute' | string
   leftPx?: number
   topPx?: number
@@ -270,14 +271,58 @@ export interface FittedCardLayout extends CardLayout {
   maxHeightPx?: number
 }
 
+/**
+ * Desktop widths skip the compact shrink, but the right step rail still sits in the gutter.
+ * If the card's right edge enters that gutter, slide it left. Shrink only when a slide
+ * would push it past the left pad.
+ */
+function clearCardOfRightRail(
+  layout: CardLayout & { leftPx?: number; topPx?: number; widthPx?: number; heightPx?: number | null },
+  stageWidthPx: number,
+): FittedCardLayout {
+  const pad = CARD_STAGE_EDGE_PADDING_PX
+  const limitRight = stageWidthPx - CARD_STAGE_RIGHT_GUTTER_PX
+  let widthPx = (layout.widthPx ?? DEFAULT_CARD_LAYOUT.widthPx) as number
+  const leftPx = layout.leftPx ?? 0
+
+  if (leftPx + widthPx <= limitRight) {
+    return layout as FittedCardLayout
+  }
+
+  const shiftedLeft = limitRight - widthPx
+  const topPx = layout.topPx ?? 0
+  if (shiftedLeft >= pad) {
+    return {
+      ...layout,
+      positioning: 'absolute',
+      leftPx: Math.round(shiftedLeft),
+      topPx,
+      widthPx,
+    }
+  }
+
+  widthPx = Math.max(CARD_MIN_WIDTH_PX, limitRight - pad)
+  return {
+    ...layout,
+    positioning: 'absolute',
+    leftPx: pad,
+    topPx,
+    widthPx: Math.round(widthPx),
+  }
+}
+
 /** Keep floating story card inside sticky tour stage on compact widths (tablet). */
 export function fitCardLayoutToStage(
   layout: CardLayout & { leftPx?: number; topPx?: number; widthPx?: number; heightPx?: number | null },
   stageWidthPx: number,
   stageHeightPx: number,
 ): FittedCardLayout {
-  if (stageWidthPx <= 0 || !isCompactTourStage(stageWidthPx)) {
+  if (stageWidthPx <= 0) {
     return layout as FittedCardLayout
+  }
+
+  if (!isCompactTourStage(stageWidthPx)) {
+    return clearCardOfRightRail(layout, stageWidthPx)
   }
 
   const pad = CARD_STAGE_EDGE_PADDING_PX
@@ -542,6 +587,17 @@ function interpolateAbsoluteCardLayouts(
 }
 
 export const HERO_REST_PROGRESS_EPSILON = 0.005
+
+/** Map scrollTop to 0–1 using first/last tour panel snap positions. */
+export function computeTourProgressFromRange(
+  scrollTop: number,
+  startScrollTop: number,
+  endScrollTop: number,
+): number {
+  const span = endScrollTop - startScrollTop
+  if (span <= 0) return 0
+  return clamp((scrollTop - startScrollTop) / span, 0, 1)
+}
 
 export interface HeroExitState {
   heroActive: boolean

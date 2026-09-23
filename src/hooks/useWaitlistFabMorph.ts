@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type TransitionEvent as ReactTransitionEvent,
+} from 'react'
 import {
   cloneRect,
   getSettledTriggerRect,
@@ -31,7 +38,7 @@ export interface UseWaitlistFabMorphReturn {
   storedOrigin: MorphRect | null
   targetRect: MorphRect
   startClose: () => void
-  handleShellTransitionEnd: (event: TransitionEvent) => void
+  handleShellTransitionEnd: (event: ReactTransitionEvent<HTMLElement>) => void
 }
 
 export default function useWaitlistFabMorph({
@@ -131,7 +138,7 @@ export default function useWaitlistFabMorph({
   }, [clearCloseTimer, onCloseComplete])
 
   const handleShellTransitionEnd = useCallback(
-    (event: TransitionEvent) => {
+    (event: ReactTransitionEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget) return
       if (event.propertyName !== MORPH_COMPLETION_PROPERTY) return
       if (!isMorphShellTransitionProperty(event.propertyName)) return

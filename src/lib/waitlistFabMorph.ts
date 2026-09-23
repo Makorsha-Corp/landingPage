@@ -49,6 +49,22 @@ export interface MorphRect {
   bottom?: number
 }
 
+export interface MorphMeta {
+  label?: string
+  variant?: string
+  face?: 'rainbow' | 'button'
+  borderRadius?: string | number
+  travelBg?: string
+}
+
+export function formatMorphOriginRadius(
+  value: string | number | undefined,
+  fallback: string = MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
+): string {
+  if (value == null) return fallback
+  return typeof value === 'number' ? `${value}px` : value
+}
+
 export interface ViewportLike {
   innerWidth: number
   innerHeight: number

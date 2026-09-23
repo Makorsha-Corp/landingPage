@@ -1,14 +1,9 @@
 import type { CSSProperties } from 'react'
 import TourStoryPointsList from './TourStoryPointsList'
-
-interface TourStop {
-  desc?: string
-  desc2?: string
-  points?: string[]
-}
+import type { StoryCopyStop } from './tourStoryTypes'
 
 interface TourMobileCondensedBodyProps {
-  stop?: TourStop | null
+  stop?: StoryCopyStop | null
   descCls?: string
   stagger?: boolean
 }

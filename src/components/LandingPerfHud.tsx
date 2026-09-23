@@ -3,10 +3,7 @@ import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useLandingPerf } from '../context/LandingPerfContext'
 import { formatLandingPerfReport } from '../lib/landingPerfReport'
-
-interface TourMetrics {
-  heroTransitionT: number
-}
+import type { TourMetrics } from '../hooks/useTourCamera'
 
 function readTourMetrics(tourMetricsRef: RefObject<TourMetrics | null> | undefined): TourMetrics {
   return tourMetricsRef?.current ?? { heroTransitionT: 0 }

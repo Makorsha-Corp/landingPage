@@ -1,21 +1,12 @@
 import { useCallback, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import usePricingCardViewportBudget from '../../hooks/usePricingCardViewportBudget'
+import type { PricingTier } from '../../lib/pricingTiers'
 import PricingTierCard from './PricingTierCard'
 import PricingTierSwitcher from './PricingTierSwitcher'
 
 const DEFAULT_INDEX = 1
 const SWIPE_THRESHOLD_PX = 48
-
-interface PricingTier {
-  name: string
-  price: string
-  period?: string
-  description: string
-  features: string[]
-  cta: string
-  highlighted?: boolean
-}
 
 interface PointerStart {
   x: number

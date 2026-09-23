@@ -1,15 +1,9 @@
 import { memo } from 'react'
 import TourStoryPointsList from './TourStoryPointsList'
-
-interface TourStop {
-  title: string
-  desc?: string
-  desc2?: string
-  points?: string[]
-}
+import type { StoryCopyStop } from './tourStoryTypes'
 
 interface TourStoryCardBodyProps {
-  stop?: TourStop | null
+  stop?: StoryCopyStop | null
   titleCls?: string
   descCls?: string
   className?: string

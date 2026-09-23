@@ -10,6 +10,7 @@ import {
   computeTourFrame,
   fitCardLayoutToStage,
   HERO_REST_PROGRESS_EPSILON,
+  computeTourProgressFromRange,
   layoutHeroCardFromDomRect,
   DEFAULT_CARD_HEIGHT_PX,
   DEFAULT_TOUR_TRANSITION_SPEED,
@@ -68,7 +69,7 @@ interface ContentState {
   phase?: CardCopyPhase
 }
 
-interface TourMetrics {
+export interface TourMetrics {
   heroTransitionT: number
   displayHeroExitT?: number
 }
@@ -105,6 +106,7 @@ interface UseTourCameraOptions {
   isMobile?: boolean
   mobileCameraPanMode?: boolean
   overlayPaused?: boolean
+  getTourScrollRangeRef?: MutableRefObject<(() => { start: number; end: number } | null) | null>
 }
 
 interface UseTourCameraReturn {
@@ -149,6 +151,7 @@ export default function useTourCamera({
   isMobile = false,
   mobileCameraPanMode = false,
   overlayPaused = false,
+  getTourScrollRangeRef,
 }: UseTourCameraOptions): UseTourCameraReturn {
   const progressRef = useRef(0)
   const displayHeroExitTRef = useRef(0)
@@ -327,8 +330,20 @@ export default function useTourCamera({
     lastScrollAtRef.current = lastTime
 
     const readProgress = (): number => {
+      const range = getTourScrollRangeRef?.current?.() ?? null
+      if (range && range.end > range.start) {
+        return computeTourProgressFromRange(scroller.scrollTop, range.start, range.end)
+      }
       const scrollable = tour.offsetHeight - scroller.clientHeight
       return scrollable > 0 ? clamp(scroller.scrollTop / scrollable, 0, 1) : 0
+    }
+
+    const resyncProgress = (): void => {
+      if (overlayPausedRef.current) return
+      progressRef.current = readProgress()
+      updateHeroExit(progressRef.current)
+      dirtyRef.current = true
+      kickRafRef.current?.()
     }
 
     const getCardBoundsEl = (): HTMLElement | null => cardBoundsRef?.current ?? stageRef.current
@@ -1238,9 +1253,15 @@ export default function useTourCamera({
     scroller.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
 
+    const layoutRo = new ResizeObserver(() => {
+      resyncProgress()
+    })
+    layoutRo.observe(tour)
+
     return () => {
       scroller.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+      layoutRo.disconnect()
       if (raf) cancelAnimationFrame(raf)
       kickRafRef.current = null
       syncTourDomRef.current = () => {}

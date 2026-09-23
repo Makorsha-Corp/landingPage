@@ -7,6 +7,7 @@ import {
   iconTileMd,
   marketingCard,
 } from '../../lib/loginSurfaceStyles'
+import type { PricingTier } from '../../lib/pricingTiers'
 
 export const HIGHLIGHT_BADGE = 'Most benefits'
 
@@ -32,16 +33,6 @@ const MOBILE_HERO_ICON_TILE =
   'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white'
 
 type ButtonVariant = 'marketing' | 'outline' | 'heroGlass'
-
-interface PricingTier {
-  name: string
-  price: string
-  period?: string
-  description: string
-  features: string[]
-  cta: string
-  highlighted?: boolean
-}
 
 interface PresentationStyles {
   shell: (tier: PricingTier, layoutOffset: boolean) => string

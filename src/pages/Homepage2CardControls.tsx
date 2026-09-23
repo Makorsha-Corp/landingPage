@@ -1,13 +1,7 @@
 import type { ChangeEvent, CSSProperties } from 'react'
+import type { CardLayout } from '../lib/tourScrollMath'
 
-export interface CardLayout {
-  x?: string | number
-  y?: string | number
-  widthPx?: number | null
-  heightPx?: number | null
-  maxWidthVw?: number | null
-  anchor?: string
-}
+export type { CardLayout }
 
 export type CardPosition = NormalizedCard
 

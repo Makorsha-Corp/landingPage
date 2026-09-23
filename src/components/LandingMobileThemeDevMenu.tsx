@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '../context/ThemeContext'
 import { navIconButtonClass } from '../lib/navChrome'
-import { cn } from '../lib/cn'
+import { cn } from '@/lib/utils'
 import DevToolsPopover from './DevToolsPopover'
 import ShareFeedbackButton from './ShareFeedbackButton'
 

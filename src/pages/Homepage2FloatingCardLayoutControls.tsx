@@ -7,19 +7,8 @@ import {
   normalizeCard,
   type CardLayout,
 } from './Homepage2CardControls'
+import type { TourStop } from '../lib/homepageContentExport'
 import Homepage2StoryCardTextFields from './Homepage2StoryCardTextFields'
-
-interface TourStop {
-  id?: string
-  title: string
-  desc?: string
-  desc2?: string
-  points?: string[]
-  fx: number
-  fy: number
-  scale: number
-  card?: CardLayout
-}
 
 interface Homepage2FloatingCardLayoutControlsProps {
   boundsRef: RefObject<HTMLElement | null>

@@ -1,10 +1,11 @@
-import { forwardRef, useRef, useImperativeHandle } from 'react'
+import type { RefObject } from 'react'
 import { RainbowButton, type RainbowButtonProps } from '@/components/ui/rainbow-button'
 import { cn } from '@/lib/utils'
 import useLandingMotion from '../../hooks/useLandingMotion'
 import type { MorphRect } from '../../lib/waitlistFabMorph'
 
 export interface WaitlistMobileNavSignUpProps {
+  ref?: RefObject<HTMLButtonElement | null>
   visible?: boolean
   morphing?: boolean
   variant?: RainbowButtonProps['variant']
@@ -12,50 +13,47 @@ export interface WaitlistMobileNavSignUpProps {
   className?: string
 }
 
-const WaitlistMobileNavSignUp = forwardRef<HTMLButtonElement, WaitlistMobileNavSignUpProps>(
-  function WaitlistMobileNavSignUp(
-    { visible = true, morphing = false, variant = 'brand', onClick, className = '' },
-    ref,
-  ) {
-    const { reducedMotion } = useLandingMotion()
-    const buttonRef = useRef<HTMLButtonElement>(null)
+export default function WaitlistMobileNavSignUp({
+  ref,
+  visible = true,
+  morphing = false,
+  variant = 'brand',
+  onClick,
+  className = '',
+}: WaitlistMobileNavSignUpProps) {
+  const { reducedMotion } = useLandingMotion()
 
-    useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement)
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    const node = ref?.current ?? event.currentTarget
+    const rect = node?.getBoundingClientRect?.() ?? null
+    onClick?.(rect as MorphRect | null, node)
+  }
 
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
-      const node = buttonRef.current ?? event.currentTarget
-      const rect = node?.getBoundingClientRect?.() ?? null
-      onClick?.(rect as MorphRect | null, node)
-    }
+  if (!visible && !morphing) return null
 
-    if (!visible && !morphing) return null
-
-    return (
-      <div
-        data-waitlist-fab-wrap=""
-        className={cn(
-          'relative shrink-0 origin-center transition-opacity duration-300 ease-out',
-          !reducedMotion && visible && 'animate-waitlist-nav-signup-enter',
-          morphing && 'pointer-events-none opacity-0',
-          !morphing && visible && 'opacity-100',
-          className,
-        )}
-        aria-hidden={morphing ? true : undefined}
+  return (
+    <div
+      data-waitlist-fab-wrap=""
+      className={cn(
+        'relative shrink-0 origin-center transition-opacity duration-300 ease-out',
+        !reducedMotion && visible && 'animate-waitlist-nav-signup-enter',
+        morphing && 'pointer-events-none opacity-0',
+        !morphing && visible && 'opacity-100',
+        className,
+      )}
+      aria-hidden={morphing ? true : undefined}
+    >
+      <RainbowButton
+        ref={ref}
+        type="button"
+        variant={variant}
+        size="sm"
+        className="h-9 shrink-0 rounded-full px-3.5 text-xs sm:text-sm"
+        aria-label="Sign up for the waitlist"
+        onClick={handleClick}
       >
-        <RainbowButton
-          ref={buttonRef}
-          type="button"
-          variant={variant}
-          size="sm"
-          className="h-9 shrink-0 rounded-full px-3.5 text-xs sm:text-sm"
-          aria-label="Sign up for the waitlist"
-          onClick={handleClick}
-        >
-          Sign Up
-        </RainbowButton>
-      </div>
-    )
-  },
-)
-
-export default WaitlistMobileNavSignUp
+        Sign Up
+      </RainbowButton>
+    </div>
+  )
+}

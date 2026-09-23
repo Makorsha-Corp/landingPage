@@ -38,8 +38,11 @@ export function getStoryCardStyles(theme: string): StoryCardStyles {
       desc: 'text-muted-foreground',
     }
   }
+  // Tour story shell — keep aligned with STORY_LIGHT_GLASS_SHELL in heroCardStyles.ts
+  const lightGlassShell =
+    'border-white/60 bg-white/75 text-foreground backdrop-blur-md ring-1 ring-black/5 shadow-black/10'
   return {
-    card: 'border-white/60 bg-white/75 text-foreground backdrop-blur-md ring-1 ring-black/5 shadow-black/10',
+    card: lightGlassShell,
     glass: 'bg-white/75 text-foreground backdrop-blur-md',
     title: 'text-foreground',
     desc: 'text-muted-foreground',

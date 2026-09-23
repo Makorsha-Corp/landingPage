@@ -7,6 +7,7 @@ import {
 } from '../../lib/heroCardStyles'
 import TourMobileCondensedBody from './TourMobileCondensedBody'
 import TourMobileProgressDots from './TourMobileProgressDots'
+import type { StoryCopyStop } from './tourStoryTypes'
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -15,14 +16,6 @@ function clamp(value: number, min: number, max: number): number {
 /** Collapsed strip: title row + chevron + hint of body. */
 const MOBILE_PEEK_HEIGHT_PX = 168
 
-interface TourStop {
-  id?: string
-  title: string
-  desc?: string
-  desc2?: string
-  points?: string[]
-}
-
 interface PointerStart {
   y: number
   id: number
@@ -30,7 +23,7 @@ interface PointerStart {
 }
 
 interface TourMobileFloatingCardBodyProps {
-  stop: TourStop
+  stop: StoryCopyStop
   theme: string
   activeIndex: number
   stopCount: number
@@ -258,7 +251,7 @@ interface TourMobileFloatingCardProps {
   wrapRef: RefObject<HTMLDivElement | null>
   copyRef: RefObject<HTMLDivElement | null>
   scrollDrivenEnter?: boolean
-  stop: TourStop
+  stop: StoryCopyStop
   theme: string
   activeIndex: number
   stopCount: number

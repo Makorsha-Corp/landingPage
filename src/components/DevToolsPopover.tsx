@@ -768,7 +768,7 @@ export default function DevToolsPopover({
   return (
     <>
       {showTrigger ? (
-        <span ref={internalButtonRef} className="inline-flex">
+        <span ref={buttonRef} className="inline-flex">
           <Button
             type="button"
             variant="navGhost"

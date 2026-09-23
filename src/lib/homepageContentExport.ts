@@ -7,6 +7,7 @@ import {
   type BackdropOpacity,
 } from './homepageWash'
 import { normalizeCard } from '../pages/Homepage2CardControls'
+import type { CardLayout } from './tourScrollMath'
 
 const LAST_EXPORT_KEY = 'homepage2-last-export'
 
@@ -18,13 +19,7 @@ function stableEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-export interface CardLayout {
-  x: string
-  y: string
-  widthPx: number
-  heightPx: number | null
-  maxWidthVw: number
-}
+export type { CardLayout }
 
 export interface MobileCamera {
   fx: number
@@ -36,13 +31,13 @@ export interface TourStop {
   id: string
   title: string
   desc: string
-  desc2: string
-  points: string[]
+  desc2?: string
+  points?: string[]
   fx: number
   fy: number
   scale: number
   card: CardLayout
-  mobileCamera: MobileCamera | null
+  mobileCamera?: MobileCamera | null
 }
 
 export interface HeroCopy {
@@ -84,7 +79,7 @@ interface RawStop {
   fx: number
   fy: number
   scale: number
-  card?: Partial<CardLayout> | { x?: string | number; y?: string | number; widthPx?: number | null; heightPx?: number | null; maxWidthVw?: number | null }
+  card?: Partial<CardLayout> | null
   mobileCamera?: MobileCamera | null
 }
 
@@ -98,7 +93,7 @@ function normalizeStop(stop: RawStop): TourStop {
     fx: stop.fx,
     fy: stop.fy,
     scale: stop.scale,
-    card: normalizeCard(stop.card) as CardLayout,
+    card: normalizeCard(stop.card as CardLayout | null | undefined),
     mobileCamera: stop.mobileCamera
       ? {
           fx: stop.mobileCamera.fx,
@@ -186,7 +181,7 @@ function formatCard(card: CardLayout): string {
 }
 
 function formatStop(stop: TourStop): string {
-  const points = stop.points.map((point) => `      ${jsString(point)},`).join('\n')
+  const points = (stop.points ?? []).map((point) => `      ${jsString(point)},`).join('\n')
   const mobileCameraLine = stop.mobileCamera
     ? `\n    mobileCamera: ${formatMobileCamera(stop.mobileCamera)},`
     : ''
@@ -212,7 +207,7 @@ function formatStopFieldPatch(stop: TourStop, fields: StopField[]): string {
   const lines = [`// ${stop.id} — patch in DEFAULT_STOPS`]
   for (const field of fields) {
     if (field === 'points') {
-      const points = stop.points.map((point) => `      ${jsString(point)},`).join('\n')
+      const points = (stop.points ?? []).map((point) => `      ${jsString(point)},`).join('\n')
       lines.push(`points: [\n${points}\n    ],`)
       continue
     }

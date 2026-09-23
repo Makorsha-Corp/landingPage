@@ -13,6 +13,8 @@ import {
   MORPH_EXPAND_DURATION_MS,
   MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
   resolveTravelBg,
+  formatMorphOriginRadius,
+  type MorphMeta,
   type MorphRect,
 } from '../../lib/waitlistFabMorph'
 import { cn } from '@/lib/utils'
@@ -20,14 +22,6 @@ import FabMorphFace from './FabMorphFace'
 import WaitlistDialogLayout from './WaitlistDialogLayout'
 import WaitlistForm from './WaitlistForm'
 import WaitlistSuccess from './WaitlistSuccess'
-
-export interface MorphMeta {
-  label?: string
-  variant?: string
-  face?: 'rainbow' | 'button'
-  borderRadius?: string | number
-  travelBg?: string
-}
 
 const DEFAULT_MORPH_META: MorphMeta = {
   label: 'Sign Up',
@@ -179,7 +173,10 @@ export default function WaitlistModal({
 
   const resolvedTarget = targetRect ?? getWaitlistModalTargetRect()
   const resolvedOrigin = storedOrigin ?? originRect
-  const originRadius = (resolvedMorphMeta.borderRadius ?? MORPH_DEFAULT_ORIGIN_BORDER_RADIUS) as string
+  const originRadius = formatMorphOriginRadius(
+    resolvedMorphMeta.borderRadius,
+    MORPH_DEFAULT_ORIGIN_BORDER_RADIUS,
+  )
   const shellStyle = useMorph
     ? getMorphShellStyle(resolvedOrigin, resolvedTarget, collapsed, reducedMotion, {
         collapsing: isCollapsing,
@@ -264,7 +261,7 @@ export default function WaitlistModal({
         )}
         style={shellStyle ?? undefined}
         aria-hidden={!showDialog}
-        onTransitionEnd={(e) => handleShellTransitionEnd(e.nativeEvent)}
+        onTransitionEnd={handleShellTransitionEnd}
       >
         <FabMorphFace
           visible={faceVisible}

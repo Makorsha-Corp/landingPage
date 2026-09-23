@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 import Button from '../components/ui/Button'
+import type { TourStop as CameraTourStop } from '../lib/tourScrollMath'
 
 export interface CameraPosition {
   fx: number
@@ -84,15 +85,9 @@ export function normalizeHeroMobileCamera(camera: Partial<CameraPosition> | null
   return normalizeCamera(camera, HERO_CAMERA_LIMITS, DEFAULT_HERO_MOBILE_CAMERA)
 }
 
-interface TourStop {
-  fx: number
-  fy: number
-  scale: number
-}
-
 export function normalizeTourCamera(
   camera: Partial<CameraPosition> | null | undefined,
-  stop: TourStop,
+  stop: Pick<CameraTourStop, 'fx' | 'fy' | 'scale'>,
 ): CameraPosition {
   return normalizeCamera(
     camera ?? { fx: stop?.fx, fy: stop?.fy, scale: stop?.scale },

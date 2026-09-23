@@ -1,13 +1,4 @@
-interface TourStop {
-  id?: string
-  title: string
-  desc?: string
-  desc2?: string
-  points?: string[]
-  fx: number
-  fy: number
-  scale: number
-}
+import type { TourStop } from '../lib/homepageContentExport'
 
 interface Homepage2StoryCardTextFieldsProps {
   stop: TourStop

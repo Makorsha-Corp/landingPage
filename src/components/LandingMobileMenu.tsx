@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent }
 import { createPortal } from 'react-dom'
 import { navActiveSectionClass, navLinkClass } from '../lib/navChrome'
 import useIsMobileTour from '../hooks/useIsMobileTour'
-import { cn } from '../lib/cn'
+import { cn } from '@/lib/utils'
 
 const SWIPE_THRESHOLD_PX = 48
 const DISMISS_CLICK_GUARD_MS = 450

@@ -22,10 +22,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    /* JS interop for incremental migration */
-    "allowJs": true,
-    "checkJs": false,
-
     /* Path alias */
     "paths": {
       "@/*": ["./src/*"]

@@ -18,7 +18,14 @@ import LandingPostTourSections from '../components/LandingPostTourSections'
 import WaitlistFab from '../components/waitlist/WaitlistFab'
 import WaitlistMobileNavSignUp from '../components/waitlist/WaitlistMobileNavSignUp'
 import WaitlistModal from '../components/waitlist/WaitlistModal'
-import { clearWaitlistMorphOrigin, getOriginChrome, markWaitlistMorphOrigin, resolveTravelBg, type MorphRect } from '../lib/waitlistFabMorph'
+import {
+  clearWaitlistMorphOrigin,
+  getOriginChrome,
+  markWaitlistMorphOrigin,
+  resolveTravelBg,
+  type MorphMeta,
+  type MorphRect,
+} from '../lib/waitlistFabMorph'
 import Homepage2HeroOverlay, {
   HeroBadge,
   HeroBodyParagraphs,
@@ -411,19 +418,11 @@ function RightBar({ theme, stops, activeIndex, onJump, onStepPrev, onStepNext }:
   )
 }
 
-interface WaitlistMorphMeta {
-  label: string
-  variant: string
-  face: 'rainbow' | 'button'
-  borderRadius?: string
-  travelBg?: string
-}
-
 interface OriginChrome {
   borderRadius?: string
 }
 
-const WAITLIST_RAINBOW_META: WaitlistMorphMeta = { label: 'Sign Up', variant: 'brand', face: 'rainbow' }
+const WAITLIST_RAINBOW_META: MorphMeta = { label: 'Sign Up', variant: 'brand', face: 'rainbow' }
 
 export default function Home() {
   const { theme } = useTheme()
@@ -478,7 +477,7 @@ export default function Home() {
   const [waitlistSource, setWaitlistSource] = useState('waitlist_section')
   const [waitlistModalOpen, setWaitlistModalOpen] = useState(false)
   const [waitlistOriginRect, setWaitlistOriginRect] = useState<MorphRect | null>(null)
-  const [waitlistMorphMeta, setWaitlistMorphMeta] = useState<WaitlistMorphMeta | null>(null)
+  const [waitlistMorphMeta, setWaitlistMorphMeta] = useState<MorphMeta | null>(null)
   const [featureOverlayOpen, setFeatureOverlayOpen] = useState(false)
   const [rainbowColorPreset, setRainbowColorPreset] = useState(DEFAULT_RAINBOW_COLOR_PRESET)
   const [heroOverlayScrimStrength, setHeroOverlayScrimStrength] = useState<ScrimStrength>(
@@ -570,6 +569,25 @@ export default function Home() {
     enabled: !reducedMotion,
   })
 
+  const heroPanelCount = 1
+  const totalPanels = heroPanelCount + stops.length
+  const lastTourPanelIndex = totalPanels - 1
+
+  const getTourScrollRangeRef = useRef<(() => { start: number; end: number } | null)>(() => null)
+  getTourScrollRangeRef.current = () => {
+    const scroller = scrollerRef.current
+    const firstPanel = tourPanelRefs.current[0]
+    const lastPanel = tourPanelRefs.current[lastTourPanelIndex]
+    if (!scroller || !firstPanel || !lastPanel) return null
+    const scrollerRect = scroller.getBoundingClientRect()
+    const scrollTopFor = (panel: HTMLDivElement) =>
+      scroller.scrollTop + panel.getBoundingClientRect().top - scrollerRect.top
+    const start = scrollTopFor(firstPanel)
+    const end = scrollTopFor(lastPanel)
+    if (end <= start) return null
+    return { start, end }
+  }
+
   const { activeIndex, heroActive, contentStopIndex, heroExitAdvanced, heroExiting, tourMetricsRef, syncTourDomRef } = useTourCamera({
     scrollerRef,
     tourRef,
@@ -602,6 +620,7 @@ export default function Home() {
     isMobile: isMobileTour,
     mobileCameraPanMode,
     overlayPaused: featureOverlayOpen,
+    getTourScrollRangeRef,
   })
 
   useEffect(() => {
@@ -642,9 +661,6 @@ export default function Home() {
   const waitlistFabVisible =
     !editMode && !featureOverlayOpen && !heroActive && !isMobileTour
 
-  const heroPanelCount = 1
-  const totalPanels = heroPanelCount + stops.length
-  const lastTourPanelIndex = totalPanels - 1
   const TOUR_END_THRESHOLD = 32
 
   const activeStop = stops[activeIndex]
@@ -688,8 +704,27 @@ export default function Home() {
   useLayoutEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return undefined
-    return runLandingScrollerMountReset(scroller)
-  }, [])
+
+    const syncSnapHeight = (): void => {
+      const height = scroller.clientHeight
+      if (height > 0) {
+        scroller.style.setProperty('--landing-snap-h', `${height}px`)
+      }
+    }
+
+    syncSnapHeight()
+    const snapHeightRo = new ResizeObserver(syncSnapHeight)
+    snapHeightRo.observe(scroller)
+
+    const cleanupReset = runLandingScrollerMountReset(scroller, {
+      onSettled: () => syncTourDomRef.current?.(),
+    })
+
+    return () => {
+      snapHeightRo.disconnect()
+      cleanupReset()
+    }
+  }, [syncTourDomRef])
 
   const getLastTourPanelScrollTop = useCallback(
     () => getTourPanelScrollTop(lastTourPanelIndex),
@@ -760,14 +795,14 @@ export default function Home() {
   const openWaitlist = useCallback((
     source = 'waitlist_section',
     rect: MorphRect | null = null,
-    meta: WaitlistMorphMeta | null = null,
+    meta: MorphMeta | null = null,
     triggerEl: HTMLElement | null = null
   ) => {
     clearWaitlistMorphOrigin()
 
     const baseMeta = meta ?? WAITLIST_RAINBOW_META
     const originChrome: OriginChrome = triggerEl ? getOriginChrome(triggerEl) : {}
-    const resolvedMeta: WaitlistMorphMeta = {
+    const resolvedMeta: MorphMeta = {
       ...baseMeta,
       borderRadius: originChrome.borderRadius ?? baseMeta.borderRadius,
       travelBg: baseMeta.travelBg ?? resolveTravelBg(baseMeta),

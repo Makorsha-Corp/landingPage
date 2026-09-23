@@ -10,6 +10,10 @@ import { originFromMouseEvent, runThemeTransition, type TransitionOrigin } from 
 
 export type Theme = 'light' | 'dark'
 
+function parseStoredTheme(value: string | null): Theme {
+  return value === 'light' || value === 'dark' ? value : 'light'
+}
+
 export interface ThemeContextValue {
   theme: Theme
   iconAnimating: boolean
@@ -33,8 +37,7 @@ export interface ThemeProviderProps {
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('marker-theme')
-      return (savedTheme as Theme) || 'light'
+      return parseStoredTheme(localStorage.getItem('marker-theme'))
     }
     return 'light'
   })

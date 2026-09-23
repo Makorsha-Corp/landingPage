@@ -1,9 +1,4 @@
-interface PricingTier {
-  name: string
-  price: string
-  period?: string
-  highlighted?: boolean
-}
+import type { PricingTier } from '../../lib/pricingTiers'
 
 interface PricingTierSwitcherProps {
   tiers: PricingTier[]

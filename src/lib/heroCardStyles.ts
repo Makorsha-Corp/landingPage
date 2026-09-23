@@ -1,19 +1,23 @@
-import { getStoryCardStyles } from './storyCardStyles'
-
 const CARD_SHELL_BASE =
   'relative w-full max-w-none text-center rounded-none p-5 sm:p-7 md:mx-auto md:max-w-[640px] md:rounded-2xl'
 
-/** Shared dark tour glass — story cards only; hero uses lighter fill below. */
-const DARK_TOUR_GLASS_SHELL =
-  'border border-border/70 bg-card/90 text-card-foreground backdrop-blur-md'
-
+/** Hero — over scrim + blur building. */
 const HERO_DARK_GLASS_SHELL =
-  'bg-card/95 text-card-foreground backdrop-blur-md md:border md:border-border/70'
+  'bg-card/75 text-card-foreground backdrop-blur-md md:border md:border-border/70'
 
+/** Story — over sharp building, no scrim; lower fill + lighter blur for perceived parity with hero. */
+const STORY_DARK_GLASS_SHELL =
+  'border border-border/70 bg-card/90 text-card-foreground backdrop-blur-sm'
+
+/** Story — over sharp building, no scrim. Keep in sync with storyCardStyles light card. */
+const STORY_LIGHT_GLASS_SHELL =
+  'border-white/60 bg-white/75 text-foreground backdrop-blur-md ring-1 ring-black/5 shadow-black/10'
+
+/** Hero — over scrim + blur building; always-on chrome for mobile parity with story. */
 const HERO_LIGHT_GLASS_SHELL =
-  'bg-white/55 text-foreground backdrop-blur-md md:border md:border-white/60 md:ring-1 md:ring-inset md:ring-black/5 md:shadow-black/10'
+  'bg-white/75 text-foreground backdrop-blur-md border border-white/60 ring-1 ring-inset ring-black/5 shadow-black/10'
 
-/** Hero overlay glass — slightly more transparent than story cards. */
+/** Hero overlay glass — tuned separately from story for perceived see-through parity. */
 const HERO_CARD_SHELL: Record<string, string> = {
   dark: `${CARD_SHELL_BASE} ${HERO_DARK_GLASS_SHELL}`,
   light: `${CARD_SHELL_BASE} ${HERO_LIGHT_GLASS_SHELL}`,
@@ -57,16 +61,16 @@ export function getHeroCardShellClasses(theme: string = 'dark'): string {
   return `${HERO_CARD_SHELL[themeKey(theme)]} tour-glass-shell isolate ${edgeClass}`
 }
 
-/** Same glass fill/blur as hero shell — for tour story cards (desktop + mobile). */
+/** Story tour glass — desktop + mobile story cards. */
 export function getHeroMatchedGlassClasses(theme: string = 'dark'): string {
   return getTourStoryCardShellClasses(theme)
 }
 
 export function getTourStoryCardShellClasses(theme: string = 'dark'): string {
   if (themeKey(theme) === 'dark') {
-    return DARK_TOUR_GLASS_SHELL
+    return STORY_DARK_GLASS_SHELL
   }
-  return getStoryCardStyles('light').card
+  return STORY_LIGHT_GLASS_SHELL
 }
 
 export interface TourStoryCardTextClasses {
@@ -74,12 +78,11 @@ export interface TourStoryCardTextClasses {
   desc: string
 }
 
-/** Left-aligned tour story copy — matches hero text opacities. */
-export function getTourStoryCardTextClasses(theme: string = 'dark'): TourStoryCardTextClasses {
-  const text = HERO_CARD_TEXT[themeKey(theme)]
+/** Left-aligned tour story copy — desc keeps muted color, `.text-tour-story-desc` bumps weight. */
+export function getTourStoryCardTextClasses(_theme: string = 'dark'): TourStoryCardTextClasses {
   return {
-    title: text.title || 'text-foreground',
-    desc: text.body,
+    title: 'text-foreground',
+    desc: 'text-muted-foreground text-tour-story-desc',
   }
 }
 
