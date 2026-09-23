@@ -29,6 +29,7 @@ interface TourMobileFloatingCardBodyProps {
   stopCount: number
   containerRef: RefObject<HTMLElement | null>
   stageRef: RefObject<HTMLElement | null>
+  scrollerRef: RefObject<HTMLElement | null>
   copyRef: RefObject<HTMLDivElement | null>
   scrollDrivenEnter?: boolean
 }
@@ -40,14 +41,16 @@ function TourMobileFloatingCardBody({
   stopCount,
   containerRef,
   stageRef,
+  scrollerRef,
   copyRef,
   scrollDrivenEnter = false,
 }: TourMobileFloatingCardBodyProps) {
-  const { availablePx } = useMobileTourCopySpace(containerRef, stageRef)
+  const { availablePx } = useMobileTourCopySpace({ containerRef, stageRef, scrollerRef })
   const glassCls = getTourStoryCardShellClasses(theme)
   const { title: titleCls, desc: descCls } = getTourStoryCardTextClasses(theme)
 
   const contentRef = useRef<HTMLDivElement>(null)
+  const dragSurfaceRef = useRef<HTMLDivElement>(null)
   const pointerStartRef = useRef<PointerStart | null>(null)
   const liftStartRef = useRef<number>(0)
   const dragGestureRef = useRef<boolean>(false)
@@ -58,8 +61,14 @@ function TourMobileFloatingCardBody({
   const [isDragging, setIsDragging] = useState(false)
 
   // availablePx = max expand ceiling (stay below building); peek = fixed collapsed strip.
+  const reliableAvailablePx =
+    availablePx >= MOBILE_PEEK_HEIGHT_PX
+      ? availablePx
+      : contentHeight > 0
+        ? contentHeight
+        : MOBILE_PEEK_HEIGHT_PX
   const expandCeilingPx =
-    availablePx > 0 ? availablePx : contentHeight > 0 ? contentHeight : MOBILE_PEEK_HEIGHT_PX
+    availablePx > 0 ? reliableAvailablePx : contentHeight > 0 ? contentHeight : MOBILE_PEEK_HEIGHT_PX
   const peekHeightPx = Math.min(MOBILE_PEEK_HEIGHT_PX, expandCeilingPx)
   const expandedCapPx = Math.min(contentHeight, expandCeilingPx)
   const maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
@@ -111,6 +120,19 @@ function TourMobileFloatingCardBody({
   useEffect(() => {
     setLiftPx(0)
   }, [stop.id])
+
+  useEffect(() => {
+    return () => {
+      const surface = dragSurfaceRef.current
+      const start = pointerStartRef.current
+      if (surface && start && surface.hasPointerCapture(start.id)) {
+        surface.releasePointerCapture(start.id)
+      }
+      pointerStartRef.current = null
+      dragGestureRef.current = false
+      suppressClickRef.current = false
+    }
+  }, [])
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!canLift) return
@@ -186,7 +208,10 @@ function TourMobileFloatingCardBody({
     >
       <div ref={copyRef} style={{ opacity: 0, willChange: 'opacity, transform' }}>
         <div
-          ref={contentRef}
+          ref={(node) => {
+            contentRef.current = node
+            dragSurfaceRef.current = node
+          }}
           className={`px-4 pb-4 pt-4 ${dragSurfaceCls}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -257,6 +282,7 @@ interface TourMobileFloatingCardProps {
   stopCount: number
   containerRef: RefObject<HTMLElement | null>
   stageRef: RefObject<HTMLElement | null>
+  scrollerRef: RefObject<HTMLElement | null>
 }
 
 // Copy opacity starts at 0; glass shell stays at opacity 1 so backdrop-blur compositing works.

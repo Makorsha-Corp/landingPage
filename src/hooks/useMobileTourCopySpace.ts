@@ -1,7 +1,8 @@
-import { useCallback, useLayoutEffect, useState, type RefObject } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 
 const GAP_PX = 12
 const MIN_BOTTOM_INSET_PX = 16
+const MEASURE_EPSILON_PX = 1
 
 function readBottomInsetPx(): number {
   if (typeof document === 'undefined') return MIN_BOTTOM_INSET_PX
@@ -21,12 +22,21 @@ export interface MobileTourCopySpace {
   sceneBottomPx: number
 }
 
-export default function useMobileTourCopySpace(
-  containerRef: RefObject<HTMLElement | null>,
-  stageRef: RefObject<HTMLElement | null>,
-  enabled: boolean = true,
-): MobileTourCopySpace {
+export interface UseMobileTourCopySpaceOptions {
+  containerRef: RefObject<HTMLElement | null>
+  stageRef: RefObject<HTMLElement | null>
+  scrollerRef?: RefObject<HTMLElement | null>
+  enabled?: boolean
+}
+
+export default function useMobileTourCopySpace({
+  containerRef,
+  stageRef,
+  scrollerRef,
+  enabled = true,
+}: UseMobileTourCopySpaceOptions): MobileTourCopySpace {
   const [space, setSpace] = useState<MobileTourCopySpace>({ availablePx: 0, sceneBottomPx: 0 })
+  const lastMeasuredRef = useRef<MobileTourCopySpace>({ availablePx: 0, sceneBottomPx: 0 })
 
   const measure = useCallback(() => {
     const containerEl = containerRef?.current
@@ -40,6 +50,15 @@ export default function useMobileTourCopySpace(
       containerEl.clientHeight - sceneBottomPx - bottomInsetPx - GAP_PX,
     )
 
+    const last = lastMeasuredRef.current
+    if (
+      Math.abs(last.availablePx - availablePx) < MEASURE_EPSILON_PX &&
+      Math.abs(last.sceneBottomPx - sceneBottomPx) < MEASURE_EPSILON_PX
+    ) {
+      return
+    }
+
+    lastMeasuredRef.current = { availablePx, sceneBottomPx }
     setSpace({ availablePx, sceneBottomPx })
   }, [containerRef, stageRef, enabled])
 
@@ -52,16 +71,37 @@ export default function useMobileTourCopySpace(
     const stageEl = stageRef?.current
     if (!containerEl || !stageEl) return undefined
 
+    let settleRaf1 = 0
+    let settleRaf2 = 0
+    settleRaf1 = requestAnimationFrame(() => {
+      measure()
+      settleRaf2 = requestAnimationFrame(measure)
+    })
+
     const observer = new ResizeObserver(measure)
     observer.observe(containerEl)
     observer.observe(stageEl)
     window.addEventListener('resize', measure)
 
+    const scroller = scrollerRef?.current
+    let scrollRaf = 0
+    const onScroll = (): void => {
+      if (!scrollRaf) scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0
+        measure()
+      })
+    }
+    scroller?.addEventListener('scroll', onScroll, { passive: true })
+
     return () => {
+      cancelAnimationFrame(settleRaf1)
+      cancelAnimationFrame(settleRaf2)
+      if (scrollRaf) cancelAnimationFrame(scrollRaf)
       observer.disconnect()
       window.removeEventListener('resize', measure)
+      scroller?.removeEventListener('scroll', onScroll)
     }
-  }, [containerRef, stageRef, enabled, measure])
+  }, [containerRef, stageRef, scrollerRef, enabled, measure])
 
   return space
 }

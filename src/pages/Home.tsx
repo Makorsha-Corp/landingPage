@@ -1509,6 +1509,7 @@ export default function Home() {
               stopCount={stops.length}
               containerRef={tourStageRef}
               stageRef={stageRef}
+              scrollerRef={scrollerRef}
             />
           ) : null}
 
