@@ -15,6 +15,52 @@ function clamp(value: number, min: number, max: number): number {
 
 /** Collapsed strip: title row + chevron + hint of body. */
 const MOBILE_PEEK_HEIGHT_PX = 168
+/** Minimum expand travel on tap/drag — avoids chevron vanishing with ~0px lift. */
+const MIN_MEANINGFUL_LIFT_PX = 64
+
+interface MobileCardLiftMetrics {
+  expandCeilingPx: number
+  peekHeightPx: number
+  expandedCapPx: number
+  maxLiftPx: number
+  canLift: boolean
+}
+
+function computeMobileCardLiftMetrics(
+  contentHeight: number,
+  availablePx: number,
+): MobileCardLiftMetrics {
+  const reliableAvailablePx =
+    availablePx >= MOBILE_PEEK_HEIGHT_PX
+      ? availablePx
+      : contentHeight > 0
+        ? contentHeight
+        : MOBILE_PEEK_HEIGHT_PX
+  const expandCeilingPx =
+    availablePx > 0 ? reliableAvailablePx : contentHeight > 0 ? contentHeight : MOBILE_PEEK_HEIGHT_PX
+  const expandedCapPx =
+    contentHeight > 0 ? Math.min(contentHeight, expandCeilingPx) : expandCeilingPx
+
+  let peekHeightPx = Math.min(MOBILE_PEEK_HEIGHT_PX, expandedCapPx)
+  let maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
+
+  if (maxLiftPx > 0 && maxLiftPx < MIN_MEANINGFUL_LIFT_PX) {
+    peekHeightPx = Math.min(
+      MOBILE_PEEK_HEIGHT_PX,
+      expandedCapPx,
+      Math.max(Math.floor(expandedCapPx * 0.38), expandedCapPx - MIN_MEANINGFUL_LIFT_PX),
+    )
+    maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
+  }
+
+  return {
+    expandCeilingPx,
+    peekHeightPx,
+    expandedCapPx,
+    maxLiftPx,
+    canLift: maxLiftPx > 0,
+  }
+}
 
 interface PointerStart {
   y: number
@@ -60,19 +106,10 @@ function TourMobileFloatingCardBody({
   const [liftPx, setLiftPx] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-  // availablePx = max expand ceiling (stay below building); peek = fixed collapsed strip.
-  const reliableAvailablePx =
-    availablePx >= MOBILE_PEEK_HEIGHT_PX
-      ? availablePx
-      : contentHeight > 0
-        ? contentHeight
-        : MOBILE_PEEK_HEIGHT_PX
-  const expandCeilingPx =
-    availablePx > 0 ? reliableAvailablePx : contentHeight > 0 ? contentHeight : MOBILE_PEEK_HEIGHT_PX
-  const peekHeightPx = Math.min(MOBILE_PEEK_HEIGHT_PX, expandCeilingPx)
-  const expandedCapPx = Math.min(contentHeight, expandCeilingPx)
-  const maxLiftPx = Math.max(0, expandedCapPx - peekHeightPx)
-  const canLift = maxLiftPx > 0
+  const { peekHeightPx, expandedCapPx, maxLiftPx, canLift } = computeMobileCardLiftMetrics(
+    contentHeight,
+    availablePx,
+  )
   const effectiveLiftPx = clamp(liftPx, 0, maxLiftPx)
   const visibleHeight =
     contentHeight > 0
@@ -80,6 +117,8 @@ function TourMobileFloatingCardBody({
       : peekHeightPx
   const isFullyLifted = canLift && effectiveLiftPx >= maxLiftPx - 2
   const showLiftChevron = canLift && !isFullyLifted
+  const isContentClipped = contentHeight > expandedCapPx + 2
+  const needsBodyScroll = isFullyLifted && isContentClipped
 
   const toggleLift = useCallback(() => {
     if (!canLift) return
@@ -104,7 +143,7 @@ function TourMobileFloatingCardBody({
   const measureContent = useCallback(() => {
     const el = contentRef.current
     if (!el) return
-    setContentHeight(el.offsetHeight)
+    setContentHeight(Math.max(el.offsetHeight, el.scrollHeight))
   }, [])
 
   useLayoutEffect(() => {
@@ -187,7 +226,7 @@ function TourMobileFloatingCardBody({
   }
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    if (!canLift) return
+    if (!canLift || needsBodyScroll) return
     event.preventDefault()
     setLiftPx((prev) => clamp(prev - event.deltaY, 0, maxLiftPx))
   }
@@ -206,64 +245,65 @@ function TourMobileFloatingCardBody({
       }}
       onWheel={handleWheel}
     >
-      <div ref={copyRef} style={{ opacity: 0, willChange: 'opacity, transform' }}>
-        <div
-          ref={(node) => {
-            contentRef.current = node
-            dragSurfaceRef.current = node
-          }}
-          className={`px-4 pb-4 pt-4 ${dragSurfaceCls}`}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
-        >
-        <div className="flex items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1">
-            {canLift ? (
-              <button
-                type="button"
-                data-tour-mobile-toggle
-                onClick={handleToggleClick}
-                aria-expanded={isFullyLifted}
-                aria-label={isFullyLifted ? 'Show less' : 'Show more'}
-                className={`min-w-0 text-left text-xl font-bold leading-snug tracking-tight ${titleCls}`}
-              >
-                {stop.title}
-              </button>
-            ) : (
-              <h2 className={`min-w-0 text-xl font-bold leading-snug tracking-tight ${titleCls}`}>
-                {stop.title}
-              </h2>
-            )}
-            {showLiftChevron ? (
-              <button
-                type="button"
-                aria-label="Show more"
-                data-tour-mobile-toggle
-                onClick={handleToggleClick}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary"
-              >
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-bounce"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                </svg>
-              </button>
-            ) : null}
+      <div ref={copyRef} className="flex min-h-0 flex-1 flex-col" style={{ opacity: 0, willChange: 'opacity, transform' }}>
+        <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">
+          <div
+            ref={dragSurfaceRef}
+            className={`shrink-0 px-4 pt-4 ${dragSurfaceCls}`}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                {canLift ? (
+                  <button
+                    type="button"
+                    data-tour-mobile-toggle
+                    onClick={handleToggleClick}
+                    aria-expanded={isFullyLifted}
+                    aria-label={isFullyLifted ? 'Show less' : 'Show more'}
+                    className={`min-w-0 text-left text-xl font-bold leading-snug tracking-tight ${titleCls}`}
+                  >
+                    {stop.title}
+                  </button>
+                ) : (
+                  <h2 className={`min-w-0 text-xl font-bold leading-snug tracking-tight ${titleCls}`}>
+                    {stop.title}
+                  </h2>
+                )}
+                {showLiftChevron ? (
+                  <button
+                    type="button"
+                    aria-label="Show more"
+                    data-tour-mobile-toggle
+                    onClick={handleToggleClick}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4 animate-bounce"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
+              <div className="shrink-0 self-center" data-tour-mobile-no-drag>
+                <TourMobileProgressDots count={stopCount} activeIndex={activeIndex} />
+              </div>
+            </div>
           </div>
-          <div className="shrink-0 self-center" data-tour-mobile-no-drag>
-            <TourMobileProgressDots count={stopCount} activeIndex={activeIndex} />
+          <div
+            className={`px-4 pb-4 pt-2 ${needsBodyScroll ? 'min-h-0 flex-1 overflow-y-auto overscroll-y-contain' : ''}`}
+          >
+            <TourMobileCondensedBody stop={stop} descCls={descCls} />
           </div>
-        </div>
-        <div className="mt-2">
-          <TourMobileCondensedBody stop={stop} descCls={descCls} />
-        </div>
         </div>
       </div>
     </div>
