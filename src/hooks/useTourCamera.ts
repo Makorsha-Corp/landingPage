@@ -530,7 +530,6 @@ export default function useTourCamera({
       smoothedCard: SmoothedCard,
       contentState: ContentState,
       effectiveCard: FittedCardLayout | null,
-      reversingToHero: boolean = false,
       scrollIdle: boolean = false,
     ): void => {
       if (stageRef.current) {
@@ -630,19 +629,6 @@ export default function useTourCamera({
             heroCardShellRef.current,
             copyPhase.heroOpacity <= HERO_GLASS_BLUR_CUTOFF,
           )
-        } else if (!isMobile && exitCrossfade && reversingToHero) {
-          const copyPhase = computeHeroExitCopyPhase(frame.displayHeroExitT)
-          setOpacityIfChanged(
-            heroCardShellRef.current,
-            'heroCardShellOp',
-            copyPhase.heroOpacity,
-          )
-          setCompositorHiddenIfChanged(
-            heroCardShellRef.current,
-            'heroCardShell',
-            copyPhase.heroOpacity <= 0.01,
-          )
-          setGlassBlurOffIfChanged(heroCardShellRef.current, false)
         } else {
           setCompositorHiddenIfChanged(heroCardShellRef.current, 'heroCardShell', true)
           setGlassBlurOffIfChanged(heroCardShellRef.current, true)
@@ -655,16 +641,6 @@ export default function useTourCamera({
           frame.heroActive && frame.heroTextOpacity > 0.05,
         )
       }
-      if (storyCardInnerRef.current) {
-        setOpacityIfChanged(storyCardInnerRef.current, 'cardInner', 1)
-      }
-      if (storyCardWrapperRef?.current) {
-        setCompositorHiddenIfChanged(
-          storyCardWrapperRef.current,
-          'cardWrap',
-          frame.heroActive && !handoffActive,
-        )
-      }
       if (storyCardContentShellRef?.current) {
         const contentShellOpacity = editMode || !frame.heroActive || handoffActive ? 1 : 0
         setOpacityIfChanged(
@@ -672,6 +648,13 @@ export default function useTourCamera({
           'cardShellContent',
           contentShellOpacity,
         )
+      }
+      if (editMode && storyCardWrapperRef?.current) {
+        const wrapTransformKey = 'cardWrap:transform'
+        if (lastDomRef.current[wrapTransformKey] != null) {
+          lastDomRef.current[wrapTransformKey] = null
+          storyCardWrapperRef.current.style.removeProperty('transform')
+        }
       }
       if (editMode && storyCardInnerRef.current) {
         const transformKey = 'cardInner:transform'
@@ -691,14 +674,9 @@ export default function useTourCamera({
         const wrapperStyle = getStoryCardAbsoluteWrapperStyle(displayCard)
         setStyleIfChanged('cardWrap', storyCardWrapperRef.current, 'left', '0px')
         setStyleIfChanged('cardWrap', storyCardWrapperRef.current, 'top', '0px')
-        setStyleIfChanged('cardWrap', storyCardWrapperRef.current, 'transform', '')
+        setStyleIfChanged('cardWrap', storyCardWrapperRef.current, 'transform', wrapperStyle.transform)
         if (storyCardInnerRef.current) {
-          setStyleIfChanged(
-            'cardInner',
-            storyCardInnerRef.current,
-            'transform',
-            wrapperStyle.transform,
-          )
+          clearStyleIfSet('cardInner', storyCardInnerRef.current, 'transform')
           const sizeStyle = getStoryCardInnerSizeStyle(displayCard, stageWidthPx)
           setStyleIfChanged('cardInner', storyCardInnerRef.current, 'width', sizeStyle.width)
           setStyleIfChanged('cardInner', storyCardInnerRef.current, 'maxWidth', sizeStyle.maxWidth)
@@ -788,8 +766,7 @@ export default function useTourCamera({
           const storyCopyTransform = `translate3d(0, ${copyPhase.storyOffsetY}px, 0)`
 
           if (storyCardHeroCopyRef?.current) {
-            const heroCopyOpacity =
-              !isMobile && reversingToHero ? 0 : copyPhase.heroOpacity
+            const heroCopyOpacity = copyPhase.heroOpacity
             setOpacityIfChanged(
               storyCardHeroCopyRef.current,
               'heroCardCopy',
@@ -837,6 +814,18 @@ export default function useTourCamera({
             setStyleIfChanged('cardCopy', storyCardCopyRef.current, 'transform', copyTransform)
           }
         }
+      }
+
+      if (
+        !isMobile &&
+        !editMode &&
+        storyCardWrapperRef?.current &&
+        storyCardInnerRef.current
+      ) {
+        const hideForHeroRest = frame.heroActive && !handoffActive
+        setGlassBlurOffIfChanged(storyCardInnerRef.current, hideForHeroRest)
+        setOpacityIfChanged(storyCardInnerRef.current, 'cardInner', 1)
+        setCompositorHiddenIfChanged(storyCardWrapperRef.current, 'cardWrap', hideForHeroRest)
       }
 
       if (mobileCardWrapRef?.current || mobileCardCopyRef?.current) {
@@ -1131,7 +1120,6 @@ export default function useTourCamera({
         smoothedCard,
         contentState,
         effectiveCard,
-        reversingToHero,
         scrollIdle,
       )
       syncReactState(frame, contentState.wantedStopIndex)

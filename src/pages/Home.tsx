@@ -1409,7 +1409,7 @@ export default function Home() {
 
           <div
             ref={storyCardWrapperRef}
-            className={`pointer-events-none absolute left-0 top-0 is-compositor-hidden ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10'}`}
+            className={`pointer-events-none absolute left-0 top-0 is-compositor-hidden ${isMobileTour ? 'hidden' : 'block'} ${editMode ? 'z-40' : 'z-10 will-change-transform'}`}
             style={
               editMode
                 ? {
@@ -1423,8 +1423,8 @@ export default function Home() {
             <div
               ref={storyCardInnerRef}
               className={`pointer-events-auto tour-glass-shell isolate rounded-2xl ${tourStoryShellCls} ${
-                editMode ? 'ring-2 ring-primary/50' : 'will-change-transform p-6'
-              } ${editMode ? 'overflow-hidden' : ''}`}
+                editMode ? 'ring-2 ring-primary/50 overflow-hidden' : 'p-6'
+              }`}
               style={
                 editMode
                   ? {
